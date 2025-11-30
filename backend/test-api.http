@@ -1,0 +1,46 @@
+### Health Check
+GET http://localhost:5000/health
+
+### Sign Up (Create Account)
+POST http://localhost:5000/api/auth/signup
+Content-Type: application/json
+
+{
+  "email": "test4@agency.com",
+  "password": "TestPassword123",
+  "agency_name": "My Test Agency"
+}
+
+### Login
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test4@agency.com",
+  "password": "TestPassword123"
+}
+
+### Create Campaign
+POST http://localhost:5000/api/campaigns
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IkdKMnJ4VVVaZktUL0hQVXciLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2VkZmR6eXR1c21janV3aGp4dHduLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI0YzQxYjZjZC1jMjcyLTQ1NjYtYmMyZC0yMzQ0ZjI5OGQ1MWIiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzYzNzQ1NzA0LCJpYXQiOjE3NjM3NDIxMDQsImVtYWlsIjoidGVzdDRAYWdlbmN5LmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiYWdlbmN5X25hbWUiOiJNeSBUZXN0IEFnZW5jeSIsImVtYWlsIjoidGVzdDRAYWdlbmN5LmNvbSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwicGhvbmVfdmVyaWZpZWQiOmZhbHNlLCJzdWIiOiI0YzQxYjZjZC1jMjcyLTQ1NjYtYmMyZC0yMzQ0ZjI5OGQ1MWIifSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJhYWwiOiJhYWwxIiwiYW1yIjpbeyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6MTc2Mzc0MjEwNH1dLCJzZXNzaW9uX2lkIjoiOWM0MTc4NDktM2EwNy00YWMyLTg5M2YtYjliMTc2YTJkMTQ5IiwiaXNfYW5vbnltb3VzIjpmYWxzZX0.gkYmrmAxX8P_ZU38rjy0MKP2W90UgsftyOShYgRI95M
+
+{
+  "brand_name": "EcoBottle",
+  "product_description": "Sustainable water bottle that filters as you drink",
+  "target_audience": {
+    "age": "18-35",
+    "interests": ["sustainability", "fitness", "health"]
+  },
+  "desired_emotion": "awe",
+  "budget_range": "$5,000",
+  "platform": "tiktok"
+}
+### Generate Viral Ideas
+POST http://localhost:5000/api/campaigns/d5062d29-ced7-42a5-988a-fd60833c3d51/generate
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsImtpZCI6IkdKMnJ4VVVaZktUL0hQVXciLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2VkZmR6eXR1c21janV3aGp4dHduLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI0YzQxYjZjZC1jMjcyLTQ1NjYtYmMyZC0yMzQ0ZjI5OGQ1MWIiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzYzNzQ1NzA0LCJpYXQiOjE3NjM3NDIxMDQsImVtYWlsIjoidGVzdDRAYWdlbmN5LmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiYWdlbmN5X25hbWUiOiJNeSBUZXN0IEFnZW5jeSIsImVtYWlsIjoidGVzdDRAYWdlbmN5LmNvbSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwicGhvbmVfdmVyaWZpZWQiOmZhbHNlLCJzdWIiOiI0YzQxYjZjZC1jMjcyLTQ1NjYtYmMyZC0yMzQ0ZjI5OGQ1MWIifSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJhYWwiOiJhYWwxIiwiYW1yIjpbeyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6MTc2Mzc0MjEwNH1dLCJzZXNzaW9uX2lkIjoiOWM0MTc4NDktM2EwNy00YWMyLTg5M2YtYjliMTc2YTJkMTQ5IiwiaXNfYW5vbnltb3VzIjpmYWxzZX0.gkYmrmAxX8P_ZU38rjy0MKP2W90UgsftyOShYgRI95M
+
+{
+  "number_of_ideas": 3
+}
