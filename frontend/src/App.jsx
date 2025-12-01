@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/authContext';
-import Login from './pages/Login';
+import Login from './pages/login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import NewCampaign from './pages/NewCampaign';
