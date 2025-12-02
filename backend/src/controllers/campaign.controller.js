@@ -5,10 +5,11 @@ export const getCampaigns = async (req, res) => {
   try {
     const userId = req.userId;
 
-    // Get all campaigns (not filtering by user_id since it's nullable now)
+    // Filter campaigns by user_id
     const { data: campaigns, error } = await supabaseAdmin
       .from('campaigns')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -31,7 +32,7 @@ export const getCampaigns = async (req, res) => {
       updated_at: campaign.updated_at
     }));
 
-    console.log('Returning campaigns:', formattedCampaigns.length, formattedCampaigns[0]); // Debug log
+    console.log('Returning campaigns for user:', userId, 'count:', formattedCampaigns.length);
 
     res.json({ campaigns: formattedCampaigns });
   } catch (error) {
@@ -44,6 +45,7 @@ export const getCampaigns = async (req, res) => {
 export const getCampaignById = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.userId;
 
     const { data: campaign, error } = await supabaseAdmin
       .from('campaigns')
@@ -52,6 +54,7 @@ export const getCampaignById = async (req, res) => {
         generated_ideas (*)
       `)
       .eq('id', id)
+      .eq('user_id', userId)
       .single();
 
     if (error) {
@@ -86,19 +89,19 @@ export const createCampaign = async (req, res) => {
     const userId = req.userId;
     const { name, description, targetAudience, aiProvider, outputFormats, brandName } = req.body;
 
-    console.log('Creating campaign for user:', userId); // Debug log
+    console.log('Creating campaign for user:', userId);
 
     // Validate input
     if (!name || !description || !targetAudience || !outputFormats || outputFormats.length === 0) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
-    // Create campaign
+    // Create campaign with user_id
     const { data: campaign, error } = await supabaseAdmin
       .from('campaigns')
       .insert([
         {
-          // user_id: userId, // Temporarily removed
+          user_id: userId,
           name: name,
           brand_name: brandName || name,
           product_description: description,
@@ -129,6 +132,7 @@ export const createCampaign = async (req, res) => {
 export const updateCampaign = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.userId;
     const { name, description, targetAudience, aiProvider, outputFormats } = req.body;
 
     const updateData = {};
@@ -143,6 +147,7 @@ export const updateCampaign = async (req, res) => {
       .from('campaigns')
       .update(updateData)
       .eq('id', id)
+      .eq('user_id', userId)
       .select()
       .single();
 
@@ -202,12 +207,14 @@ export const deleteCampaign = async (req, res) => {
 export const generateIdeas = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.userId;
 
-    // Get campaign details and media
+    // Get campaign details and verify ownership
     const { data: campaign, error: campaignError } = await supabaseAdmin
       .from('campaigns')
       .select('*')
       .eq('id', id)
+      .eq('user_id', userId)
       .single();
 
     if (campaignError || !campaign) {
@@ -260,12 +267,14 @@ export const generateIdeas = async (req, res) => {
 export const generateMarketingStrategy = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.userId;
 
-    // Get campaign details
+    // Get campaign details and verify ownership
     const { data: campaign, error: campaignError } = await supabaseAdmin
       .from('campaigns')
       .select('*')
       .eq('id', id)
+      .eq('user_id', userId)
       .single();
 
     if (campaignError || !campaign) {
