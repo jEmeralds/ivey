@@ -4,24 +4,151 @@ import { getCampaignById, generateIdeas, generateStrategy, getCampaignMedia } fr
 import { OUTPUT_FORMATS } from '../constants/outputFormats';
 import MediaUpload from '../components/MediaUpload';
 
+// Collapsible Section Component for Strategy
+const StrategySection = ({ title, content, icon, defaultOpen = false }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden mb-4">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-6 py-4 bg-gradient-to-r from-green-50 to-teal-50 flex items-center justify-between hover:from-green-100 hover:to-teal-100 transition-all"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{icon}</span>
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        </div>
+        <svg
+          className={`w-5 h-5 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className="px-6 py-4 bg-white">
+          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{content}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Parse strategy into sections
+const parseStrategy = (strategy) => {
+  if (!strategy) return [];
+  
+  const strategyText = typeof strategy === 'string' ? strategy : JSON.stringify(strategy, null, 2);
+  
+  // Common section patterns to look for
+  const sectionPatterns = [
+    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:1\.|•|-)?\s*(?:Executive Summary|Overview|Summary)/i, title: 'Executive Summary', icon: '📋' },
+    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:2\.|•|-)?\s*(?:Target Audience|Audience Analysis|Demographics)/i, title: 'Target Audience', icon: '🎯' },
+    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:3\.|•|-)?\s*(?:Key Messages|Messaging|Core Messages)/i, title: 'Key Messages', icon: '💬' },
+    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:4\.|•|-)?\s*(?:Content Strategy|Content Plan|Content)/i, title: 'Content Strategy', icon: '📝' },
+    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:5\.|•|-)?\s*(?:Channel Strategy|Channels|Distribution|Platform)/i, title: 'Channel Strategy', icon: '📢' },
+    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:6\.|•|-)?\s*(?:Timeline|Schedule|Campaign Timeline)/i, title: 'Timeline', icon: '📅' },
+    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:7\.|•|-)?\s*(?:Budget|Investment|Cost)/i, title: 'Budget', icon: '💰' },
+    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:8\.|•|-)?\s*(?:KPIs|Metrics|Success Metrics|Measurement)/i, title: 'Success Metrics', icon: '📊' },
+    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:9\.|•|-)?\s*(?:Recommendations|Next Steps|Action Items)/i, title: 'Recommendations', icon: '✅' },
+    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:10\.|•|-)?\s*(?:Viral Hooks|Hooks|Viral Elements)/i, title: 'Viral Hooks', icon: '🔥' },
+  ];
+
+  // Try to find sections in the strategy
+  const sections = [];
+  let remainingText = strategyText;
+  let foundSections = [];
+
+  // Find all section positions
+  sectionPatterns.forEach(({ pattern, title, icon }) => {
+    const match = strategyText.match(pattern);
+    if (match) {
+      foundSections.push({
+        title,
+        icon,
+        index: match.index,
+        matchLength: match[0].length
+      });
+    }
+  });
+
+  // Sort by position
+  foundSections.sort((a, b) => a.index - b.index);
+
+  // Extract content for each section
+  if (foundSections.length > 0) {
+    foundSections.forEach((section, i) => {
+      const startIndex = section.index + section.matchLength;
+      const endIndex = i < foundSections.length - 1 ? foundSections[i + 1].index : strategyText.length;
+      const content = strategyText.substring(startIndex, endIndex).trim();
+      
+      if (content.length > 10) { // Only add if there's meaningful content
+        sections.push({
+          title: section.title,
+          icon: section.icon,
+          content: content.replace(/^[:\s]+/, '') // Remove leading colons/spaces
+        });
+      }
+    });
+  }
+
+  // If no sections found, create a default structure
+  if (sections.length === 0) {
+    // Try to split by double newlines or numbered sections
+    const paragraphs = strategyText.split(/\n\n+/).filter(p => p.trim().length > 20);
+    
+    if (paragraphs.length > 1) {
+      const defaultIcons = ['📋', '🎯', '💬', '📝', '📢', '📅', '💰', '📊'];
+      const defaultTitles = ['Overview', 'Strategy Details', 'Key Points', 'Implementation', 'Channels', 'Timeline', 'Resources', 'Metrics'];
+      
+      paragraphs.forEach((para, i) => {
+        sections.push({
+          title: defaultTitles[i] || `Section ${i + 1}`,
+          icon: defaultIcons[i] || '📌',
+          content: para.trim()
+        });
+      });
+    } else {
+      // Single block - split into smaller chunks
+      sections.push({
+        title: 'Marketing Strategy',
+        icon: '📊',
+        content: strategyText
+      });
+    }
+  }
+
+  return sections;
+};
+
 const CampaignDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [campaign, setCampaign] = useState(null);
   const [generatedContent, setGeneratedContent] = useState([]);
   const [strategy, setStrategy] = useState(null);
+  const [strategySections, setStrategySections] = useState([]);
   const [media, setMedia] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [generatingStrategy, setGeneratingStrategy] = useState(false);
   const [error, setError] = useState('');
   const [selectedFormat, setSelectedFormat] = useState('all');
+  const [showAllStrategy, setShowAllStrategy] = useState(false);
 
   useEffect(() => {
-    setError(''); // Clear any stale errors
+    setError('');
     fetchCampaign();
     fetchMedia();
   }, [id]);
+
+  useEffect(() => {
+    if (strategy) {
+      setStrategySections(parseStrategy(strategy));
+    }
+  }, [strategy]);
 
   const fetchMedia = async () => {
     try {
@@ -35,11 +162,10 @@ const CampaignDetail = () => {
   const fetchCampaign = async () => {
     try {
       setLoading(true);
-      setError(''); // Clear any previous errors
+      setError('');
       const data = await getCampaignById(id);
       const rawCampaign = data.campaign;
       
-      // Ensure all fields are safe strings
       const safeCampaign = {
         id: String(rawCampaign.id || ''),
         name: String(rawCampaign.name || 'Untitled Campaign'),
@@ -70,17 +196,16 @@ const CampaignDetail = () => {
       const data = await generateStrategy(id);
       setStrategy(data.strategy);
     } catch (err) {
-      // Check if it's a 404 (endpoint not implemented yet)
       if (err.response?.status === 404) {
         let errorMessage = '';
         if (campaign?.ai_provider === 'claude') {
-          errorMessage = 'Strategy generation requires Anthropic (Claude) API credits. Please add credits to your Anthropic account to enable this feature.';
+          errorMessage = 'Strategy generation requires Anthropic (Claude) API credits.';
         } else if (campaign?.ai_provider === 'openai') {
-          errorMessage = 'Strategy generation requires OpenAI API credits. Please add credits to your OpenAI account to enable this feature.';
+          errorMessage = 'Strategy generation requires OpenAI API credits.';
         } else if (campaign?.ai_provider === 'gemini') {
-          errorMessage = 'Strategy generation requires a Google AI (Gemini) API key. Gemini offers a free tier - get your API key at ai.google.dev to enable this feature.';
+          errorMessage = 'Strategy generation requires a Google AI (Gemini) API key.';
         } else {
-          errorMessage = 'Strategy generation requires API credentials. Please configure your AI provider account.';
+          errorMessage = 'Strategy generation requires API credentials.';
         }
         setError(errorMessage);
       } else {
@@ -99,17 +224,16 @@ const CampaignDetail = () => {
       const data = await generateIdeas(id);
       setGeneratedContent(data.generatedContent || []);
     } catch (err) {
-      // Check if it's a 404 (endpoint not implemented yet)
       if (err.response?.status === 404) {
         let errorMessage = '';
         if (campaign?.ai_provider === 'claude') {
-          errorMessage = 'Content generation requires Anthropic (Claude) API credits. Please add credits to your Anthropic account to enable this feature.';
+          errorMessage = 'Content generation requires Anthropic (Claude) API credits.';
         } else if (campaign?.ai_provider === 'openai') {
-          errorMessage = 'Content generation requires OpenAI API credits. Please add credits to your OpenAI account to enable this feature.';
+          errorMessage = 'Content generation requires OpenAI API credits.';
         } else if (campaign?.ai_provider === 'gemini') {
-          errorMessage = 'Content generation requires a Google AI (Gemini) API key. Gemini offers a free tier - get your API key at ai.google.dev to enable this feature.';
+          errorMessage = 'Content generation requires a Google AI (Gemini) API key.';
         } else {
-          errorMessage = 'Content generation requires API credentials. Please configure your AI provider account.';
+          errorMessage = 'Content generation requires API credentials.';
         }
         setError(errorMessage);
       } else {
@@ -281,40 +405,74 @@ const CampaignDetail = () => {
           </div>
         )}
 
-        {/* Marketing Strategy Display */}
+        {/* Marketing Strategy Display - Collapsible Sections */}
         {strategy && (
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">📊 Marketing Strategy</h2>
-              <button
-                onClick={handleGenerateStrategy}
-                disabled={generatingStrategy}
-                className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-all"
-              >
-                {generatingStrategy ? 'Regenerating...' : '🔄 Regenerate'}
-              </button>
-            </div>
-
-            <div className="space-y-6">
-              <div className="bg-gradient-to-r from-green-50 to-teal-50 border-2 border-green-200 p-6 rounded-xl">
-                <p className="text-gray-700 text-lg leading-relaxed whitespace-pre-wrap">
-                  {typeof strategy === 'string' ? strategy : JSON.stringify(strategy, null, 2)}
-                </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowAllStrategy(!showAllStrategy)}
+                  className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all"
+                >
+                  {showAllStrategy ? '📖 Collapse All' : '📖 Expand All'}
+                </button>
+                <button
+                  onClick={handleGenerateStrategy}
+                  disabled={generatingStrategy}
+                  className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-all"
+                >
+                  {generatingStrategy ? 'Regenerating...' : '🔄 Regenerate'}
+                </button>
               </div>
             </div>
 
-            {generatedContent.length === 0 && (
-              <div className="mt-8 pt-8 border-t border-gray-200 text-center">
-                <p className="text-gray-600 mb-4">Ready to create content based on this strategy?</p>
+            {/* Strategy Sections */}
+            <div className="space-y-2">
+              {strategySections.length > 0 ? (
+                strategySections.map((section, index) => (
+                  <StrategySection
+                    key={index}
+                    title={section.title}
+                    content={section.content}
+                    icon={section.icon}
+                    defaultOpen={showAllStrategy || index === 0}
+                  />
+                ))
+              ) : (
+                <div className="bg-gradient-to-r from-green-50 to-teal-50 border-2 border-green-200 p-6 rounded-xl">
+                  <p className="text-gray-700 text-lg leading-relaxed whitespace-pre-wrap">
+                    {typeof strategy === 'string' ? strategy : JSON.stringify(strategy, null, 2)}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Copy Full Strategy Button */}
+            <div className="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center">
+              <button
+                onClick={() => {
+                  const fullStrategy = typeof strategy === 'string' ? strategy : JSON.stringify(strategy, null, 2);
+                  navigator.clipboard.writeText(fullStrategy);
+                }}
+                className="flex items-center gap-2 text-gray-600 hover:text-purple-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copy Full Strategy
+              </button>
+
+              {generatedContent.length === 0 && (
                 <button
                   onClick={handleGenerate}
                   disabled={generating}
-                  className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all shadow-lg"
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all shadow-lg"
                 >
                   {generating ? 'Generating...' : '🚀 Generate Content Now'}
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
 
@@ -329,9 +487,9 @@ const CampaignDetail = () => {
         {generatedContent.length > 0 && (
           <div>
             {/* Filter Buttons */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
               <h2 className="text-2xl font-bold text-gray-900">Generated Content</h2>
-              <div className="flex gap-2 overflow-x-auto">
+              <div className="flex gap-2 overflow-x-auto pb-2">
                 <button
                   onClick={() => setSelectedFormat('all')}
                   className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap ${

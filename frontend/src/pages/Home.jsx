@@ -34,7 +34,19 @@ const FeatureCard = ({ icon, title, desc }) => {
 
 const Home = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   const features = [
     {
@@ -74,15 +86,32 @@ const Home = () => {
       {/* Navigation */}
       <nav style={styles.nav}>
         <div style={styles.navContent}>
-          <h1 style={styles.logo}>🚀 IVey</h1>
+          <h1 style={styles.logo} onClick={() => navigate('/')} className="cursor-pointer">
+            🚀 IVey
+          </h1>
+          
+          {/* Center Links */}
+          <div style={styles.navCenter}>
+            <button onClick={() => scrollToSection('features')} style={styles.navLink}>
+              Features
+            </button>
+            <button onClick={() => scrollToSection('pricing')} style={styles.navLink}>
+              Pricing
+            </button>
+            <button onClick={() => scrollToSection('about')} style={styles.navLink}>
+              About
+            </button>
+          </div>
+
+          {/* Auth Buttons */}
           <div style={styles.navLinks}>
             {user ? (
               <>
                 <button onClick={() => navigate('/dashboard')} style={styles.navBtn}>
                   Dashboard
                 </button>
-                <button onClick={() => navigate('/campaigns/new')} style={styles.primaryBtn}>
-                  Create Campaign
+                <button onClick={handleLogout} style={styles.logoutBtn}>
+                  Logout
                 </button>
               </>
             ) : (
@@ -116,19 +145,102 @@ const Home = () => {
           >
             Get Started Free
           </button>
-          <button onClick={() => navigate('/login')} style={styles.heroSecondaryBtn}>
+          <button onClick={() => scrollToSection('features')} style={styles.heroSecondaryBtn}>
             View Demo
           </button>
         </div>
       </section>
 
       {/* Features Section */}
-      <section style={styles.features}>
+      <section id="features" style={styles.features}>
         <h2 style={styles.sectionTitle}>Everything You Need to Go Viral</h2>
         <div style={styles.featureGrid}>
           {features.map((feature, index) => (
             <FeatureCard key={index} {...feature} />
           ))}
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" style={styles.pricing}>
+        <h2 style={styles.sectionTitle}>Simple, Transparent Pricing</h2>
+        <div style={styles.pricingGrid}>
+          {/* Free Plan */}
+          <div style={styles.pricingCard}>
+            <h3 style={styles.pricingTitle}>Free</h3>
+            <div style={styles.pricingPrice}>$0<span style={styles.pricingPeriod}>/month</span></div>
+            <ul style={styles.pricingFeatures}>
+              <li>✓ 5 campaigns/month</li>
+              <li>✓ 3 AI generations/day</li>
+              <li>✓ Basic formats</li>
+              <li>✓ Community support</li>
+            </ul>
+            <button 
+              onClick={() => navigate('/signup')} 
+              style={styles.pricingBtn}
+            >
+              Get Started
+            </button>
+          </div>
+
+          {/* Pro Plan */}
+          <div style={{...styles.pricingCard, ...styles.pricingCardPro}}>
+            <div style={styles.popularBadge}>Most Popular</div>
+            <h3 style={styles.pricingTitle}>Pro</h3>
+            <div style={styles.pricingPrice}>$29<span style={styles.pricingPeriod}>/month</span></div>
+            <ul style={styles.pricingFeatures}>
+              <li>✓ Unlimited campaigns</li>
+              <li>✓ Unlimited generations</li>
+              <li>✓ All 13+ formats</li>
+              <li>✓ Priority support</li>
+              <li>✓ Team collaboration</li>
+            </ul>
+            <button 
+              onClick={() => navigate('/signup')} 
+              style={styles.pricingBtnPro}
+            >
+              Start Free Trial
+            </button>
+          </div>
+
+          {/* Enterprise Plan */}
+          <div style={styles.pricingCard}>
+            <h3 style={styles.pricingTitle}>Enterprise</h3>
+            <div style={styles.pricingPrice}>Custom</div>
+            <ul style={styles.pricingFeatures}>
+              <li>✓ Everything in Pro</li>
+              <li>✓ Custom AI models</li>
+              <li>✓ API access</li>
+              <li>✓ Dedicated support</li>
+              <li>✓ SLA guarantee</li>
+            </ul>
+            <button 
+              onClick={() => window.location.href = 'mailto:contact@ivey.com'} 
+              style={styles.pricingBtn}
+            >
+              Contact Sales
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section id="about" style={styles.about}>
+        <h2 style={styles.sectionTitle}>About IVey</h2>
+        <div style={styles.aboutContent}>
+          <p style={styles.aboutText}>
+            IVey is an AI-powered viral marketing platform designed to help marketing agencies, 
+            brands, and content creators generate high-converting marketing content at scale.
+          </p>
+          <p style={styles.aboutText}>
+            Our multi-AI approach combines the best of Claude, GPT-4, and Gemini to deliver 
+            diverse, creative, and engaging content across 13+ formats including TikTok scripts, 
+            Instagram captions, email campaigns, and more.
+          </p>
+          <p style={styles.aboutText}>
+            Founded in 2024, we're on a mission to democratize viral marketing and help 
+            businesses of all sizes create content that resonates with their audience.
+          </p>
         </div>
       </section>
 
@@ -152,10 +264,10 @@ const Home = () => {
             <p style={styles.footerTagline}>AI-Powered Viral Marketing</p>
           </div>
           <div style={styles.footerLinks}>
-            <a href="#" style={styles.footerLink}>About</a>
-            <a href="#" style={styles.footerLink}>Pricing</a>
-            <a href="#" style={styles.footerLink}>Contact</a>
-            <a href="#" style={styles.footerLink}>Privacy</a>
+            <button onClick={() => scrollToSection('features')} style={styles.footerLink}>Features</button>
+            <button onClick={() => scrollToSection('pricing')} style={styles.footerLink}>Pricing</button>
+            <button onClick={() => scrollToSection('about')} style={styles.footerLink}>About</button>
+            <a href="mailto:contact@ivey.com" style={styles.footerLink}>Contact</a>
           </div>
         </div>
         <div style={styles.footerBottom}>
@@ -175,6 +287,9 @@ const styles = {
     backgroundColor: '#1e293b',
     borderBottom: '1px solid #334155',
     padding: '16px 0',
+    position: 'sticky',
+    top: 0,
+    zIndex: 100,
   },
   navContent: {
     maxWidth: '1200px',
@@ -188,6 +303,20 @@ const styles = {
     color: '#fff',
     margin: 0,
     fontSize: '24px',
+    cursor: 'pointer',
+  },
+  navCenter: {
+    display: 'flex',
+    gap: '32px',
+  },
+  navLink: {
+    background: 'none',
+    border: 'none',
+    color: '#94a3b8',
+    fontSize: '14px',
+    cursor: 'pointer',
+    transition: 'color 0.2s',
+    padding: '8px 0',
   },
   navLinks: {
     display: 'flex',
@@ -201,6 +330,17 @@ const styles = {
     color: '#fff',
     cursor: 'pointer',
     fontSize: '14px',
+    transition: 'all 0.2s',
+  },
+  logoutBtn: {
+    padding: '10px 20px',
+    borderRadius: '8px',
+    border: '1px solid #ef4444',
+    backgroundColor: 'transparent',
+    color: '#ef4444',
+    cursor: 'pointer',
+    fontSize: '14px',
+    transition: 'all 0.2s',
   },
   primaryBtn: {
     padding: '10px 20px',
@@ -211,6 +351,7 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: 'bold',
+    transition: 'all 0.2s',
   },
   hero: {
     maxWidth: '900px',
@@ -251,6 +392,7 @@ const styles = {
     cursor: 'pointer',
     fontSize: '18px',
     fontWeight: 'bold',
+    transition: 'all 0.2s',
   },
   heroSecondaryBtn: {
     padding: '16px 32px',
@@ -260,6 +402,7 @@ const styles = {
     color: '#fff',
     cursor: 'pointer',
     fontSize: '18px',
+    transition: 'all 0.2s',
   },
   features: {
     maxWidth: '1200px',
@@ -313,6 +456,106 @@ const styles = {
     background: 'linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent)',
     animation: 'shine 0.6s',
   },
+  // Pricing styles
+  pricing: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '80px 32px',
+    backgroundColor: '#0f172a',
+  },
+  pricingGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '32px',
+    maxWidth: '1000px',
+    margin: '0 auto',
+  },
+  pricingCard: {
+    backgroundColor: '#1e293b',
+    padding: '40px 32px',
+    borderRadius: '16px',
+    border: '1px solid #334155',
+    textAlign: 'center',
+    position: 'relative',
+  },
+  pricingCardPro: {
+    border: '2px solid #3b82f6',
+    transform: 'scale(1.05)',
+  },
+  popularBadge: {
+    position: 'absolute',
+    top: '-12px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    backgroundColor: '#3b82f6',
+    color: '#fff',
+    padding: '4px 16px',
+    borderRadius: '20px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+  },
+  pricingTitle: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: '#fff',
+    margin: '0 0 16px 0',
+  },
+  pricingPrice: {
+    fontSize: '48px',
+    fontWeight: 'bold',
+    color: '#fff',
+    margin: '0 0 24px 0',
+  },
+  pricingPeriod: {
+    fontSize: '16px',
+    color: '#94a3b8',
+    fontWeight: 'normal',
+  },
+  pricingFeatures: {
+    listStyle: 'none',
+    padding: 0,
+    margin: '0 0 32px 0',
+    textAlign: 'left',
+  },
+  pricingBtn: {
+    width: '100%',
+    padding: '14px 24px',
+    borderRadius: '8px',
+    border: '1px solid #334155',
+    backgroundColor: 'transparent',
+    color: '#fff',
+    cursor: 'pointer',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    transition: 'all 0.2s',
+  },
+  pricingBtnPro: {
+    width: '100%',
+    padding: '14px 24px',
+    borderRadius: '8px',
+    border: 'none',
+    backgroundColor: '#3b82f6',
+    color: '#fff',
+    cursor: 'pointer',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    transition: 'all 0.2s',
+  },
+  // About styles
+  about: {
+    maxWidth: '800px',
+    margin: '0 auto',
+    padding: '80px 32px',
+  },
+  aboutContent: {
+    textAlign: 'center',
+  },
+  aboutText: {
+    fontSize: '18px',
+    color: '#94a3b8',
+    lineHeight: '1.8',
+    margin: '0 0 24px 0',
+  },
   cta: {
     maxWidth: '800px',
     margin: '0 auto',
@@ -339,6 +582,7 @@ const styles = {
     cursor: 'pointer',
     fontSize: '18px',
     fontWeight: 'bold',
+    transition: 'all 0.2s',
   },
   footer: {
     backgroundColor: '#1e293b',
@@ -367,11 +611,16 @@ const styles = {
   footerLinks: {
     display: 'flex',
     gap: '32px',
+    alignItems: 'center',
   },
   footerLink: {
     color: '#94a3b8',
     textDecoration: 'none',
     fontSize: '14px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'color 0.2s',
   },
   footerBottom: {
     maxWidth: '1200px',
