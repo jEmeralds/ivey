@@ -35,10 +35,12 @@ const FeatureCard = ({ icon, title, desc }) => {
 const Home = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/');
+    setMobileMenuOpen(false);
   };
 
   const scrollToSection = (sectionId) => {
@@ -46,6 +48,12 @@ const Home = () => {
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
+    setMobileMenuOpen(false);
+  };
+
+  const handleNavigate = (path) => {
+    navigate(path);
+    setMobileMenuOpen(false);
   };
 
   const features = [
@@ -86,12 +94,12 @@ const Home = () => {
       {/* Navigation */}
       <nav style={styles.nav}>
         <div style={styles.navContent}>
-          <h1 style={styles.logo} onClick={() => navigate('/')} className="cursor-pointer">
+          <h1 style={styles.logo} onClick={() => handleNavigate('/')}>
             🚀 IVey
           </h1>
           
-          {/* Center Links */}
-          <div style={styles.navCenter}>
+          {/* Desktop Navigation */}
+          <div style={styles.navCenter} className="desktop-nav">
             <button onClick={() => scrollToSection('features')} style={styles.navLink}>
               Features
             </button>
@@ -103,11 +111,11 @@ const Home = () => {
             </button>
           </div>
 
-          {/* Auth Buttons */}
-          <div style={styles.navLinks}>
+          {/* Desktop Auth Buttons */}
+          <div style={styles.navLinks} className="desktop-nav">
             {user ? (
               <>
-                <button onClick={() => navigate('/dashboard')} style={styles.navBtn}>
+                <button onClick={() => handleNavigate('/dashboard')} style={styles.navBtn}>
                   Dashboard
                 </button>
                 <button onClick={handleLogout} style={styles.logoutBtn}>
@@ -116,17 +124,88 @@ const Home = () => {
               </>
             ) : (
               <>
-                <button onClick={() => navigate('/login')} style={styles.navBtn}>
+                <button onClick={() => handleNavigate('/login')} style={styles.navBtn}>
                   Login
                 </button>
-                <button onClick={() => navigate('/signup')} style={styles.primaryBtn}>
+                <button onClick={() => handleNavigate('/signup')} style={styles.primaryBtn}>
                   Sign Up
                 </button>
               </>
             )}
           </div>
+
+          {/* Mobile Hamburger Button */}
+          <button 
+            style={styles.hamburger} 
+            className="mobile-nav"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? (
+              <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2">
+                <path d="M6 6l12 12M6 18L18 6" />
+              </svg>
+            ) : (
+              <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2">
+                <path d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
         </div>
+
+        {/* Mobile Menu Dropdown */}
+        {mobileMenuOpen && (
+          <div style={styles.mobileMenu} className="mobile-nav">
+            <button onClick={() => scrollToSection('features')} style={styles.mobileLink}>
+              Features
+            </button>
+            <button onClick={() => scrollToSection('pricing')} style={styles.mobileLink}>
+              Pricing
+            </button>
+            <button onClick={() => scrollToSection('about')} style={styles.mobileLink}>
+              About
+            </button>
+            <div style={styles.mobileDivider}></div>
+            {user ? (
+              <>
+                <button onClick={() => handleNavigate('/dashboard')} style={styles.mobileLink}>
+                  Dashboard
+                </button>
+                <button onClick={handleLogout} style={styles.mobileLinkRed}>
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => handleNavigate('/login')} style={styles.mobileLink}>
+                  Login
+                </button>
+                <button onClick={() => handleNavigate('/signup')} style={styles.mobileLinkPrimary}>
+                  Sign Up
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </nav>
+
+      {/* CSS for responsive behavior */}
+      <style>{`
+        .desktop-nav {
+          display: flex;
+        }
+        .mobile-nav {
+          display: none;
+        }
+        @media (max-width: 768px) {
+          .desktop-nav {
+            display: none !important;
+          }
+          .mobile-nav {
+            display: flex !important;
+          }
+        }
+      `}</style>
 
       {/* Hero Section */}
       <section style={styles.hero}>
@@ -352,6 +431,62 @@ const styles = {
     fontSize: '14px',
     fontWeight: 'bold',
     transition: 'all 0.2s',
+  },
+  // Mobile menu styles
+  hamburger: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mobileMenu: {
+    backgroundColor: '#1e293b',
+    borderTop: '1px solid #334155',
+    padding: '16px 32px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  mobileLink: {
+    background: 'none',
+    border: 'none',
+    color: '#94a3b8',
+    fontSize: '16px',
+    cursor: 'pointer',
+    padding: '12px 0',
+    textAlign: 'left',
+    transition: 'color 0.2s',
+  },
+  mobileLinkPrimary: {
+    background: '#3b82f6',
+    border: 'none',
+    color: '#fff',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    textAlign: 'center',
+    marginTop: '8px',
+  },
+  mobileLinkRed: {
+    background: 'none',
+    border: '1px solid #ef4444',
+    color: '#ef4444',
+    fontSize: '16px',
+    cursor: 'pointer',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    textAlign: 'center',
+    marginTop: '8px',
+  },
+  mobileDivider: {
+    height: '1px',
+    backgroundColor: '#334155',
+    margin: '8px 0',
   },
   hero: {
     maxWidth: '900px',
