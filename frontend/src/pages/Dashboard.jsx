@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
+import { useTheme } from '../context/ThemeContext';
 import { getCampaigns, deleteCampaign } from '../services/api';
 import Navbar from '../components/Navbar';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isDark } = useTheme();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,12 +48,12 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900">
+      <div className={`min-h-screen ${isDark ? 'bg-slate-900' : 'bg-gray-50'}`}>
         <Navbar />
         <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 64px)' }}>
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div>
-            <p className="mt-4 text-slate-400">Loading campaigns...</p>
+            <p className={`mt-4 ${isDark ? 'text-slate-400' : 'text-gray-600'}`}>Loading campaigns...</p>
           </div>
         </div>
       </div>
@@ -59,7 +61,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className={`min-h-screen ${isDark ? 'bg-slate-900' : 'bg-gray-50'}`}>
       {/* Shared Navbar */}
       <Navbar />
 
@@ -68,10 +70,10 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-2">
+            <h2 className={`text-3xl sm:text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>
               Welcome back, {user?.name || 'User'}! 👋
             </h2>
-            <p className="text-slate-400">Manage your viral marketing campaigns</p>
+            <p className={isDark ? 'text-slate-400' : 'text-gray-600'}>Manage your viral marketing campaigns</p>
           </div>
           <button
             onClick={() => navigate('/new-campaign')}
@@ -83,17 +85,17 @@ const Dashboard = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500 text-red-400 px-4 py-3 rounded-lg mb-6">
+          <div className={`${isDark ? 'bg-red-500/10 border-red-500 text-red-400' : 'bg-red-50 border-red-200 text-red-700'} border px-4 py-3 rounded-lg mb-6`}>
             {error}
           </div>
         )}
 
         {/* Campaigns Grid */}
         {campaigns.length === 0 ? (
-          <div className="bg-slate-800 rounded-2xl border border-slate-700 p-12 text-center">
+          <div className={`${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'} rounded-2xl border p-12 text-center`}>
             <div className="text-6xl mb-4">✨</div>
-            <h3 className="text-2xl font-bold text-white mb-2">No campaigns yet</h3>
-            <p className="text-slate-400 mb-6">Create your first viral marketing campaign to get started!</p>
+            <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>No campaigns yet</h3>
+            <p className={`${isDark ? 'text-slate-400' : 'text-gray-600'} mb-6`}>Create your first viral marketing campaign to get started!</p>
             <button
               onClick={() => navigate('/new-campaign')}
               className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg"
@@ -115,7 +117,7 @@ const Dashboard = () => {
               return (
                 <div
                   key={safeId}
-                  className="bg-slate-800 rounded-xl border border-slate-700 hover:border-slate-600 transition-all p-6 cursor-pointer group relative"
+                  className={`${isDark ? 'bg-slate-800 border-slate-700 hover:border-slate-600' : 'bg-white border-gray-200 hover:border-gray-300'} rounded-xl border transition-all p-6 cursor-pointer group relative`}
                   onClick={() => navigate(`/campaign/${safeId}`)}
                 >
                   {/* Action Buttons */}
@@ -125,7 +127,7 @@ const Dashboard = () => {
                         e.stopPropagation();
                         navigate(`/campaign/${safeId}/edit`);
                       }}
-                      className="text-slate-500 hover:text-blue-400 transition-colors"
+                      className={`${isDark ? 'text-slate-500 hover:text-blue-400' : 'text-gray-400 hover:text-blue-600'} transition-colors`}
                       title="Edit campaign"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,7 +139,7 @@ const Dashboard = () => {
                         e.stopPropagation();
                         handleDelete(safeId);
                       }}
-                      className="text-slate-500 hover:text-red-400 transition-colors"
+                      className={`${isDark ? 'text-slate-500 hover:text-red-400' : 'text-gray-400 hover:text-red-600'} transition-colors`}
                       title="Delete campaign"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -146,37 +148,39 @@ const Dashboard = () => {
                     </button>
                   </div>
 
-                  <h3 className="text-xl font-bold text-white group-hover:text-purple-400 transition-colors mb-3 pr-16">
+                  <h3 className={`text-xl font-bold ${isDark ? 'text-white group-hover:text-purple-400' : 'text-gray-900 group-hover:text-purple-600'} transition-colors mb-3 pr-16`}>
                     {safeName}
                   </h3>
 
-                  <p className="text-slate-400 text-sm mb-4 line-clamp-2">
+                  <p className={`${isDark ? 'text-slate-400' : 'text-gray-600'} text-sm mb-4 line-clamp-2`}>
                     {safeDescription}
                   </p>
 
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">Target:</span>
-                      <span className="text-xs font-medium text-slate-300 line-clamp-1">{safeTarget}</span>
+                      <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Target:</span>
+                      <span className={`text-xs font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'} line-clamp-1`}>{safeTarget}</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs pt-4 border-t border-slate-700">
+                  <div className={`flex items-center justify-between text-xs pt-4 border-t ${isDark ? 'border-slate-700' : 'border-gray-200'}`}>
                     <span className={`px-3 py-1 rounded-full font-medium ${
-                      safeProvider === 'claude' ? 'bg-purple-500/20 text-purple-400' :
-                      safeProvider === 'openai' ? 'bg-blue-500/20 text-blue-400' :
-                      'bg-green-500/20 text-green-400'
+                      safeProvider === 'claude' 
+                        ? (isDark ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-700')
+                        : safeProvider === 'openai' 
+                          ? (isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700')
+                          : (isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700')
                     }`}>
                       {safeProvider === 'claude' ? 'Claude' :
                        safeProvider === 'openai' ? 'OpenAI' :
                        'Gemini'}
                     </span>
-                    <span className="text-slate-500">
+                    <span className={isDark ? 'text-slate-500' : 'text-gray-500'}>
                       {safeFormatsCount} formats
                     </span>
                   </div>
 
-                  <div className="mt-3 text-xs text-slate-500">
+                  <div className={`mt-3 text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>
                     Created {safeDate}
                   </div>
                 </div>

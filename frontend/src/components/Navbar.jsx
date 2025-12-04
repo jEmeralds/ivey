@@ -1,271 +1,289 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
+import { useTheme } from '../context/ThemeContext';
+import Navbar from '../components/Navbar';
 
-const Navbar = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user, logout } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const isHomePage = location.pathname === '/';
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [location.pathname]);
-
-  // Close mobile menu on resize to desktop
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth > 768) {
-        setMobileMenuOpen(false);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Prevent body scroll when mobile menu is open
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [mobileMenuOpen]);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-    setMobileMenuOpen(false);
-  };
-
-  const scrollToSection = (sectionId) => {
-    setMobileMenuOpen(false);
-    if (!isHomePage) {
-      navigate('/');
-      setTimeout(() => {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 100);
-    } else {
-      const element = document.getElementById(sectionId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
-  };
-
-  const handleNavigate = (path) => {
-    setMobileMenuOpen(false);
-    navigate(path);
-  };
+const FeatureCard = ({ icon, title, desc, isDark }) => {
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <>
-      <nav className="bg-slate-800/95 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo - Always links to home */}
-            <button
-              onClick={() => {
-                navigate('/');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="flex items-center gap-2 text-white font-bold text-xl hover:opacity-90 transition-opacity cursor-pointer"
-            >
-              <img src="/vite.svg" alt="IVey" className="w-8 h-8" />
-              IVey
-            </button>
-            
-            {/* Desktop Navigation - All links on the right side */}
-            <div className="hidden md:flex items-center gap-6">
-              {/* Navigation Links */}
-              <button 
-                onClick={() => {
-                  navigate('/');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className={`transition-colors ${location.pathname === '/' ? 'text-white' : 'text-slate-400 hover:text-white'}`}
-              >
-                Home
-              </button>
-              <button 
-                onClick={() => scrollToSection('features')} 
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                Features
-              </button>
-              <button 
-                onClick={() => scrollToSection('pricing')} 
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                Pricing
-              </button>
-              <button 
-                onClick={() => scrollToSection('contact')} 
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                Contact
-              </button>
-
-              {/* Divider */}
-              <div className="h-6 w-px bg-slate-600"></div>
-
-              {/* Auth Buttons */}
-              {user ? (
-                <>
-                  <Link 
-                    to="/dashboard" 
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                      location.pathname === '/dashboard' 
-                        ? 'bg-purple-600 text-white' 
-                        : 'text-slate-300 hover:text-white hover:bg-slate-700'
-                    }`}
-                  >
-                    Dashboard
-                  </Link>
-                  <button 
-                    onClick={handleLogout} 
-                    className="px-4 py-2 text-red-400 hover:text-red-300 transition-colors"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link 
-                    to="/login" 
-                    className="text-slate-300 hover:text-white transition-colors"
-                  >
-                    Login
-                  </Link>
-                  <Link 
-                    to="/signup" 
-                    className="px-5 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all"
-                  >
-                    Sign Up
-                  </Link>
-                </>
-              )}
-            </div>
-
-            {/* Mobile Hamburger Button */}
-            <button 
-              className="md:hidden p-2 text-white hover:bg-slate-700 rounded-lg transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 md:hidden" style={{ top: '64px' }}>
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          
-          {/* Menu Panel */}
-          <div className="absolute top-0 left-0 right-0 bg-slate-800 border-b border-slate-700 shadow-2xl">
-            <div className="px-4 py-4 space-y-1">
-              {/* Navigation Links */}
-              <button 
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  location.pathname === '/' ? 'bg-slate-700 text-white' : 'text-slate-300 hover:bg-slate-700/50'
-                }`}
-              >
-                Home
-              </button>
-              <button 
-                onClick={() => scrollToSection('features')} 
-                className="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors"
-              >
-                Features
-              </button>
-              <button 
-                onClick={() => scrollToSection('pricing')} 
-                className="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors"
-              >
-                Pricing
-              </button>
-              <button 
-                onClick={() => scrollToSection('contact')} 
-                className="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors"
-              >
-                Contact
-              </button>
-              
-              {/* Divider */}
-              <div className="my-3 border-t border-slate-700" />
-              
-              {/* Auth Section */}
-              {user ? (
-                <>
-                  <Link 
-                    to="/dashboard"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`block px-4 py-3 rounded-lg transition-colors ${
-                      location.pathname === '/dashboard' ? 'bg-purple-600 text-white' : 'text-slate-300 hover:bg-slate-700/50'
-                    }`}
-                  >
-                    Dashboard
-                  </Link>
-                  <button 
-                    onClick={handleLogout} 
-                    className="w-full text-left px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link 
-                    to="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-4 py-3 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors"
-                  >
-                    Login
-                  </Link>
-                  <Link 
-                    to="/signup"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block mt-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-lg text-center"
-                  >
-                    Sign Up Free
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    <div
+      className={`${isDark ? 'bg-slate-800' : 'bg-white'} p-8 rounded-2xl border transition-all duration-300 cursor-pointer ${
+        isHovered 
+          ? `border-blue-500 shadow-2xl ${isDark ? 'shadow-blue-500/20' : 'shadow-blue-500/30'} -translate-y-2` 
+          : (isDark ? 'border-slate-700' : 'border-gray-200')
+      }`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className={`text-5xl mb-4 transition-transform duration-300 ${isHovered ? 'scale-110' : ''}`}>
+        {icon}
+      </div>
+      <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-3`}>{title}</h3>
+      <p className={`${isDark ? 'text-slate-400' : 'text-gray-600'} leading-relaxed`}>{desc}</p>
+    </div>
   );
 };
 
-export default Navbar;
+const Home = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { isDark } = useTheme();
+
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleGetStarted = () => {
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/signup');
+    }
+  };
+
+  const features = [
+    {
+      icon: '🎬',
+      title: '13+ Content Formats',
+      desc: 'TikTok scripts, YouTube Shorts, Instagram captions, email marketing, SMS, flyers, ads, and more.',
+    },
+    {
+      icon: '🤖',
+      title: 'Multi-AI Providers',
+      desc: 'Choose between Claude, GPT-4o, and Gemini. Get the best results from multiple AI models.',
+    },
+    {
+      icon: '📊',
+      title: 'Marketing Strategy',
+      desc: 'AI generates comprehensive marketing strategies with audience analysis and channel recommendations.',
+    },
+    {
+      icon: '⚡',
+      title: 'Lightning Fast',
+      desc: 'Generate 50+ ideas across multiple formats in under 2 minutes. Export and use immediately.',
+    },
+    {
+      icon: '🎯',
+      title: 'Audience Targeting',
+      desc: 'Customize content for specific demographics, emotions, and campaign goals.',
+    },
+    {
+      icon: '💼',
+      title: 'Agency Ready',
+      desc: 'Manage multiple campaigns, upload brand assets, and scale your content production.',
+    },
+  ];
+
+  return (
+    <div className={`min-h-screen ${isDark ? 'bg-slate-900' : 'bg-gray-50'}`}>
+      {/* Shared Navbar */}
+      <Navbar />
+
+      {/* Hero Section */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-16 text-center">
+        <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-6 leading-tight`}>
+          Generate Viral Marketing Content<br />
+          <span className="bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">
+            With AI in Seconds
+          </span>
+        </h1>
+        <p className={`text-lg sm:text-xl ${isDark ? 'text-slate-400' : 'text-gray-600'} mb-10 max-w-3xl mx-auto leading-relaxed`}>
+          Create viral TikTok scripts, Instagram captions, email campaigns, and 13+ content formats using AI. 
+          Built for marketing agencies and brands.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <button 
+            onClick={handleGetStarted} 
+            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-lg rounded-xl transition-all shadow-lg hover:shadow-purple-500/25"
+          >
+            {user ? 'Go to Dashboard' : 'Get Started Free'}
+          </button>
+          <button 
+            onClick={() => scrollToSection('features')} 
+            className={`px-8 py-4 border-2 ${isDark ? 'border-slate-600 hover:border-slate-500 text-white' : 'border-gray-300 hover:border-gray-400 text-gray-900'} font-semibold text-lg rounded-xl transition-all`}
+          >
+            Learn More
+          </button>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
+        <h2 className={`text-3xl sm:text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} text-center mb-16`}>
+          Everything You Need to Go Viral
+        </h2>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {features.map((feature, index) => (
+            <FeatureCard key={index} {...feature} isDark={isDark} />
+          ))}
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
+        <h2 className={`text-3xl sm:text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} text-center mb-16`}>
+          Simple, Transparent Pricing
+        </h2>
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+          {/* Free Plan */}
+          <div className={`${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'} rounded-2xl p-8 border`}>
+            <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>Free</h3>
+            <div className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-6`}>
+              $0<span className={`text-lg ${isDark ? 'text-slate-400' : 'text-gray-500'} font-normal`}>/month</span>
+            </div>
+            <ul className="space-y-3 mb-8">
+              <li className={isDark ? 'text-slate-300' : 'text-gray-600'}>✓ 5 campaigns/month</li>
+              <li className={isDark ? 'text-slate-300' : 'text-gray-600'}>✓ 3 AI generations/day</li>
+              <li className={isDark ? 'text-slate-300' : 'text-gray-600'}>✓ Basic formats</li>
+              <li className={isDark ? 'text-slate-300' : 'text-gray-600'}>✓ Community support</li>
+            </ul>
+            <button 
+              onClick={handleGetStarted} 
+              className={`w-full py-3 border ${isDark ? 'border-slate-600 hover:border-slate-500 text-white' : 'border-gray-300 hover:border-gray-400 text-gray-900'} font-semibold rounded-lg transition-colors`}
+            >
+              Get Started
+            </button>
+          </div>
+
+          {/* Pro Plan */}
+          <div className={`${isDark ? 'bg-slate-800' : 'bg-white'} rounded-2xl p-8 border-2 border-purple-500 relative transform lg:scale-105`}>
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-bold rounded-full">
+              Most Popular
+            </div>
+            <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>Pro</h3>
+            <div className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-6`}>
+              $29<span className={`text-lg ${isDark ? 'text-slate-400' : 'text-gray-500'} font-normal`}>/month</span>
+            </div>
+            <ul className="space-y-3 mb-8">
+              <li className={isDark ? 'text-slate-300' : 'text-gray-600'}>✓ Unlimited campaigns</li>
+              <li className={isDark ? 'text-slate-300' : 'text-gray-600'}>✓ Unlimited generations</li>
+              <li className={isDark ? 'text-slate-300' : 'text-gray-600'}>✓ All 13+ formats</li>
+              <li className={isDark ? 'text-slate-300' : 'text-gray-600'}>✓ Priority support</li>
+              <li className={isDark ? 'text-slate-300' : 'text-gray-600'}>✓ Team collaboration</li>
+            </ul>
+            <button 
+              onClick={handleGetStarted} 
+              className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all"
+            >
+              Start Free Trial
+            </button>
+          </div>
+
+          {/* Enterprise Plan */}
+          <div className={`${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'} rounded-2xl p-8 border`}>
+            <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>Enterprise</h3>
+            <div className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-6`}>Custom</div>
+            <ul className="space-y-3 mb-8">
+              <li className={isDark ? 'text-slate-300' : 'text-gray-600'}>✓ Everything in Pro</li>
+              <li className={isDark ? 'text-slate-300' : 'text-gray-600'}>✓ Custom AI models</li>
+              <li className={isDark ? 'text-slate-300' : 'text-gray-600'}>✓ API access</li>
+              <li className={isDark ? 'text-slate-300' : 'text-gray-600'}>✓ Dedicated support</li>
+              <li className={isDark ? 'text-slate-300' : 'text-gray-600'}>✓ SLA guarantee</li>
+            </ul>
+            <button 
+              onClick={() => scrollToSection('contact')} 
+              className={`w-full py-3 border ${isDark ? 'border-slate-600 hover:border-slate-500 text-white' : 'border-gray-300 hover:border-gray-400 text-gray-900'} font-semibold rounded-lg transition-colors`}
+            >
+              Contact Sales
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact" className="max-w-4xl mx-auto px-4 sm:px-6 py-20 text-center">
+        <h2 className={`text-3xl sm:text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-4`}>
+          Get In Touch
+        </h2>
+        <p className={`text-lg ${isDark ? 'text-slate-400' : 'text-gray-600'} mb-12`}>
+          Have questions? We'd love to hear from you.
+        </p>
+        <div className="grid sm:grid-cols-3 gap-6">
+          <a 
+            href="mailto:contact@ivey.app" 
+            className={`${isDark ? 'bg-slate-800 border-slate-700 hover:border-slate-600' : 'bg-white border-gray-200 hover:border-gray-300'} p-6 rounded-xl border transition-colors block`}
+          >
+            <div className="text-4xl mb-3">📧</div>
+            <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'} mb-1`}>Email Us</h3>
+            <p className={isDark ? 'text-slate-400' : 'text-gray-600'}>contact@ivey.app</p>
+          </a>
+          <a 
+            href="https://twitter.com/iveyapp" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className={`${isDark ? 'bg-slate-800 border-slate-700 hover:border-slate-600' : 'bg-white border-gray-200 hover:border-gray-300'} p-6 rounded-xl border transition-colors block`}
+          >
+            <div className="text-4xl mb-3">🐦</div>
+            <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'} mb-1`}>Twitter</h3>
+            <p className={isDark ? 'text-slate-400' : 'text-gray-600'}>@iveyapp</p>
+          </a>
+          <a 
+            href="https://linkedin.com/company/ivey" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className={`${isDark ? 'bg-slate-800 border-slate-700 hover:border-slate-600' : 'bg-white border-gray-200 hover:border-gray-300'} p-6 rounded-xl border transition-colors block`}
+          >
+            <div className="text-4xl mb-3">💼</div>
+            <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'} mb-1`}>LinkedIn</h3>
+            <p className={isDark ? 'text-slate-400' : 'text-gray-600'}>IVey Marketing</p>
+          </a>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="max-w-4xl mx-auto px-4 sm:px-6 py-20 text-center">
+        <h2 className={`text-3xl sm:text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-4`}>
+          Ready to Create Viral Content?
+        </h2>
+        <p className={`text-lg ${isDark ? 'text-slate-400' : 'text-gray-600'} mb-8`}>
+          Join marketing agencies using IVey to 10x their content output
+        </p>
+        <button 
+          onClick={handleGetStarted} 
+          className="px-10 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-lg rounded-xl transition-all shadow-lg hover:shadow-purple-500/25"
+        >
+          {user ? 'Go to Dashboard →' : 'Start Creating Now →'}
+        </button>
+      </section>
+
+      {/* Footer */}
+      <footer className={`${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'} border-t`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
+            <button 
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+            >
+              <img src="/vite.svg" alt="IVey" className="w-8 h-8" />
+              <div className="text-left">
+                <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>IVey</h3>
+                <p className={`${isDark ? 'text-slate-400' : 'text-gray-600'} text-sm`}>AI-Powered Viral Marketing</p>
+              </div>
+            </button>
+            <div className="flex gap-6">
+              <button onClick={() => scrollToSection('features')} className={`${isDark ? 'text-slate-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
+                Features
+              </button>
+              <button onClick={() => scrollToSection('pricing')} className={`${isDark ? 'text-slate-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
+                Pricing
+              </button>
+              <button onClick={() => scrollToSection('contact')} className={`${isDark ? 'text-slate-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
+                Contact
+              </button>
+            </div>
+          </div>
+          <div className={`mt-8 pt-8 border-t ${isDark ? 'border-slate-700' : 'border-gray-200'} text-center`}>
+            <p className={`${isDark ? 'text-slate-500' : 'text-gray-500'} text-sm`}>© 2024 IVey. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default Home;
