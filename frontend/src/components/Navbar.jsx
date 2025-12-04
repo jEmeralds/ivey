@@ -73,22 +73,28 @@ const Navbar = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-center h-16">
             {/* Logo - Always links to home */}
-            <Link 
-              to="/"
-              className="flex items-center gap-2 text-white font-bold text-xl hover:opacity-90 transition-opacity"
+            <button
+              onClick={() => {
+                navigate('/');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="flex items-center gap-2 text-white font-bold text-xl hover:opacity-90 transition-opacity cursor-pointer"
             >
               🚀 IVey
-            </Link>
+            </button>
             
             {/* Desktop Navigation - All links on the right side */}
             <div className="hidden md:flex items-center gap-6">
               {/* Navigation Links */}
-              <Link 
-                to="/" 
+              <button 
+                onClick={() => {
+                  navigate('/');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
                 className={`transition-colors ${location.pathname === '/' ? 'text-white' : 'text-slate-400 hover:text-white'}`}
               >
                 Home
-              </Link>
+              </button>
               <button 
                 onClick={() => scrollToSection('features')} 
                 className="text-slate-400 hover:text-white transition-colors"
@@ -182,15 +188,18 @@ const Navbar = () => {
           <div className="absolute top-0 left-0 right-0 bg-slate-800 border-b border-slate-700 shadow-2xl">
             <div className="px-4 py-4 space-y-1">
               {/* Navigation Links */}
-              <Link 
-                to="/"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`block px-4 py-3 rounded-lg transition-colors ${
+              <button 
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate('/');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                   location.pathname === '/' ? 'bg-slate-700 text-white' : 'text-slate-300 hover:bg-slate-700/50'
                 }`}
               >
                 🏠 Home
-              </Link>
+              </button>
               <button 
                 onClick={() => scrollToSection('features')} 
                 className="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors"

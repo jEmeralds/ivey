@@ -251,10 +251,13 @@ const Home = () => {
       <footer className="bg-slate-800 border-t border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
-            <div className="text-center sm:text-left">
+            <button 
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="text-center sm:text-left cursor-pointer hover:opacity-80 transition-opacity"
+            >
               <h3 className="text-xl font-bold text-white mb-1">🚀 IVey</h3>
               <p className="text-slate-400 text-sm">AI-Powered Viral Marketing</p>
-            </div>
+            </button>
             <div className="flex gap-6">
               <button onClick={() => scrollToSection('features')} className="text-slate-400 hover:text-white transition-colors">
                 Features
