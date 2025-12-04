@@ -87,7 +87,7 @@ export const getCampaignById = async (req, res) => {
 export const createCampaign = async (req, res) => {
   try {
     const userId = req.userId;
-    const { name, description, targetAudience, aiProvider, outputFormats, brandName } = req.body;
+    const { name, description, targetAudience, aiProvider, outputFormats, brandName, websiteUrl } = req.body;
 
     console.log('Creating campaign for user:', userId);
 
@@ -104,9 +104,10 @@ export const createCampaign = async (req, res) => {
           user_id: userId,
           name: name,
           brand_name: brandName || name,
+          website_url: websiteUrl || null,
           product_description: description,
           target_audience: targetAudience,
-          ai_provider: aiProvider || 'claude',
+          ai_provider: aiProvider || 'gemini',
           output_formats: outputFormats
         }
       ])

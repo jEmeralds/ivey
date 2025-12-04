@@ -10,9 +10,11 @@ const NewCampaign = () => {
   
   const [formData, setFormData] = useState({
     name: '',
+    brandName: '',
+    websiteUrl: '',
     description: '',
     targetAudience: '',
-    aiProvider: 'claude',
+    aiProvider: 'gemini',
     outputFormats: []
   });
 
@@ -98,17 +100,48 @@ const NewCampaign = () => {
               />
             </div>
 
+            {/* Brand Name & Website Row */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Brand Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.brandName}
+                  onChange={(e) => setFormData({ ...formData, brandName: e.target.value })}
+                  placeholder="e.g., Njambie Spot"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                />
+                <p className="text-xs text-gray-500 mt-1">Optional - defaults to campaign name</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Website URL
+                </label>
+                <input
+                  type="url"
+                  value={formData.websiteUrl}
+                  onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
+                  placeholder="https://www.example.com"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                />
+                <p className="text-xs text-gray-500 mt-1">Optional - AI will reference for context</p>
+              </div>
+            </div>
+
             {/* Campaign Description */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Campaign Description *
+                Product/Service Description *
               </label>
               <textarea
                 required
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Describe your product, service, or campaign goal..."
-                rows="4"
+                placeholder="Describe your product, service, or campaign goal in detail. Include key features, benefits, unique selling points, and any specific messaging you want to convey..."
+                rows="5"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
               />
             </div>
@@ -123,7 +156,7 @@ const NewCampaign = () => {
                 required
                 value={formData.targetAudience}
                 onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
-                placeholder="e.g., Young professionals aged 25-35, tech-savvy"
+                placeholder="e.g., Young professionals aged 25-35, families with children, tech-savvy entrepreneurs"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
               />
             </div>
@@ -134,20 +167,25 @@ const NewCampaign = () => {
                 AI Provider
               </label>
               <div className="grid grid-cols-3 gap-4">
-                {['claude', 'openai', 'gemini'].map((provider) => (
+                {[
+                  { id: 'gemini', name: '💎 Gemini', desc: 'Fast & Free tier' },
+                  { id: 'claude', name: '🤖 Claude', desc: 'High quality' },
+                  { id: 'openai', name: '🧠 OpenAI', desc: 'GPT-4o' }
+                ].map((provider) => (
                   <button
-                    key={provider}
+                    key={provider.id}
                     type="button"
-                    onClick={() => setFormData({ ...formData, aiProvider: provider })}
-                    className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                      formData.aiProvider === provider
+                    onClick={() => setFormData({ ...formData, aiProvider: provider.id })}
+                    className={`px-4 py-3 rounded-lg font-medium transition-all text-left ${
+                      formData.aiProvider === provider.id
                         ? 'bg-purple-600 text-white shadow-lg scale-105'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {provider === 'claude' && '🤖 Claude'}
-                    {provider === 'openai' && '🧠 OpenAI'}
-                    {provider === 'gemini' && '💎 Gemini'}
+                    <div className="font-semibold">{provider.name}</div>
+                    <div className={`text-xs mt-0.5 ${formData.aiProvider === provider.id ? 'text-purple-200' : 'text-gray-500'}`}>
+                      {provider.desc}
+                    </div>
                   </button>
                 ))}
               </div>
