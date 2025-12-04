@@ -80,6 +80,7 @@ const Navbar = () => {
               }}
               className="flex items-center gap-2 text-white font-bold text-xl hover:opacity-90 transition-opacity cursor-pointer"
             >
+              <img src="/vite.svg" alt="IVey" className="w-8 h-8" />
               IVey
             </button>
             

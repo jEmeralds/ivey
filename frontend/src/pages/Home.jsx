@@ -253,10 +253,13 @@ const Home = () => {
           <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
             <button 
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="text-center sm:text-left cursor-pointer hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
             >
-              <h3 className="text-xl font-bold text-white mb-1">IVey</h3>
-              <p className="text-slate-400 text-sm">AI-Powered Viral Marketing</p>
+              <img src="/vite.svg" alt="IVey" className="w-8 h-8" />
+              <div className="text-left">
+                <h3 className="text-xl font-bold text-white">IVey</h3>
+                <p className="text-slate-400 text-sm">AI-Powered Viral Marketing</p>
+              </div>
             </button>
             <div className="flex gap-6">
               <button onClick={() => scrollToSection('features')} className="text-slate-400 hover:text-white transition-colors">
