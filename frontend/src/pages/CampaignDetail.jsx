@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getCampaignById, generateIdeas, generateStrategy, getCampaignMedia } from '../services/api';
 import { OUTPUT_FORMATS } from '../constants/outputFormats';
 import MediaUpload from '../components/MediaUpload';
-
+import Navbar from '../components/Navbar';
 // Visual format identifiers
 const VISUAL_FORMATS = ['BANNER_AD', 'PRINT_AD', 'FLYER_TEXT', 'GOOGLE_SEARCH_AD'];
 

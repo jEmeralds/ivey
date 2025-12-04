@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
+import Navbar from '../components/Navbar';
 
 const FeatureCard = ({ icon, title, desc }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -24,55 +25,16 @@ const FeatureCard = ({ icon, title, desc }) => {
 
 const Home = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Close mobile menu on resize to desktop
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth > 768) {
-        setMobileMenuOpen(false);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Prevent body scroll when mobile menu is open
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [mobileMenuOpen]);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-    setMobileMenuOpen(false);
-  };
+  const { user } = useAuth();
 
   const scrollToSection = (sectionId) => {
-    setMobileMenuOpen(false);
-    setTimeout(() => {
-      const element = document.getElementById(sectionId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
-  };
-
-  const handleNavigate = (path) => {
-    setMobileMenuOpen(false);
-    navigate(path);
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const handleGetStarted = () => {
-    setMobileMenuOpen(false);
     if (user) {
       navigate('/dashboard');
     } else {
@@ -115,157 +77,8 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-slate-900">
-      {/* Navigation */}
-      <nav className="bg-slate-800/95 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <button 
-              onClick={() => handleNavigate('/')}
-              className="flex items-center gap-2 text-white font-bold text-xl"
-            >
-              🚀 IVey
-            </button>
-            
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-8">
-              <button onClick={() => scrollToSection('features')} className="text-slate-300 hover:text-white transition-colors">
-                Features
-              </button>
-              <button onClick={() => scrollToSection('pricing')} className="text-slate-300 hover:text-white transition-colors">
-                Pricing
-              </button>
-              <button onClick={() => scrollToSection('contact')} className="text-slate-300 hover:text-white transition-colors">
-                Contact
-              </button>
-            </div>
-
-            {/* Desktop Auth Buttons */}
-            <div className="hidden md:flex items-center gap-3">
-              {user ? (
-                <>
-                  <button 
-                    onClick={() => handleNavigate('/dashboard')} 
-                    className="px-4 py-2 text-white bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
-                  >
-                    Dashboard
-                  </button>
-                  <button 
-                    onClick={handleLogout} 
-                    className="px-4 py-2 text-red-400 border border-red-400/50 hover:bg-red-400/10 rounded-lg transition-colors"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button 
-                    onClick={() => handleNavigate('/login')} 
-                    className="px-4 py-2 text-white hover:text-slate-300 transition-colors"
-                  >
-                    Login
-                  </button>
-                  <button 
-                    onClick={() => handleNavigate('/signup')} 
-                    className="px-5 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all"
-                  >
-                    Sign Up Free
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Mobile Hamburger Button */}
-            <button 
-              className="md:hidden p-2 text-white"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          
-          {/* Menu Panel */}
-          <div className="absolute top-16 left-0 right-0 bg-slate-800 border-b border-slate-700 shadow-2xl">
-            <div className="px-4 py-6 space-y-1">
-              {/* Navigation Links */}
-              <button 
-                onClick={() => scrollToSection('features')} 
-                className="w-full text-left px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
-              >
-                Features
-              </button>
-              <button 
-                onClick={() => scrollToSection('pricing')} 
-                className="w-full text-left px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
-              >
-                Pricing
-              </button>
-              <button 
-                onClick={() => scrollToSection('contact')} 
-                className="w-full text-left px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
-              >
-                Contact
-              </button>
-              
-              {/* Divider */}
-              <div className="my-4 border-t border-slate-700" />
-              
-              {/* Auth Buttons */}
-              {user ? (
-                <>
-                  <button 
-                    onClick={() => handleNavigate('/dashboard')} 
-                    className="w-full text-left px-4 py-3 text-white hover:bg-slate-700/50 rounded-lg transition-colors"
-                  >
-                    📊 Dashboard
-                  </button>
-                  <button 
-                    onClick={handleLogout} 
-                    className="w-full text-left px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                  >
-                    🚪 Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button 
-                    onClick={() => handleNavigate('/login')} 
-                    className="w-full text-left px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
-                  >
-                    Login
-                  </button>
-                  <button 
-                    onClick={() => handleNavigate('/signup')} 
-                    className="w-full mt-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-lg text-center"
-                  >
-                    Sign Up Free
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Shared Navbar */}
+      <Navbar />
 
       {/* Hero Section */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-16 text-center">
@@ -389,7 +202,7 @@ const Home = () => {
         <div className="grid sm:grid-cols-3 gap-6">
           <a 
             href="mailto:contact@ivey.app" 
-            className="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors"
+            className="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors block"
           >
             <div className="text-4xl mb-3">📧</div>
             <h3 className="text-lg font-semibold text-white mb-1">Email Us</h3>
@@ -399,7 +212,7 @@ const Home = () => {
             href="https://twitter.com/iveyapp" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors"
+            className="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors block"
           >
             <div className="text-4xl mb-3">🐦</div>
             <h3 className="text-lg font-semibold text-white mb-1">Twitter</h3>
@@ -409,7 +222,7 @@ const Home = () => {
             href="https://linkedin.com/company/ivey" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors"
+            className="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors block"
           >
             <div className="text-4xl mb-3">💼</div>
             <h3 className="text-lg font-semibold text-white mb-1">LinkedIn</h3>

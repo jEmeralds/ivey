@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createCampaign } from '../services/api';
 import { OUTPUT_FORMATS } from '../constants/outputFormats';
-
+import Navbar from '../components/Navbar';
 const NewCampaign = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
