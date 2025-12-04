@@ -80,7 +80,7 @@ const Navbar = () => {
               }}
               className="flex items-center gap-2 text-white font-bold text-xl hover:opacity-90 transition-opacity cursor-pointer"
             >
-              🚀 IVey
+              IVey
             </button>
             
             {/* Desktop Navigation - All links on the right side */}
@@ -198,25 +198,25 @@ const Navbar = () => {
                   location.pathname === '/' ? 'bg-slate-700 text-white' : 'text-slate-300 hover:bg-slate-700/50'
                 }`}
               >
-                🏠 Home
+                Home
               </button>
               <button 
                 onClick={() => scrollToSection('features')} 
                 className="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors"
               >
-                ✨ Features
+                Features
               </button>
               <button 
                 onClick={() => scrollToSection('pricing')} 
                 className="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors"
               >
-                💰 Pricing
+                Pricing
               </button>
               <button 
                 onClick={() => scrollToSection('contact')} 
                 className="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors"
               >
-                📧 Contact
+                Contact
               </button>
               
               {/* Divider */}
@@ -232,13 +232,13 @@ const Navbar = () => {
                       location.pathname === '/dashboard' ? 'bg-purple-600 text-white' : 'text-slate-300 hover:bg-slate-700/50'
                     }`}
                   >
-                    📊 Dashboard
+                    Dashboard
                   </Link>
                   <button 
                     onClick={handleLogout} 
                     className="w-full text-left px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
                   >
-                    🚪 Logout
+                    Logout
                   </button>
                 </>
               ) : (
@@ -248,7 +248,7 @@ const Navbar = () => {
                     onClick={() => setMobileMenuOpen(false)}
                     className="block px-4 py-3 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors"
                   >
-                    🔑 Login
+                    Login
                   </Link>
                   <Link 
                     to="/signup"
