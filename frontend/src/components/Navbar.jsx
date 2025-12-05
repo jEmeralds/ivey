@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
-import { useTheme } from '../context/ThemeContext';
 import Navbar from '../components/Navbar';
 
 const FeatureCard = ({ icon, title, desc, isDark }) => {

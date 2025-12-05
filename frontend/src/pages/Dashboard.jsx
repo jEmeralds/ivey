@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
-import { useTheme } from '../context/ThemeContext';
 import { getCampaigns, deleteCampaign } from '../services/api';
 import Navbar from '../components/Navbar';
 
