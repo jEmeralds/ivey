@@ -1,4 +1,4 @@
-// AI Service - COMPREHENSIVE VERSION WITHOUT WEB SEARCH
+// AI Service - COMPREHENSIVE VERSION WITH CORRECT GEMINI MODEL
 import fetch from 'node-fetch';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -121,64 +121,78 @@ Be specific, actionable, and data-driven. Provide realistic industry benchmarks 
   }
 };
 
-// Gemini API call - FIXED MODEL NAME
+// Gemini API call - USING CORRECT MODEL NAME
 async function callGeminiAPI(prompt) {
   if (!GEMINI_API_KEY) {
     throw new Error('Gemini API key not configured');
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+  // Try different model names that are known to work
+  const modelOptions = [
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    'gemini-pro',
+    'gemini-1.5-flash-002'
+  ];
+
+  let lastError;
   
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{ text: prompt }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 8192, // Keep high for comprehensive strategies
+  for (const model of modelOptions) {
+    try {
+      console.log(`Trying Gemini model: ${model}`);
+      
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 8192,
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.log(`Model ${model} failed: ${response.status} - ${error}`);
+        lastError = new Error(`${model}: ${response.status} - ${error}`);
+        continue; // Try next model
       }
-    })
-  });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`Gemini API error: ${error.error?.message || 'Unknown error'}`);
-  }
+      const data = await response.json();
 
-  const data = await response.json();
+      // Validate response structure
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        console.log(`Model ${model} returned invalid structure`);
+        lastError = new Error(`${model}: Invalid response structure`);
+        continue;
+      }
 
-  console.log('Gemini API response received');
-  console.log('Response structure check:');
-  console.log('  - Has candidates:', !!data.candidates);
-  console.log('  - Has candidates[0]:', !!data.candidates?.[0]);
-  console.log('  - Has content:', !!data.candidates?.[0]?.content);
-  console.log('  - Has parts:', !!data.candidates?.[0]?.content?.parts);
-  console.log('  - Parts length:', data.candidates?.[0]?.content?.parts?.length);
+      if (!data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
+        console.log(`Model ${model} returned no content parts`);
+        lastError = new Error(`${model}: No content parts returned`);
+        continue;
+      }
 
-  // Validate response structure
-  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-    console.error('Invalid Gemini response structure:', JSON.stringify(data, null, 2));
-    throw new Error('Invalid response from Gemini API');
-  }
+      console.log(`✅ Successfully used Gemini model: ${model}`);
+      return data.candidates[0].content.parts[0].text;
 
-  if (!data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
-    console.error('Gemini response has no parts (content may be blocked)');
-    console.error('Full response:', JSON.stringify(data, null, 2));
-
-    // Check if content was blocked by safety filters
-    if (data.promptFeedback?.blockReason) {
-      throw new Error(`Gemini blocked content: ${data.promptFeedback.blockReason}`);
+    } catch (error) {
+      console.log(`Model ${model} threw error:`, error.message);
+      lastError = error;
+      continue;
     }
-
-    throw new Error('Gemini response missing content parts - content may have been filtered');
   }
 
-  return data.candidates[0].content.parts[0].text;
+  // If all models failed, throw the last error
+  throw new Error(`All Gemini models failed. Last error: ${lastError?.message}`);
 }
 
 // Claude API call
