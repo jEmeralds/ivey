@@ -1,168 +1,19 @@
-// AI Service - Handles all AI provider integrations
+// AI Service - ORIGINAL COMPREHENSIVE VERSION WITHOUT WEB SEARCH
 import fetch from 'node-fetch';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const BRAVE_SEARCH_API_KEY = process.env.BRAVE_SEARCH_API_KEY; // Optional
 
-// Search the web for market intelligence
-async function searchMarketData(campaignData) {
-  const { name, product_description, target_audience, output_formats } = campaignData;
-  
-  console.log('🔍 Searching web for market intelligence...');
-  
-  const searches = [];
-  
-  try {
-    // Search 1: Industry benchmarks
-    const benchmarkQuery = `${product_description || name} marketing benchmarks engagement rates 2024`;
-    searches.push(searchWeb(benchmarkQuery, 'benchmarks'));
-    
-    // Search 2: Target audience insights
-    const audienceQuery = `${target_audience} demographics behavior online platforms 2024`;
-    searches.push(searchWeb(audienceQuery, 'audience'));
-    
-    // Search 3: Competitor campaigns
-    const competitorQuery = `${product_description || name} successful marketing campaigns examples`;
-    searches.push(searchWeb(competitorQuery, 'competitors'));
-    
-    // Search 4: Platform-specific trends
-    const platformQuery = `${output_formats?.[0] || 'social media'} marketing trends best practices 2024`;
-    searches.push(searchWeb(platformQuery, 'platforms'));
-    
-    const results = await Promise.all(searches);
-    
-    return {
-      benchmarks: results[0],
-      audience: results[1],
-      competitors: results[2],
-      platforms: results[3]
-    };
-  } catch (error) {
-    console.error('Web search error:', error);
-    return null; // Return null if search fails, AI will work without it
-  }
-}
-
-// Perform web search
-async function searchWeb(query, type) {
-  console.log(`  Searching: ${query.substring(0, 60)}...`);
-  
-  // Try Brave Search API first
-  if (BRAVE_SEARCH_API_KEY) {
-    return await searchBrave(query);
-  }
-  
-  // Fallback to DuckDuckGo HTML scraping (no API key needed)
-  return await searchDuckDuckGo(query);
-}
-
-// Brave Search API (requires API key)
-async function searchBrave(query) {
-  try {
-    const response = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`, {
-      headers: {
-        'Accept': 'application/json',
-        'X-Subscription-Token': BRAVE_SEARCH_API_KEY
-      }
-    });
-    
-    if (!response.ok) throw new Error('Brave search failed');
-    
-    const data = await response.json();
-    return data.web?.results?.slice(0, 5).map(r => ({
-      title: r.title,
-      snippet: r.description,
-      url: r.url
-    })) || [];
-  } catch (error) {
-    console.error('Brave search error:', error.message);
-    return [];
-  }
-}
-
-// DuckDuckGo Instant Answer API (Free, no key needed)
-async function searchDuckDuckGo(query) {
-  try {
-    const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
-    
-    if (!response.ok) throw new Error('DuckDuckGo search failed');
-    
-    const data = await response.json();
-    const results = [];
-    
-    // Extract relevant info
-    if (data.AbstractText) {
-      results.push({
-        title: data.Heading || 'Overview',
-        snippet: data.AbstractText,
-        url: data.AbstractURL
-      });
-    }
-    
-    // Add related topics
-    if (data.RelatedTopics) {
-      data.RelatedTopics.slice(0, 4).forEach(topic => {
-        if (topic.Text) {
-          results.push({
-            title: topic.Text.split(' - ')[0],
-            snippet: topic.Text,
-            url: topic.FirstURL
-          });
-        }
-      });
-    }
-    
-    return results;
-  } catch (error) {
-    console.error('DuckDuckGo search error:', error.message);
-    return [];
-  }
-}
-
-// Generate marketing strategy using AI
+// Generate marketing strategy using AI (COMPREHENSIVE - NO WEB SEARCH)
 export const generateMarketingStrategyAI = async (campaignData) => {
   const { name, product_description, target_audience, output_formats, ai_provider } = campaignData;
-
+  
   console.log(`\n🤖 Generating AI strategy for: ${name}`);
   console.log(`   Provider: ${ai_provider}`);
-  
-  // Step 1: Search the web for real market data
-  const marketData = await searchMarketData(campaignData);
-  
-  // Step 2: Build research-backed prompt
-  let researchContext = '';
-  
-  if (marketData && Object.values(marketData).some(data => data?.length > 0)) {
-    researchContext = `\n\n--- MARKET RESEARCH DATA ---\n\n`;
-    
-    if (marketData.benchmarks?.length > 0) {
-      researchContext += `INDUSTRY BENCHMARKS:\n${marketData.benchmarks.map(r => `- ${r.snippet}`).join('\n')}\n\n`;
-    }
-    
-    if (marketData.audience?.length > 0) {
-      researchContext += `TARGET AUDIENCE INSIGHTS:\n${marketData.audience.map(r => `- ${r.snippet}`).join('\n')}\n\n`;
-    }
-    
-    if (marketData.competitors?.length > 0) {
-      researchContext += `COMPETITOR CAMPAIGNS & EXAMPLES:\n${marketData.competitors.map(r => `- ${r.snippet}`).join('\n')}\n\n`;
-    }
-    
-    if (marketData.platforms?.length > 0) {
-      researchContext += `PLATFORM TRENDS & BEST PRACTICES:\n${marketData.platforms.map(r => `- ${r.snippet}`).join('\n')}\n\n`;
-    }
-    
-    researchContext += `--- END RESEARCH DATA ---\n\n`;
-    console.log('✅ Market research gathered successfully');
-  } else {
-    console.log('⚠️  No market data found, proceeding with general strategy');
-  }
 
-  // Build comprehensive prompt
-  const prompt = `You are an expert marketing strategist with access to current market research.
-
-${researchContext}
+  // Build comprehensive prompt WITHOUT web search
+  const prompt = `You are an expert marketing strategist with access to current market research.  
 
 Campaign Details:
 - Campaign Name: ${name}
@@ -170,17 +21,18 @@ Campaign Details:
 - Target Audience: ${target_audience}
 - Distribution Channels: ${output_formats?.join(', ') || 'Multiple platforms'}
 
-IMPORTANT: Use the market research data above to inform your recommendations. When suggesting metrics, KPIs, or benchmarks, reference actual data from the research whenever possible. If the research provides specific numbers, use those. Otherwise, provide realistic industry-standard estimates.
+IMPORTANT: Use your knowledge of current marketing trends and industry benchmarks to inform your recommendations. When suggesting metrics, KPIs, or benchmarks, provide realistic industry-standard estimates.
 
 Generate a comprehensive, data-driven marketing strategy that includes:
 
 1. CAMPAIGN OBJECTIVES
-   - 3-5 specific, measurable goals based on industry benchmarks from the research
+   - 3-5 specific, measurable goals based on industry benchmarks
 
 2. TARGET AUDIENCE ANALYSIS
-   - Demographics and psychographics (use research data)
+   - Demographics and psychographics
    - Pain points and desires
-   - Media consumption habits (reference platform data from research)
+   - Media consumption habits
+   - Decision-making factors
 
 3. KEY MESSAGES & VALUE PROPOSITIONS
    - 3-5 core messages
@@ -194,7 +46,7 @@ Generate a comprehensive, data-driven marketing strategy that includes:
 
 5. DISTRIBUTION PLAN
    - Platform-specific tactics for: ${output_formats?.slice(0, 5).join(', ')}
-   - Organic vs paid strategy informed by research
+   - Organic vs paid strategy
    - Cross-promotion tactics
 
 6. BUDGET RECOMMENDATIONS
@@ -202,7 +54,7 @@ Generate a comprehensive, data-driven marketing strategy that includes:
    - Cost-effective approaches
 
 7. SUCCESS METRICS & KPIs
-   - Primary metrics with realistic benchmarks from research
+   - Primary metrics with realistic benchmarks
    - Target numbers based on similar campaigns
    - Tools for measurement
 
@@ -211,14 +63,14 @@ Generate a comprehensive, data-driven marketing strategy that includes:
    - Key milestones
 
 9. COMPETITIVE INSIGHTS
-   - Analysis of competitor strategies from research
+   - Analysis of competitor strategies
    - Differentiation opportunities
 
 10. OPTIMIZATION RECOMMENDATIONS
     - A/B testing ideas
     - Continuous improvement tactics
 
-Be specific, actionable, and data-driven. When providing metrics or benchmarks, cite whether they come from the research data or are industry estimates.`;
+Be specific, actionable, and data-driven. When providing metrics or benchmarks, use industry estimates based on your knowledge.`;
 
   try {
     let strategy;
@@ -245,14 +97,14 @@ Be specific, actionable, and data-driven. When providing metrics or benchmarks, 
   }
 };
 
-// Gemini API call
+// Gemini API call - USING THE ORIGINAL WORKING MODEL
 async function callGeminiAPI(prompt) {
   if (!GEMINI_API_KEY) {
     throw new Error('Gemini API key not configured');
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`;
+  
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -264,7 +116,7 @@ async function callGeminiAPI(prompt) {
       }],
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 8192, // Increased for Gemini 2.5's thinking tokens
+        maxOutputTokens: 8192, // Keep for comprehensive strategies
       }
     })
   });
@@ -275,7 +127,7 @@ async function callGeminiAPI(prompt) {
   }
 
   const data = await response.json();
-  
+
   console.log('Gemini API response received');
   console.log('Response structure check:');
   console.log('  - Has candidates:', !!data.candidates);
@@ -283,29 +135,29 @@ async function callGeminiAPI(prompt) {
   console.log('  - Has content:', !!data.candidates?.[0]?.content);
   console.log('  - Has parts:', !!data.candidates?.[0]?.content?.parts);
   console.log('  - Parts length:', data.candidates?.[0]?.content?.parts?.length);
-  
+
   // Validate response structure
   if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
     console.error('Invalid Gemini response structure:', JSON.stringify(data, null, 2));
     throw new Error('Invalid response from Gemini API');
   }
-  
+
   if (!data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
     console.error('Gemini response has no parts (content may be blocked)');
     console.error('Full response:', JSON.stringify(data, null, 2));
-    
+
     // Check if content was blocked by safety filters
     if (data.promptFeedback?.blockReason) {
       throw new Error(`Gemini blocked content: ${data.promptFeedback.blockReason}`);
     }
-    
+
     throw new Error('Gemini response missing content parts - content may have been filtered');
   }
-  
+
   return data.candidates[0].content.parts[0].text;
 }
 
-// Claude API call (placeholder - implement when needed)
+// Claude API call (unchanged)
 async function callClaudeAPI(prompt) {
   if (!ANTHROPIC_API_KEY) {
     throw new Error('Claude API key not configured. Please add your Anthropic API key.');
@@ -337,7 +189,7 @@ async function callClaudeAPI(prompt) {
   return data.content[0].text;
 }
 
-// OpenAI API call (placeholder - implement when needed)
+// OpenAI API call (unchanged)
 async function callOpenAIAPI(prompt) {
   if (!OPENAI_API_KEY) {
     throw new Error('OpenAI API key not configured. Please add your OpenAI API key.');
@@ -369,10 +221,10 @@ async function callOpenAIAPI(prompt) {
   return data.choices[0].message.content;
 }
 
-// Generate content ideas (for later implementation)
+// Generate content ideas (comprehensive version)
 export const generateContentIdeasAI = async (campaignData, mediaUrls = []) => {
   const { name, product_description, target_audience, output_formats, ai_provider } = campaignData;
-
+  
   console.log(`\n🎨 Generating content for: ${name}`);
   console.log(`   Formats: ${output_formats?.length || 0} selected`);
   console.log(`   Provider: ${ai_provider}`);
@@ -558,9 +410,9 @@ Focus on value and conversion.`
 
       console.log(`  Generating: ${format}...`);
 
-      // Add delay to avoid rate limiting (especially for Gemini free tier)
+      // Reduced delay to avoid rate limiting (1 second instead of 2)
       if (generatedContent.length > 0) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+        await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
       }
 
       let content;
