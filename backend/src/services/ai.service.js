@@ -1,71 +1,243 @@
-// AI Service - OPTIMIZED FOR SPEED
-// This is a fast version for testing. The comprehensive version with web search is available as backup.
+// AI Service - Handles all AI provider integrations
+import fetch from 'node-fetch';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const BRAVE_SEARCH_API_KEY = process.env.BRAVE_SEARCH_API_KEY; // Optional
 
-// Generate marketing strategy using AI (FAST VERSION)
+// Search the web for market intelligence
+async function searchMarketData(campaignData) {
+  const { name, product_description, target_audience, output_formats } = campaignData;
+  
+  console.log('🔍 Searching web for market intelligence...');
+  
+  const searches = [];
+  
+  try {
+    // Search 1: Industry benchmarks
+    const benchmarkQuery = `${product_description || name} marketing benchmarks engagement rates 2024`;
+    searches.push(searchWeb(benchmarkQuery, 'benchmarks'));
+    
+    // Search 2: Target audience insights
+    const audienceQuery = `${target_audience} demographics behavior online platforms 2024`;
+    searches.push(searchWeb(audienceQuery, 'audience'));
+    
+    // Search 3: Competitor campaigns
+    const competitorQuery = `${product_description || name} successful marketing campaigns examples`;
+    searches.push(searchWeb(competitorQuery, 'competitors'));
+    
+    // Search 4: Platform-specific trends
+    const platformQuery = `${output_formats?.[0] || 'social media'} marketing trends best practices 2024`;
+    searches.push(searchWeb(platformQuery, 'platforms'));
+    
+    const results = await Promise.all(searches);
+    
+    return {
+      benchmarks: results[0],
+      audience: results[1],
+      competitors: results[2],
+      platforms: results[3]
+    };
+  } catch (error) {
+    console.error('Web search error:', error);
+    return null; // Return null if search fails, AI will work without it
+  }
+}
+
+// Perform web search
+async function searchWeb(query, type) {
+  console.log(`  Searching: ${query.substring(0, 60)}...`);
+  
+  // Try Brave Search API first
+  if (BRAVE_SEARCH_API_KEY) {
+    return await searchBrave(query);
+  }
+  
+  // Fallback to DuckDuckGo HTML scraping (no API key needed)
+  return await searchDuckDuckGo(query);
+}
+
+// Brave Search API (requires API key)
+async function searchBrave(query) {
+  try {
+    const response = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`, {
+      headers: {
+        'Accept': 'application/json',
+        'X-Subscription-Token': BRAVE_SEARCH_API_KEY
+      }
+    });
+    
+    if (!response.ok) throw new Error('Brave search failed');
+    
+    const data = await response.json();
+    return data.web?.results?.slice(0, 5).map(r => ({
+      title: r.title,
+      snippet: r.description,
+      url: r.url
+    })) || [];
+  } catch (error) {
+    console.error('Brave search error:', error.message);
+    return [];
+  }
+}
+
+// DuckDuckGo Instant Answer API (Free, no key needed)
+async function searchDuckDuckGo(query) {
+  try {
+    const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
+    
+    if (!response.ok) throw new Error('DuckDuckGo search failed');
+    
+    const data = await response.json();
+    const results = [];
+    
+    // Extract relevant info
+    if (data.AbstractText) {
+      results.push({
+        title: data.Heading || 'Overview',
+        snippet: data.AbstractText,
+        url: data.AbstractURL
+      });
+    }
+    
+    // Add related topics
+    if (data.RelatedTopics) {
+      data.RelatedTopics.slice(0, 4).forEach(topic => {
+        if (topic.Text) {
+          results.push({
+            title: topic.Text.split(' - ')[0],
+            snippet: topic.Text,
+            url: topic.FirstURL
+          });
+        }
+      });
+    }
+    
+    return results;
+  } catch (error) {
+    console.error('DuckDuckGo search error:', error.message);
+    return [];
+  }
+}
+
+// Generate marketing strategy using AI
 export const generateMarketingStrategyAI = async (campaignData) => {
   const { name, product_description, target_audience, output_formats, ai_provider } = campaignData;
-  
-  console.log(`\n🚀 Generating FAST AI strategy for: ${name}`);
+
+  console.log(`\n🤖 Generating AI strategy for: ${name}`);
   console.log(`   Provider: ${ai_provider}`);
+  
+  // Step 1: Search the web for real market data
+  const marketData = await searchMarketData(campaignData);
+  
+  // Step 2: Build research-backed prompt
+  let researchContext = '';
+  
+  if (marketData && Object.values(marketData).some(data => data?.length > 0)) {
+    researchContext = `\n\n--- MARKET RESEARCH DATA ---\n\n`;
+    
+    if (marketData.benchmarks?.length > 0) {
+      researchContext += `INDUSTRY BENCHMARKS:\n${marketData.benchmarks.map(r => `- ${r.snippet}`).join('\n')}\n\n`;
+    }
+    
+    if (marketData.audience?.length > 0) {
+      researchContext += `TARGET AUDIENCE INSIGHTS:\n${marketData.audience.map(r => `- ${r.snippet}`).join('\n')}\n\n`;
+    }
+    
+    if (marketData.competitors?.length > 0) {
+      researchContext += `COMPETITOR CAMPAIGNS & EXAMPLES:\n${marketData.competitors.map(r => `- ${r.snippet}`).join('\n')}\n\n`;
+    }
+    
+    if (marketData.platforms?.length > 0) {
+      researchContext += `PLATFORM TRENDS & BEST PRACTICES:\n${marketData.platforms.map(r => `- ${r.snippet}`).join('\n')}\n\n`;
+    }
+    
+    researchContext += `--- END RESEARCH DATA ---\n\n`;
+    console.log('✅ Market research gathered successfully');
+  } else {
+    console.log('⚠️  No market data found, proceeding with general strategy');
+  }
 
-  // Build streamlined prompt (no web search)
-  const prompt = `You are an expert marketing strategist. Generate a comprehensive marketing strategy for:
+  // Build comprehensive prompt
+  const prompt = `You are an expert marketing strategist with access to current market research.
 
-Campaign: ${name}
-Product/Service: ${product_description || 'Not specified'}
-Target Audience: ${target_audience}
-Channels: ${output_formats?.join(', ') || 'Multiple platforms'}
+${researchContext}
 
-Provide a complete strategy with:
+Campaign Details:
+- Campaign Name: ${name}
+- Product/Service: ${product_description || 'Not specified'}
+- Target Audience: ${target_audience}
+- Distribution Channels: ${output_formats?.join(', ') || 'Multiple platforms'}
 
-1. CAMPAIGN OBJECTIVES (3 specific, measurable goals)
+IMPORTANT: Use the market research data above to inform your recommendations. When suggesting metrics, KPIs, or benchmarks, reference actual data from the research whenever possible. If the research provides specific numbers, use those. Otherwise, provide realistic industry-standard estimates.
 
-2. TARGET AUDIENCE ANALYSIS 
-   - Key demographics & psychographics
+Generate a comprehensive, data-driven marketing strategy that includes:
+
+1. CAMPAIGN OBJECTIVES
+   - 3-5 specific, measurable goals based on industry benchmarks from the research
+
+2. TARGET AUDIENCE ANALYSIS
+   - Demographics and psychographics (use research data)
    - Pain points and desires
-   - Preferred platforms
+   - Media consumption habits (reference platform data from research)
 
-3. KEY MESSAGES (3-5 core value propositions)
+3. KEY MESSAGES & VALUE PROPOSITIONS
+   - 3-5 core messages
+   - Unique selling points
+   - Emotional appeals
 
 4. CONTENT STRATEGY
-   - Content types with 40/30/20/10 breakdown
-   - Optimal posting schedule
+   - Content pillars with percentage breakdown
+   - Posting frequency based on platform best practices
+   - Optimal posting times
 
-5. PLATFORM-SPECIFIC TACTICS for: ${output_formats?.slice(0, 3).join(', ')}
-   - Organic strategies
-   - Paid advertising approach
+5. DISTRIBUTION PLAN
+   - Platform-specific tactics for: ${output_formats?.slice(0, 5).join(', ')}
+   - Organic vs paid strategy informed by research
+   - Cross-promotion tactics
 
-6. SUCCESS METRICS & KPIS
-   - Primary KPIs with realistic targets
-   - Tracking methods
+6. BUDGET RECOMMENDATIONS
+   - Allocation percentages based on industry standards
+   - Cost-effective approaches
 
-7. 30-DAY ACTION PLAN
-   - Week-by-week milestones
+7. SUCCESS METRICS & KPIs
+   - Primary metrics with realistic benchmarks from research
+   - Target numbers based on similar campaigns
+   - Tools for measurement
 
-Make it actionable and specific with realistic industry benchmarks.`;
+8. TIMELINE & MILESTONES
+   - Week-by-week action plan
+   - Key milestones
+
+9. COMPETITIVE INSIGHTS
+   - Analysis of competitor strategies from research
+   - Differentiation opportunities
+
+10. OPTIMIZATION RECOMMENDATIONS
+    - A/B testing ideas
+    - Continuous improvement tactics
+
+Be specific, actionable, and data-driven. When providing metrics or benchmarks, cite whether they come from the research data or are industry estimates.`;
 
   try {
     let strategy;
 
     switch (ai_provider) {
       case 'gemini':
-        strategy = await callGeminiFastAPI(prompt);
+        strategy = await callGeminiAPI(prompt);
         break;
       case 'claude':
-        strategy = await callClaudeFastAPI(prompt);
+        strategy = await callClaudeAPI(prompt);
         break;
       case 'openai':
-        strategy = await callOpenAIFastAPI(prompt);
+        strategy = await callOpenAIAPI(prompt);
         break;
       default:
         throw new Error(`Unsupported AI provider: ${ai_provider}`);
     }
 
-    console.log('✅ FAST Strategy generated in ~30 seconds\n');
+    console.log('✅ Strategy generated successfully\n');
     return strategy;
   } catch (error) {
     console.error('AI strategy generation error:', error);
@@ -73,15 +245,14 @@ Make it actionable and specific with realistic industry benchmarks.`;
   }
 };
 
-// OPTIMIZED Gemini API call for speed
-async function callGeminiFastAPI(prompt) {
+// Gemini API call
+async function callGeminiAPI(prompt) {
   if (!GEMINI_API_KEY) {
     throw new Error('Gemini API key not configured');
   }
 
-  // Use FASTEST Gemini model
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-  
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -92,10 +263,8 @@ async function callGeminiFastAPI(prompt) {
         parts: [{ text: prompt }]
       }],
       generationConfig: {
-        temperature: 0.8, // Slightly higher for creativity but still fast
-        maxOutputTokens: 4096, // Reduced from 8192 for speed
-        topK: 40,
-        topP: 0.95
+        temperature: 0.7,
+        maxOutputTokens: 8192, // Increased for Gemini 2.5's thinking tokens
       }
     })
   });
@@ -106,20 +275,40 @@ async function callGeminiFastAPI(prompt) {
   }
 
   const data = await response.json();
-
-  // Validate response
-  if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+  
+  console.log('Gemini API response received');
+  console.log('Response structure check:');
+  console.log('  - Has candidates:', !!data.candidates);
+  console.log('  - Has candidates[0]:', !!data.candidates?.[0]);
+  console.log('  - Has content:', !!data.candidates?.[0]?.content);
+  console.log('  - Has parts:', !!data.candidates?.[0]?.content?.parts);
+  console.log('  - Parts length:', data.candidates?.[0]?.content?.parts?.length);
+  
+  // Validate response structure
+  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
     console.error('Invalid Gemini response structure:', JSON.stringify(data, null, 2));
     throw new Error('Invalid response from Gemini API');
   }
-
+  
+  if (!data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
+    console.error('Gemini response has no parts (content may be blocked)');
+    console.error('Full response:', JSON.stringify(data, null, 2));
+    
+    // Check if content was blocked by safety filters
+    if (data.promptFeedback?.blockReason) {
+      throw new Error(`Gemini blocked content: ${data.promptFeedback.blockReason}`);
+    }
+    
+    throw new Error('Gemini response missing content parts - content may have been filtered');
+  }
+  
   return data.candidates[0].content.parts[0].text;
 }
 
-// OPTIMIZED Claude API call for speed
-async function callClaudeFastAPI(prompt) {
+// Claude API call (placeholder - implement when needed)
+async function callClaudeAPI(prompt) {
   if (!ANTHROPIC_API_KEY) {
-    throw new Error('Claude API key not configured');
+    throw new Error('Claude API key not configured. Please add your Anthropic API key.');
   }
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -130,8 +319,8 @@ async function callClaudeFastAPI(prompt) {
       'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
-      model: 'claude-3-haiku-20240307', // FASTEST Claude model
-      max_tokens: 3000, // Reduced for speed
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 2048,
       messages: [{
         role: 'user',
         content: prompt
@@ -148,10 +337,10 @@ async function callClaudeFastAPI(prompt) {
   return data.content[0].text;
 }
 
-// OPTIMIZED OpenAI API call for speed
-async function callOpenAIFastAPI(prompt) {
+// OpenAI API call (placeholder - implement when needed)
+async function callOpenAIAPI(prompt) {
   if (!OPENAI_API_KEY) {
-    throw new Error('OpenAI API key not configured');
+    throw new Error('OpenAI API key not configured. Please add your OpenAI API key.');
   }
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -161,13 +350,13 @@ async function callOpenAIFastAPI(prompt) {
       'Authorization': `Bearer ${OPENAI_API_KEY}`
     },
     body: JSON.stringify({
-      model: 'gpt-3.5-turbo', // FASTEST OpenAI model  
+      model: 'gpt-4o-mini',
       messages: [{
         role: 'user',
         content: prompt
       }],
-      max_tokens: 3000, // Reduced for speed
-      temperature: 0.8
+      max_tokens: 2048,
+      temperature: 0.7
     })
   });
 
@@ -180,114 +369,210 @@ async function callOpenAIFastAPI(prompt) {
   return data.choices[0].message.content;
 }
 
-// FAST content generation (reduced delays)
+// Generate content ideas (for later implementation)
 export const generateContentIdeasAI = async (campaignData, mediaUrls = []) => {
   const { name, product_description, target_audience, output_formats, ai_provider } = campaignData;
-  
-  console.log(`\n🎨 Generating FAST content for: ${name}`);
-  console.log(`   Formats: ${output_formats?.length || 0} selected`);
 
-  // Build media context
+  console.log(`\n🎨 Generating content for: ${name}`);
+  console.log(`   Formats: ${output_formats?.length || 0} selected`);
+  console.log(`   Provider: ${ai_provider}`);
+
+  // Build media context if images/videos are uploaded
   let mediaContext = '';
   if (mediaUrls && mediaUrls.length > 0) {
-    mediaContext = `\n\nUploaded media: ${mediaUrls.length} file(s) available. Reference product visuals in content.\n`;
+    mediaContext = `\n\nUPLOADED MEDIA:\nThe campaign has ${mediaUrls.length} media file(s) uploaded (product images/videos). Consider these visuals when creating content - reference the product's appearance, colors, and key visual elements in your content suggestions.\n`;
   }
 
-  // STREAMLINED format prompts (shorter for speed)
+  // Create comprehensive prompts for each format
   const formatPrompts = {
-    'tiktok_script': `Create a viral 30-second TikTok script for "${name}":
+    'tiktok_script': `Create a viral 30-second TikTok script for "${name}".
 Product: ${product_description}
 Target: ${target_audience}${mediaContext}
 
-Format: HOOK (0-3s) | BODY (3-25s) | CTA (25-30s)
-Include: trending sounds, hashtags, visual cues.`,
+Format as:
+HOOK (0-3 sec): [Attention-grabbing opening]
+BODY (3-25 sec): [Main content with product showcase]
+CTA (25-30 sec): [Call to action]
 
-    'instagram_caption': `Write an Instagram caption for "${name}":
-${product_description} | Target: ${target_audience}${mediaContext}
+Include: Trending sound suggestions, visual cues, text overlays, hashtags.`,
 
-Include: hook, story, CTA, 15 hashtags, emojis.`,
+    'instagram_caption': `Write an engaging Instagram caption for "${name}".
+Product: ${product_description}
+Target: ${target_audience}${mediaContext}
 
-    'youtube_video_ad': `60-second YouTube ad script for "${name}":
-${product_description} | Target: ${target_audience}${mediaContext}
+Include:
+- Compelling hook (first line)
+- Story/value proposition (2-3 lines)
+- Call to action
+- 15-20 relevant hashtags
+- Emoji usage for engagement
 
-Structure: Hook (0-5s) | Problem (5-15s) | Solution (15-40s) | Proof (40-50s) | CTA (50-60s)`,
+Keep it authentic and conversational.`,
 
-    'facebook_post': `Facebook post for "${name}":
-${product_description} | Target: ${target_audience}${mediaContext}
+    'youtube_video_ad': `Create a 60-second YouTube video ad script for "${name}".
+Product: ${product_description}
+Target: ${target_audience}${mediaContext}
 
-Requirements: conversational, story-driven, shareable, 3-5 hashtags.`,
+Format as:
+0-5 SEC: Hook (grab attention immediately)
+5-15 SEC: Problem (pain point audience faces)
+15-40 SEC: Solution (how product solves it)
+40-50 SEC: Social proof/features
+50-60 SEC: Strong CTA
 
-    'twitter_post': `3 Twitter variations for "${name}":
-${product_description} | Target: ${target_audience}${mediaContext}
+Include visual directions and key selling points.`,
 
-Each under 280 chars with hashtags and CTA.`,
+    'facebook_post': `Write a Facebook post for "${name}".
+Product: ${product_description}
+Target: ${target_audience}${mediaContext}
 
-    'linkedin_post': `Professional LinkedIn post for "${name}":
-${product_description} | Target: ${target_audience}${mediaContext}
+Requirements:
+- Conversational tone
+- Story-driven (2-3 paragraphs)
+- Clear value proposition
+- Engaging question or CTA
+- 3-5 relevant hashtags
+- Emoji for personality
 
-Professional tone, industry insight, 3-5 hashtags.`,
+Make it shareable and comment-worthy.`,
 
-    'youtube_shorts': `YouTube Shorts script for "${name}":
-${product_description} | Target: ${target_audience}${mediaContext}
+    'twitter_post': `Create 3 Twitter/X post variations for "${name}".
+Product: ${product_description}
+Target: ${target_audience}${mediaContext}
 
-60s format: Hook (0-3s) | Content (3-45s) | CTA (45-60s)`,
+Each tweet should:
+- Be under 280 characters
+- Have a clear hook
+- Include relevant hashtags (2-3)
+- Have strong CTA
+- Be punchy and engaging
 
-    'banner_ad': `Banner ad copy for "${name}":
-${product_description} | Target: ${target_audience}${mediaContext}
+Provide 3 different angles/approaches.`,
 
-Provide: headline, subheadline, CTA button, design notes.`,
+    'linkedin_post': `Write a professional LinkedIn post for "${name}".
+Product: ${product_description}
+Target: ${target_audience}${mediaContext}
 
-    'google_search_ad': `Google Ad copy for "${name}":
-${product_description} | Target: ${target_audience}${mediaContext}
+Format:
+- Professional but engaging hook
+- Industry insight or problem statement
+- How product addresses this
+- Call to action for professionals
+- 3-5 relevant professional hashtags
 
-3 variations with headlines (30 chars) and descriptions (90 chars).`,
+Keep it valuable and shareable in professional circles.`,
 
-    'flyer_text': `Flyer content for "${name}":
-${product_description} | Target: ${target_audience}${mediaContext}
+    'youtube_shorts': `Create a YouTube Shorts script (60 seconds) for "${name}".
+Product: ${product_description}
+Target: ${target_audience}${mediaContext}
 
-Include: headline, 3-5 benefits, offer, CTA, layout tips.`,
+Structure:
+0-3 SEC: Hook (stop the scroll)
+3-45 SEC: Fast-paced content delivery
+45-60 SEC: CTA + follow prompt
 
-    'print_ad': `Print ad copy for "${name}":
-${product_description} | Target: ${target_audience}${mediaContext}
+Include visual cues, text overlays, pacing notes. Make it addictive and re-watchable.`,
 
-Headline, body copy, tagline, CTA, visual concept.`,
+    'banner_ad': `Design a banner ad copy for "${name}".
+Product: ${product_description}
+Target: ${target_audience}${mediaContext}
 
-    'email_campaign': `Email campaign for "${name}":
-${product_description} | Target: ${target_audience}${mediaContext}
+Provide:
+- Main headline (5-7 words, powerful)
+- Subheadline (10-15 words, benefit-focused)
+- Call to action button text (2-4 words)
+- Design suggestions (colors, imagery style)
+- Size variations: 728x90, 300x250, 160x600
 
-Subject line, preview text, body, CTA, P.S. line.`
+Keep it clean, clear, and conversion-focused.`,
+
+    'google_search_ad': `Write Google Search Ad copy for "${name}".
+Product: ${product_description}
+Target: ${target_audience}${mediaContext}
+
+Provide 3 ad variations, each with:
+- Headline 1 (30 chars max)
+- Headline 2 (30 chars max)
+- Headline 3 (30 chars max)
+- Description 1 (90 chars max)
+- Description 2 (90 chars max)
+- Display URL path suggestions
+
+Focus on keywords, benefits, and clear CTAs.`,
+
+    'flyer_text': `Create flyer content for "${name}".
+Product: ${product_description}
+Target: ${target_audience}${mediaContext}
+
+Include:
+- Main headline (attention-grabbing)
+- 3-5 key benefits/features
+- Special offer/promotion text
+- Contact information placeholder
+- Call to action
+- Design layout suggestions
+
+Keep it scannable and impactful for print.`,
+
+    'print_ad': `Write print advertisement copy for "${name}".
+Product: ${product_description}
+Target: ${target_audience}${mediaContext}
+
+Provide:
+- Main headline (powerful, memorable)
+- Body copy (3-4 sentences, benefit-focused)
+- Tagline/slogan
+- Call to action
+- Visual concept description
+- Layout suggestions (headline placement, image areas)
+
+Make it magazine-quality and brand-building.`,
+
+    'email_campaign': `Create an email marketing campaign for "${name}".
+Product: ${product_description}
+Target: ${target_audience}${mediaContext}
+
+Include:
+- Subject line (50 chars, high open rate)
+- Preview text (100 chars)
+- Email body (personalized, scannable)
+- 2-3 section headers
+- Clear CTA buttons (text suggestions)
+- P.S. line for urgency
+
+Focus on value and conversion.`
   };
 
   try {
     const generatedContent = [];
 
-    // Generate content with REDUCED delays
+    // Generate content for each selected format
     for (const format of output_formats || []) {
       const formatKey = format.toLowerCase();
       const prompt = formatPrompts[formatKey];
 
       if (!prompt) {
-        console.log(`⚠️ No template for: ${format}`);
+        console.log(`⚠️  No prompt template for format: ${format}`);
         continue;
       }
 
       console.log(`  Generating: ${format}...`);
 
-      // REDUCED delay: 500ms instead of 2000ms
+      // Add delay to avoid rate limiting (especially for Gemini free tier)
       if (generatedContent.length > 0) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
       }
 
       let content;
       switch (ai_provider) {
         case 'gemini':
-          content = await callGeminiFastAPI(prompt);
+          content = await callGeminiAPI(prompt);
           break;
         case 'claude':
-          content = await callClaudeFastAPI(prompt);
+          content = await callClaudeAPI(prompt);
           break;
         case 'openai':
-          content = await callOpenAIFastAPI(prompt);
+          content = await callOpenAIAPI(prompt);
           break;
         default:
           throw new Error(`Unsupported AI provider: ${ai_provider}`);
@@ -300,7 +585,7 @@ Subject line, preview text, body, CTA, P.S. line.`
       });
     }
 
-    console.log(`✅ Generated ${generatedContent.length} pieces in ~60 seconds\n`);
+    console.log(`✅ Generated ${generatedContent.length} pieces of content\n`);
     return generatedContent;
 
   } catch (error) {
