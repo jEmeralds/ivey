@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
   const [currentStat, setCurrentStat] = useState(0);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   const stats = [
     { number: '50K+', label: 'Content Pieces' },
@@ -11,6 +14,16 @@ const HomePage = () => {
     { number: '15+', label: 'AI Formats' },
     { number: '30s', label: 'Average Speed' }
   ];
+
+  useEffect(() => {
+    // Check if user is logged in
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    if (token && userData) {
+      setIsLoggedIn(true);
+      setUser(JSON.parse(userData));
+    }
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -26,6 +39,14 @@ const HomePage = () => {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    setUser(null);
+    navigate('/');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden relative">
@@ -85,74 +106,106 @@ const HomePage = () => {
         <div className="hidden md:flex items-center gap-8">
           <Link to="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</Link>
           <Link to="/features" className="text-gray-300 hover:text-white transition-colors">Features</Link>
-          <Link to="/login" className="px-6 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white hover:bg-white/20 transition-all">
-            Login
-          </Link>
+          
+          {isLoggedIn ? (
+            <div className="flex items-center gap-4">
+              <span className="text-gray-300">Welcome, {user?.name || 'User'}</span>
+              <button 
+                onClick={handleLogout}
+                className="px-6 py-2 bg-red-500/20 backdrop-blur-sm border border-red-400/30 rounded-full text-red-300 hover:bg-red-500/30 transition-all"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <Link to="/login" className="px-6 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white hover:bg-white/20 transition-all">
+              Login
+            </Link>
+          )}
         </div>
       </nav>
 
       {/* Hero Section */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-[80vh] px-6">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-[60vh] px-6">
         
         {/* Main Headline */}
         <div className="text-center max-w-6xl mx-auto mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 border border-purple-400/30 rounded-full text-purple-300 text-sm mb-8 backdrop-blur-sm">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 002 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
             </svg>
             <span>AI Revolution in Marketing</span>
           </div>
           
-          <h1 className="text-6xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 leading-tight mb-6">
+          <h1 className="text-5xl lg:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 leading-tight mb-6">
             Generate
             <br />
             <span className="text-white">Viral Content</span>
           </h1>
           
           <p className="text-xl lg:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed mb-12">
-            Transform ideas into viral marketing campaigns using advanced AI. 
+            Create viral TikTok scripts, Instagram captions, email campaigns, and 13+ content formats using AI. 
             <br className="hidden lg:block" />
-            From TikTok scripts to email campaigns in <span className="text-cyan-400 font-bold">seconds</span>.
+            Built for marketing agencies and brands.
           </p>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <Link 
-              to="/dashboard"
-              className="group px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl text-white font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-              Start Creating
-              <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-            
-            <button className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white font-semibold text-lg hover:bg-white/20 transition-all">
-              Watch Demo
-            </button>
-          </div>
-
           {/* Animated Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto mb-16">
             {stats.map((stat, index) => (
               <div 
                 key={index}
-                className={`text-center p-6 rounded-2xl transition-all duration-500 ${
+                className={`text-center p-4 rounded-2xl transition-all duration-500 ${
                   currentStat === index 
                     ? 'bg-gradient-to-br from-purple-500/30 to-cyan-500/30 border border-purple-400/50 scale-105' 
                     : 'bg-white/5 border border-white/10'
                 }`}
               >
-                <div className="text-3xl lg:text-4xl font-black text-white mb-2">{stat.number}</div>
-                <div className="text-gray-400 text-sm uppercase tracking-wide">{stat.label}</div>
+                <div className="text-2xl lg:text-3xl font-black text-white mb-1">{stat.number}</div>
+                <div className="text-gray-400 text-xs uppercase tracking-wide">{stat.label}</div>
               </div>
             ))}
           </div>
         </div>
       </div>
+
+      {/* Campaign Creation Section */}
+      {isLoggedIn && (
+        <div className="relative z-10 px-6 pb-12">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl lg:text-4xl font-black text-white mb-4">
+                Ready to create your campaign?
+              </h2>
+              <p className="text-lg text-gray-400">
+                Start by generating a marketing strategy, then create content for all formats
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Link 
+                to="/create-campaign"
+                className="group px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl text-white font-bold text-lg hover:shadow-2xl hover:shadow-green-500/25 transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                📊 Generate Marketing Strategy
+              </Link>
+              
+              <Link 
+                to="/campaigns"
+                className="group px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-600 rounded-2xl text-white font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                🚀 Generate Content
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Feature Showcase */}
       <div className="relative z-10 px-6 pb-20">
@@ -161,7 +214,7 @@ const HomePage = () => {
           {/* Section Title */}
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-black text-white mb-4">
-              AI That Actually <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">Works</span>
+              Everything You Need to <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">Go Viral</span>
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
               No prompting. No tweaking. Just results.
@@ -178,9 +231,9 @@ const HomePage = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">15+ Formats</h3>
+              <h3 className="text-2xl font-bold text-white mb-4">13+ Content Formats</h3>
               <p className="text-gray-400 leading-relaxed">
-                TikTok scripts, Instagram posts, email campaigns, YouTube ads — all from one campaign brief.
+                TikTok scripts, YouTube Shorts, Instagram captions, email marketing, banner ads, and more — all from one campaign brief.
               </p>
             </div>
 
@@ -191,9 +244,9 @@ const HomePage = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">30s Generation</h3>
+              <h3 className="text-2xl font-bold text-white mb-4">Multi-AI Providers</h3>
               <p className="text-gray-400 leading-relaxed">
-                No more waiting. Advanced AI models optimized for marketing content creation at warp speed.
+                Choose between Claude, GPT-4o, and Gemini. Get the best results from multiple AI providers working together.
               </p>
             </div>
 
@@ -204,15 +257,40 @@ const HomePage = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4">Smart AI</h3>
+              <h3 className="text-2xl font-bold text-white mb-4">AI in Seconds</h3>
               <p className="text-gray-400 leading-relaxed">
-                Claude, GPT-4, and Gemini working together to understand your brand and audience perfectly.
+                No more waiting. Advanced AI models optimized for marketing content creation at warp speed.
               </p>
             </div>
 
           </div>
         </div>
       </div>
+
+      {/* CTA for Non-Logged Users */}
+      {!isLoggedIn && (
+        <div className="relative z-10 text-center pb-20">
+          <div className="max-w-2xl mx-auto px-6">
+            <h2 className="text-3xl lg:text-4xl font-black text-white mb-6">
+              Start Creating Viral Content Today
+            </h2>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link 
+                to="/signup"
+                className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl text-white font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105"
+              >
+                Get Started Free
+              </Link>
+              <Link 
+                to="/login"
+                className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white font-semibold text-lg hover:bg-white/20 transition-all"
+              >
+                Sign In
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Animation Styles */}
       <style jsx>{`
