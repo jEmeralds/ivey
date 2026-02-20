@@ -1,4 +1,4 @@
-// AI Service - COMPREHENSIVE VERSION WITH CORRECT GEMINI MODEL
+// AI Service - ORIGINAL COMPREHENSIVE VERSION WITHOUT WEB SEARCH
 import fetch from 'node-fetch';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -9,11 +9,11 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 export const generateMarketingStrategyAI = async (campaignData) => {
   const { name, product_description, target_audience, output_formats, ai_provider } = campaignData;
   
-  console.log(`\n🤖 Generating comprehensive AI strategy for: ${name}`);
+  console.log(`\n🤖 Generating AI strategy for: ${name}`);
   console.log(`   Provider: ${ai_provider}`);
 
-  // Build comprehensive prompt (WITHOUT web search)
-  const prompt = `You are an expert marketing strategist with deep industry knowledge.
+  // Build comprehensive prompt WITHOUT web search
+  const prompt = `You are an expert marketing strategist with access to current market research.  
 
 Campaign Details:
 - Campaign Name: ${name}
@@ -21,80 +21,56 @@ Campaign Details:
 - Target Audience: ${target_audience}
 - Distribution Channels: ${output_formats?.join(', ') || 'Multiple platforms'}
 
+IMPORTANT: Use your knowledge of current marketing trends and industry benchmarks to inform your recommendations. When suggesting metrics, KPIs, or benchmarks, provide realistic industry-standard estimates.
+
 Generate a comprehensive, data-driven marketing strategy that includes:
 
 1. CAMPAIGN OBJECTIVES
    - 3-5 specific, measurable goals based on industry benchmarks
-   - Primary objective with clear success criteria
-   - Secondary objectives supporting brand building
 
 2. TARGET AUDIENCE ANALYSIS
    - Demographics and psychographics
    - Pain points and desires
-   - Media consumption habits and preferred platforms
-   - Decision-making factors and purchase triggers
-   - Audience personas with specific characteristics
+   - Media consumption habits
+   - Decision-making factors
 
 3. KEY MESSAGES & VALUE PROPOSITIONS
-   - Primary value proposition (unique selling point)
-   - 3-5 core messages for different audience segments
-   - Emotional appeals and rational benefits
-   - Brand positioning statement
-   - Competitive differentiation points
+   - 3-5 core messages
+   - Unique selling points
+   - Emotional appeals
 
 4. CONTENT STRATEGY
-   - Content pillars with 40/30/20/10 breakdown:
-     * 40% Educational/Value-driven content
-     * 30% Behind-the-scenes/Brand storytelling
-     * 20% Product-focused content
-     * 10% User-generated content/Community
-   - Content themes and messaging calendar
-   - Optimal posting frequency for each platform
-   - Content formats most effective for target audience
+   - Content pillars with percentage breakdown
+   - Posting frequency based on platform best practices
+   - Optimal posting times
 
 5. DISTRIBUTION PLAN
    - Platform-specific tactics for: ${output_formats?.slice(0, 5).join(', ')}
-   - Organic strategy with content optimization
-   - Paid advertising approach with budget allocation
-   - Cross-promotion and synergy tactics
-   - Influencer collaboration opportunities
-   - Email marketing integration
+   - Organic vs paid strategy
+   - Cross-promotion tactics
 
 6. BUDGET RECOMMENDATIONS
-   - Allocation percentages: 60% paid ads, 25% content creation, 10% tools, 5% influencers
-   - Cost-effective approaches for maximum ROI
-   - Scaling strategies based on performance
-   - Resource allocation across platforms
+   - Allocation percentages based on industry standards
+   - Cost-effective approaches
 
 7. SUCCESS METRICS & KPIs
-   - Primary metrics: Conversion rate, ROAS, engagement rate
-   - Secondary metrics: Brand awareness, reach, share of voice
-   - Platform-specific KPIs with realistic benchmarks:
-     * Social media: 2-5% engagement rate target
-     * Email: 20-25% open rate, 3-5% click rate
-     * Paid ads: 2-4% CTR, $10-50 CPA depending on industry
-   - Attribution and tracking methodology
+   - Primary metrics with realistic benchmarks
+   - Target numbers based on similar campaigns
+   - Tools for measurement
 
 8. TIMELINE & MILESTONES
-   - Week 1-2: Campaign launch and initial optimization
-   - Week 3-4: Scale successful elements, pause underperformers
-   - Month 2: Mid-campaign analysis and strategy refinement
-   - Month 3: Full optimization and preparation for next phase
-   - Key milestones and checkpoint reviews
+   - Week-by-week action plan
+   - Key milestones
 
 9. COMPETITIVE INSIGHTS
-   - Competitive landscape analysis
-   - Gaps in competitor strategies to exploit
+   - Analysis of competitor strategies
    - Differentiation opportunities
-   - Market positioning advantages
 
 10. OPTIMIZATION RECOMMENDATIONS
-    - A/B testing ideas for ads, content, and landing pages
+    - A/B testing ideas
     - Continuous improvement tactics
-    - Performance monitoring schedule
-    - Scaling strategies for successful campaigns
 
-Be specific, actionable, and data-driven. Provide realistic industry benchmarks and concrete next steps.`;
+Be specific, actionable, and data-driven. When providing metrics or benchmarks, use industry estimates based on your knowledge.`;
 
   try {
     let strategy;
@@ -113,7 +89,7 @@ Be specific, actionable, and data-driven. Provide realistic industry benchmarks 
         throw new Error(`Unsupported AI provider: ${ai_provider}`);
     }
 
-    console.log('✅ Comprehensive strategy generated successfully\n');
+    console.log('✅ Strategy generated successfully\n');
     return strategy;
   } catch (error) {
     console.error('AI strategy generation error:', error);
@@ -121,81 +97,67 @@ Be specific, actionable, and data-driven. Provide realistic industry benchmarks 
   }
 };
 
-// Gemini API call - USING CORRECT MODEL NAME
+// Gemini API call - USING THE ORIGINAL WORKING MODEL
 async function callGeminiAPI(prompt) {
   if (!GEMINI_API_KEY) {
     throw new Error('Gemini API key not configured');
   }
 
-  // Try different model names that are known to work
-  const modelOptions = [
-    'gemini-1.5-flash',
-    'gemini-1.5-pro',
-    'gemini-pro',
-    'gemini-1.5-flash-002'
-  ];
-
-  let lastError;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`;
   
-  for (const model of modelOptions) {
-    try {
-      console.log(`Trying Gemini model: ${model}`);
-      
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 8192,
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        console.log(`Model ${model} failed: ${response.status} - ${error}`);
-        lastError = new Error(`${model}: ${response.status} - ${error}`);
-        continue; // Try next model
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{ text: prompt }]
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 8192, // Keep for comprehensive strategies
       }
+    })
+  });
 
-      const data = await response.json();
-
-      // Validate response structure
-      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-        console.log(`Model ${model} returned invalid structure`);
-        lastError = new Error(`${model}: Invalid response structure`);
-        continue;
-      }
-
-      if (!data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
-        console.log(`Model ${model} returned no content parts`);
-        lastError = new Error(`${model}: No content parts returned`);
-        continue;
-      }
-
-      console.log(`✅ Successfully used Gemini model: ${model}`);
-      return data.candidates[0].content.parts[0].text;
-
-    } catch (error) {
-      console.log(`Model ${model} threw error:`, error.message);
-      lastError = error;
-      continue;
-    }
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Gemini API error: ${error.error?.message || 'Unknown error'}`);
   }
 
-  // If all models failed, throw the last error
-  throw new Error(`All Gemini models failed. Last error: ${lastError?.message}`);
+  const data = await response.json();
+
+  console.log('Gemini API response received');
+  console.log('Response structure check:');
+  console.log('  - Has candidates:', !!data.candidates);
+  console.log('  - Has candidates[0]:', !!data.candidates?.[0]);
+  console.log('  - Has content:', !!data.candidates?.[0]?.content);
+  console.log('  - Has parts:', !!data.candidates?.[0]?.content?.parts);
+  console.log('  - Parts length:', data.candidates?.[0]?.content?.parts?.length);
+
+  // Validate response structure
+  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+    console.error('Invalid Gemini response structure:', JSON.stringify(data, null, 2));
+    throw new Error('Invalid response from Gemini API');
+  }
+
+  if (!data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
+    console.error('Gemini response has no parts (content may be blocked)');
+    console.error('Full response:', JSON.stringify(data, null, 2));
+
+    // Check if content was blocked by safety filters
+    if (data.promptFeedback?.blockReason) {
+      throw new Error(`Gemini blocked content: ${data.promptFeedback.blockReason}`);
+    }
+
+    throw new Error('Gemini response missing content parts - content may have been filtered');
+  }
+
+  return data.candidates[0].content.parts[0].text;
 }
 
-// Claude API call
+// Claude API call (unchanged)
 async function callClaudeAPI(prompt) {
   if (!ANTHROPIC_API_KEY) {
     throw new Error('Claude API key not configured. Please add your Anthropic API key.');
@@ -210,7 +172,7 @@ async function callClaudeAPI(prompt) {
     },
     body: JSON.stringify({
       model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 4096,
+      max_tokens: 2048,
       messages: [{
         role: 'user',
         content: prompt
@@ -227,7 +189,7 @@ async function callClaudeAPI(prompt) {
   return data.content[0].text;
 }
 
-// OpenAI API call
+// OpenAI API call (unchanged)
 async function callOpenAIAPI(prompt) {
   if (!OPENAI_API_KEY) {
     throw new Error('OpenAI API key not configured. Please add your OpenAI API key.');
@@ -245,7 +207,7 @@ async function callOpenAIAPI(prompt) {
         role: 'user',
         content: prompt
       }],
-      max_tokens: 4096,
+      max_tokens: 2048,
       temperature: 0.7
     })
   });
@@ -259,11 +221,11 @@ async function callOpenAIAPI(prompt) {
   return data.choices[0].message.content;
 }
 
-// Generate content ideas - COMPREHENSIVE VERSION
+// Generate content ideas (comprehensive version)
 export const generateContentIdeasAI = async (campaignData, mediaUrls = []) => {
   const { name, product_description, target_audience, output_formats, ai_provider } = campaignData;
   
-  console.log(`\n🎨 Generating comprehensive content for: ${name}`);
+  console.log(`\n🎨 Generating content for: ${name}`);
   console.log(`   Formats: ${output_formats?.length || 0} selected`);
   console.log(`   Provider: ${ai_provider}`);
 
@@ -448,9 +410,9 @@ Focus on value and conversion.`
 
       console.log(`  Generating: ${format}...`);
 
-      // REDUCED delay to avoid rate limiting but keep comprehensive content
+      // Reduced delay to avoid rate limiting (1 second instead of 2)
       if (generatedContent.length > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay instead of 2
+        await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
       }
 
       let content;
@@ -475,7 +437,7 @@ Focus on value and conversion.`
       });
     }
 
-    console.log(`✅ Generated ${generatedContent.length} comprehensive pieces of content\n`);
+    console.log(`✅ Generated ${generatedContent.length} pieces of content\n`);
     return generatedContent;
 
   } catch (error) {
