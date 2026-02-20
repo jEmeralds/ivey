@@ -1,211 +1,221 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/authContext';
-import Navbar from '../components/Navbar';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronRightIcon, SparklesIcon, RocketLaunchIcon, CpuChipIcon } from '@heroicons/react/24/outline';
 
-const FeatureCard = ({ icon, title, desc }) => {
-  const [isHovered, setIsHovered] = useState(false);
+const HomePage = () => {
+  const [currentStat, setCurrentStat] = useState(0);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
-  return (
-    <div
-      className={`bg-slate-800 p-8 rounded-2xl border transition-all duration-300 cursor-pointer ${
-        isHovered ? 'border-blue-500 shadow-2xl shadow-blue-500/20 -translate-y-2' : 'border-slate-700'
-      }`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className={`text-5xl mb-4 transition-transform duration-300 ${isHovered ? 'scale-110' : ''}`}>
-        {icon}
-      </div>
-      <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
-      <p className="text-slate-400 leading-relaxed">{desc}</p>
-    </div>
-  );
-};
-
-const Home = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-
-  const scrollToSection = (sectionId) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  const handleGetStarted = () => {
-    if (user) {
-      navigate('/dashboard');
-    } else {
-      navigate('/signup');
-    }
-  };
-
-  const features = [
-    { icon: '🎬', title: '13+ Content Formats', desc: 'TikTok scripts, YouTube Shorts, Instagram captions, email marketing, SMS, flyers, ads, and more.' },
-    { icon: '🤖', title: 'Multi-AI Providers', desc: 'Choose between Claude, GPT-4o, and Gemini. Get the best results from multiple AI models.' },
-    { icon: '📊', title: 'Marketing Strategy', desc: 'AI generates comprehensive marketing strategies with audience analysis and channel recommendations.' },
-    { icon: '⚡', title: 'Lightning Fast', desc: 'Generate 50+ ideas across multiple formats in under 2 minutes. Export and use immediately.' },
-    { icon: '🎯', title: 'Audience Targeting', desc: 'Customize content for specific demographics, emotions, and campaign goals.' },
-    { icon: '💼', title: 'Agency Ready', desc: 'Manage multiple campaigns, upload brand assets, and scale your content production.' },
+  const stats = [
+    { number: '50K+', label: 'Content Pieces' },
+    { number: '2.3M+', label: 'Words Generated' },
+    { number: '15+', label: 'AI Formats' },
+    { number: '30s', label: 'Average Speed' }
   ];
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentStat((prev) => (prev + 1) % stats.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-slate-900">
-      <Navbar />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden relative">
+      
+      {/* Animated Background Grid */}
+      <div className="absolute inset-0 opacity-20">
+        <div 
+          className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-purple-500/20"
+          style={{
+            backgroundImage: `
+              radial-gradient(circle at 25% 25%, #00f5ff 0%, transparent 50%),
+              radial-gradient(circle at 75% 75%, #8b5cf6 0%, transparent 50%),
+              linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.02) 50%, transparent 70%)
+            `,
+            backgroundSize: '400px 400px, 300px 300px, 50px 50px'
+          }}
+        />
+      </div>
 
-      {/* Hero */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-20 pb-16 text-center">
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-          Generate Viral Marketing Content<br />
-          <span className="bg-gradient-to-r from-purple-500 to-blue-500 bg-clip-text text-transparent">
-            With AI in Seconds
-          </span>
-        </h1>
-        <p className="text-lg sm:text-xl text-slate-400 mb-10 max-w-3xl mx-auto leading-relaxed">
-          Create viral TikTok scripts, Instagram captions, email campaigns, and 13+ content formats using AI. 
-          Built for marketing agencies and brands.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <button 
-            onClick={handleGetStarted} 
-            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-lg rounded-xl transition-all shadow-lg hover:shadow-purple-500/25"
-          >
-            {user ? 'Go to Dashboard' : 'Get Started Free'}
-          </button>
-          <button 
-            onClick={() => scrollToSection('features')} 
-            className="px-8 py-4 border-2 border-slate-600 hover:border-slate-500 text-white font-semibold text-lg rounded-xl transition-all"
-          >
-            Learn More
-          </button>
+      {/* Floating Neural Network Dots */}
+      <div className="absolute inset-0 pointer-events-none">
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-2 h-2 bg-cyan-400 rounded-full opacity-60"
+            style={{
+              left: `${15 + (i * 12)}%`,
+              top: `${20 + (i * 8)}%`,
+              animation: `float ${3 + (i * 0.5)}s ease-in-out infinite alternate`,
+              animationDelay: `${i * 0.2}s`
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Mouse Trail Effect */}
+      <div 
+        className="absolute w-96 h-96 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 rounded-full blur-3xl pointer-events-none transition-all duration-300"
+        style={{
+          left: mousePosition.x - 192,
+          top: mousePosition.y - 192,
+          transform: 'translate3d(0,0,0)'
+        }}
+      />
+
+      {/* Navigation */}
+      <nav className="relative z-10 flex items-center justify-between p-6 lg:p-8">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-purple-600 rounded-lg flex items-center justify-center">
+            <SparklesIcon className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-2xl font-bold text-white tracking-tight">IVey</span>
         </div>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">
-          Everything You Need to Go Viral
-        </h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, index) => (
-            <FeatureCard key={index} {...feature} />
-          ))}
+        
+        <div className="hidden md:flex items-center gap-8">
+          <Link to="/pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</Link>
+          <Link to="/features" className="text-gray-300 hover:text-white transition-colors">Features</Link>
+          <Link to="/login" className="px-6 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white hover:bg-white/20 transition-all">
+            Login
+          </Link>
         </div>
-      </section>
+      </nav>
 
-      {/* Pricing */}
-      <section id="pricing" className="max-w-6xl mx-auto px-4 sm:px-6 py-20">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">
-          Simple, Transparent Pricing
-        </h2>
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-          <div className="bg-slate-800 rounded-2xl p-8 border border-slate-700">
-            <h3 className="text-2xl font-bold text-white mb-2">Free</h3>
-            <div className="text-4xl font-bold text-white mb-6">$0<span className="text-lg text-slate-400 font-normal">/month</span></div>
-            <ul className="space-y-3 mb-8">
-              <li className="text-slate-300">✓ 5 campaigns/month</li>
-              <li className="text-slate-300">✓ 3 AI generations/day</li>
-              <li className="text-slate-300">✓ Basic formats</li>
-              <li className="text-slate-300">✓ Community support</li>
-            </ul>
-            <button onClick={handleGetStarted} className="w-full py-3 border border-slate-600 hover:border-slate-500 text-white font-semibold rounded-lg transition-colors">
-              Get Started
+      {/* Hero Section */}
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-[80vh] px-6">
+        
+        {/* Main Headline */}
+        <div className="text-center max-w-6xl mx-auto mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 border border-purple-400/30 rounded-full text-purple-300 text-sm mb-8 backdrop-blur-sm">
+            <CpuChipIcon className="w-4 h-4" />
+            <span>AI Revolution in Marketing</span>
+          </div>
+          
+          <h1 className="text-6xl lg:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 leading-tight mb-6">
+            Generate
+            <br />
+            <span className="text-white">Viral Content</span>
+          </h1>
+          
+          <p className="text-xl lg:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed mb-12">
+            Transform ideas into viral marketing campaigns using advanced AI. 
+            <br className="hidden lg:block" />
+            From TikTok scripts to email campaigns in <span className="text-cyan-400 font-bold">seconds</span>.
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+            <Link 
+              to="/dashboard"
+              className="group px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-2xl text-white font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
+            >
+              <RocketLaunchIcon className="w-5 h-5" />
+              Start Creating
+              <ChevronRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            
+            <button className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white font-semibold text-lg hover:bg-white/20 transition-all">
+              Watch Demo
             </button>
           </div>
 
-          <div className="bg-slate-800 rounded-2xl p-8 border-2 border-purple-500 relative transform lg:scale-105">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-bold rounded-full">
-              Most Popular
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-2">Pro</h3>
-            <div className="text-4xl font-bold text-white mb-6">$29<span className="text-lg text-slate-400 font-normal">/month</span></div>
-            <ul className="space-y-3 mb-8">
-              <li className="text-slate-300">✓ Unlimited campaigns</li>
-              <li className="text-slate-300">✓ Unlimited generations</li>
-              <li className="text-slate-300">✓ All 13+ formats</li>
-              <li className="text-slate-300">✓ Priority support</li>
-              <li className="text-slate-300">✓ Team collaboration</li>
-            </ul>
-            <button onClick={handleGetStarted} className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all">
-              Start Free Trial
-            </button>
-          </div>
-
-          <div className="bg-slate-800 rounded-2xl p-8 border border-slate-700">
-            <h3 className="text-2xl font-bold text-white mb-2">Enterprise</h3>
-            <div className="text-4xl font-bold text-white mb-6">Custom</div>
-            <ul className="space-y-3 mb-8">
-              <li className="text-slate-300">✓ Everything in Pro</li>
-              <li className="text-slate-300">✓ Custom AI models</li>
-              <li className="text-slate-300">✓ API access</li>
-              <li className="text-slate-300">✓ Dedicated support</li>
-              <li className="text-slate-300">✓ SLA guarantee</li>
-            </ul>
-            <button onClick={() => scrollToSection('contact')} className="w-full py-3 border border-slate-600 hover:border-slate-500 text-white font-semibold rounded-lg transition-colors">
-              Contact Sales
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Contact */}
-      <section id="contact" className="max-w-4xl mx-auto px-4 sm:px-6 py-20 text-center">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Get In Touch</h2>
-        <p className="text-lg text-slate-400 mb-12">Have questions? We'd love to hear from you.</p>
-        <div className="grid sm:grid-cols-3 gap-6">
-          <a href="mailto:contact@ivey.app" className="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors block">
-            <div className="text-4xl mb-3">📧</div>
-            <h3 className="text-lg font-semibold text-white mb-1">Email Us</h3>
-            <p className="text-slate-400">contact@ivey.app</p>
-          </a>
-          <a href="https://twitter.com/iveyapp" target="_blank" rel="noopener noreferrer" className="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors block">
-            <div className="text-4xl mb-3">🐦</div>
-            <h3 className="text-lg font-semibold text-white mb-1">Twitter</h3>
-            <p className="text-slate-400">@iveyapp</p>
-          </a>
-          <a href="https://linkedin.com/company/ivey" target="_blank" rel="noopener noreferrer" className="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors block">
-            <div className="text-4xl mb-3">💼</div>
-            <h3 className="text-lg font-semibold text-white mb-1">LinkedIn</h3>
-            <p className="text-slate-400">IVey Marketing</p>
-          </a>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 py-20 text-center">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Ready to Create Viral Content?</h2>
-        <p className="text-lg text-slate-400 mb-8">Join marketing agencies using IVey to 10x their content output</p>
-        <button onClick={handleGetStarted} className="px-10 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-lg rounded-xl transition-all shadow-lg hover:shadow-purple-500/25">
-          {user ? 'Go to Dashboard →' : 'Start Creating Now →'}
-        </button>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-slate-800 border-t border-slate-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
-            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-              <img src="/vite.svg" alt="IVey" className="w-8 h-8" />
-              <div className="text-left">
-                <h3 className="text-xl font-bold text-white">IVey</h3>
-                <p className="text-slate-400 text-sm">AI-Powered Viral Marketing</p>
+          {/* Animated Stats */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 max-w-4xl mx-auto">
+            {stats.map((stat, index) => (
+              <div 
+                key={index}
+                className={`text-center p-6 rounded-2xl transition-all duration-500 ${
+                  currentStat === index 
+                    ? 'bg-gradient-to-br from-purple-500/30 to-cyan-500/30 border border-purple-400/50 scale-105' 
+                    : 'bg-white/5 border border-white/10'
+                }`}
+              >
+                <div className="text-3xl lg:text-4xl font-black text-white mb-2">{stat.number}</div>
+                <div className="text-gray-400 text-sm uppercase tracking-wide">{stat.label}</div>
               </div>
-            </button>
-            <div className="flex gap-6">
-              <button onClick={() => scrollToSection('features')} className="text-slate-400 hover:text-white transition-colors">Features</button>
-              <button onClick={() => scrollToSection('pricing')} className="text-slate-400 hover:text-white transition-colors">Pricing</button>
-              <button onClick={() => scrollToSection('contact')} className="text-slate-400 hover:text-white transition-colors">Contact</button>
-            </div>
-          </div>
-          <div className="mt-8 pt-8 border-t border-slate-700 text-center">
-            <p className="text-slate-500 text-sm">© 2024 IVey. All rights reserved.</p>
+            ))}
           </div>
         </div>
-      </footer>
+      </div>
+
+      {/* Feature Showcase */}
+      <div className="relative z-10 px-6 pb-20">
+        <div className="max-w-7xl mx-auto">
+          
+          {/* Section Title */}
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-black text-white mb-4">
+              AI That Actually <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">Works</span>
+            </h2>
+            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+              No prompting. No tweaking. Just results.
+            </p>
+          </div>
+
+          {/* Feature Cards */}
+          <div className="grid lg:grid-cols-3 gap-8">
+            
+            {/* Multi-Format Generation */}
+            <div className="group p-8 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-slate-700/50 rounded-3xl hover:border-purple-500/50 transition-all duration-300 hover:scale-105">
+              <div className="w-16 h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2M7 4h10M7 4l-2 16h14l-2-16" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">15+ Formats</h3>
+              <p className="text-gray-400 leading-relaxed">
+                TikTok scripts, Instagram posts, email campaigns, YouTube ads — all from one campaign brief.
+              </p>
+            </div>
+
+            {/* Lightning Speed */}
+            <div className="group p-8 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-slate-700/50 rounded-3xl hover:border-cyan-500/50 transition-all duration-300 hover:scale-105">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">30s Generation</h3>
+              <p className="text-gray-400 leading-relaxed">
+                No more waiting. Advanced AI models optimized for marketing content creation at warp speed.
+              </p>
+            </div>
+
+            {/* Smart Targeting */}
+            <div className="group p-8 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-slate-700/50 rounded-3xl hover:border-green-500/50 transition-all duration-300 hover:scale-105">
+              <div className="w-16 h-16 bg-gradient-to-r from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">Smart AI</h3>
+              <p className="text-gray-400 leading-relaxed">
+                Claude, GPT-4, and Gemini working together to understand your brand and audience perfectly.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Animation Styles */}
+      <style jsx>{`
+        @keyframes float {
+          0% { transform: translateY(0px) rotate(0deg); }
+          100% { transform: translateY(-20px) rotate(180deg); }
+        }
+      `}</style>
     </div>
   );
 };
 
-export default Home;
+export default HomePage;
