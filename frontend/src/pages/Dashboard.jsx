@@ -69,6 +69,12 @@ const Dashboard = () => {
     }
   };
 
+  // Handle campaign detail navigation
+  const handleCampaignClick = (campaignId) => {
+    // Try multiple possible routes for campaign details
+    navigate(`/campaigns/${campaignId}`);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -100,10 +106,9 @@ const Dashboard = () => {
               </p>
             </div>
             
-            {/* FIXED: Use correct route to NewCampaign */}
             <Link
               to="/new-campaign"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors shadow-sm"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -118,7 +123,7 @@ const Dashboard = () => {
         
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
                 <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -132,7 +137,7 @@ const Dashboard = () => {
             </div>
           </div>
           
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
                 <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -146,7 +151,7 @@ const Dashboard = () => {
             </div>
           </div>
           
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
                 <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,7 +174,7 @@ const Dashboard = () => {
         )}
 
         {/* Campaigns Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Your Campaigns</h2>
@@ -198,7 +203,7 @@ const Dashboard = () => {
               </p>
               <Link
                 to="/new-campaign"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors shadow-sm"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -214,13 +219,12 @@ const Dashboard = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
-                        {/* FIXED: Use correct route to CampaignDetail */}
-                        <Link 
-                          to={`/campaign-detail/${campaign.id}`}
-                          className="text-lg font-semibold text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                        <button 
+                          onClick={() => handleCampaignClick(campaign.id)}
+                          className="text-lg font-semibold text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors text-left"
                         >
                           {campaign.name}
-                        </Link>
+                        </button>
                         {getStatusBadge(campaign)}
                       </div>
                       <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
@@ -240,22 +244,21 @@ const Dashboard = () => {
                     </div>
                     
                     <div className="flex items-center gap-3 ml-4">
-                      {/* FIXED: Use correct route to EditCampaign */}
-                      <Link
-                        to={`/edit-campaign/${campaign.id}`}
+                      <button
+                        onClick={() => navigate(`/edit-campaign/${campaign.id}`)}
                         className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                         title="Edit campaign"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                      </Link>
-                      <Link
-                        to={`/campaign-detail/${campaign.id}`}
+                      </button>
+                      <button
+                        onClick={() => handleCampaignClick(campaign.id)}
                         className="px-4 py-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors text-sm font-medium"
                       >
                         View Details →
-                      </Link>
+                      </button>
                     </div>
                   </div>
                 </div>

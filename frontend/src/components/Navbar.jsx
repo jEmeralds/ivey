@@ -19,13 +19,21 @@ const Navbar = () => {
       setUser(JSON.parse(userData));
     }
 
-    // Check theme preference
+    // Initialize theme properly
     const savedTheme = localStorage.getItem('theme');
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+    if (savedTheme === 'dark') {
       setIsDarkMode(true);
       document.documentElement.classList.add('dark');
+    } else if (savedTheme === 'light') {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    } else {
+      // Use system preference
+      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDarkMode(systemPrefersDark);
+      if (systemPrefersDark) {
+        document.documentElement.classList.add('dark');
+      }
     }
   }, []);
 
@@ -58,10 +66,10 @@ const Navbar = () => {
   const NavLink = ({ to, children, className = "" }) => (
     <Link
       to={to}
-      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+      className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
         isActivePage(to)
-          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-          : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+          ? 'bg-purple-600 text-white shadow-sm'
+          : 'text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-700'
       } ${className}`}
       onClick={() => setIsMobileMenuOpen(false)}
     >
@@ -70,13 +78,13 @@ const Navbar = () => {
   );
 
   return (
-    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 transition-colors sticky top-0 z-50">
+    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 transition-colors sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <div className="flex items-center justify-between h-16 lg:h-20">
           
-          {/* Logo - SERVES AS HOME BUTTON */}
-          <Link to="/" className="flex items-center gap-3 flex-shrink-0">
-            <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-3 flex-shrink-0 group">
+            <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
@@ -84,7 +92,7 @@ const Navbar = () => {
             <span className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">IVey</span>
           </Link>
 
-          {/* Desktop Navigation - REMOVED REDUNDANT HOME BUTTON */}
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-2">
             <NavLink to="/features">Features</NavLink>
             <NavLink to="/pricing">Pricing</NavLink>
@@ -100,8 +108,8 @@ const Navbar = () => {
             {/* Dark Mode Toggle */}
             <button
               onClick={toggleDarkMode}
-              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              aria-label="Toggle dark mode"
+              className="p-2.5 rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDarkMode ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,22 +125,29 @@ const Navbar = () => {
             {/* Authentication */}
             {isLoggedIn ? (
               <div className="hidden md:flex items-center gap-4">
-                <span className="text-gray-700 dark:text-gray-300">
-                  Welcome, <span className="font-medium">{user?.name || 'User'}</span>
-                </span>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">
+                      {(user?.name || 'U').charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="text-gray-700 dark:text-gray-300 text-sm font-medium">
+                    {user?.name?.split(' ')[0] || 'User'}
+                  </span>
+                </div>
                 <button
                   onClick={handleLogout}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                 >
                   Logout
                 </button>
               </div>
             ) : (
-              <div className="hidden md:flex items-center gap-4">
+              <div className="hidden md:flex items-center gap-3">
                 <NavLink to="/login">Sign In</NavLink>
                 <Link
                   to="/signup"
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                  className="px-6 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
                 >
                   Get Started
                 </Link>
@@ -142,7 +157,7 @@ const Navbar = () => {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
               aria-label="Toggle mobile menu"
             >
               {isMobileMenuOpen ? (
@@ -158,9 +173,9 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Menu - ALSO REMOVED HOME FROM MOBILE */}
+        {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 dark:border-gray-700 py-4 space-y-2">
+          <div className="md:hidden border-t border-gray-200 dark:border-gray-700 py-4 space-y-2 bg-white dark:bg-gray-900">
             <div className="flex flex-col space-y-2">
               <NavLink to="/features" className="block w-full text-left">Features</NavLink>
               <NavLink to="/pricing" className="block w-full text-left">Pricing</NavLink>
@@ -172,9 +187,21 @@ const Navbar = () => {
 
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
               {isLoggedIn ? (
-                <div className="space-y-2">
-                  <div className="px-4 py-2 text-gray-700 dark:text-gray-300">
-                    Welcome, <span className="font-medium">{user?.name || 'User'}</span>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-4 py-2">
+                    <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">
+                        {(user?.name || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-gray-900 dark:text-white font-medium text-sm">
+                        {user?.name || 'User'}
+                      </div>
+                      <div className="text-gray-500 dark:text-gray-400 text-xs">
+                        {user?.email}
+                      </div>
+                    </div>
                   </div>
                   <button
                     onClick={handleLogout}
