@@ -1,60 +1,46 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './context/authContext';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
+
+// Import all pages
+import Home from './pages/Home';
 import Login from './pages/login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import NewCampaign from './pages/NewCampaign';
 import EditCampaign from './pages/EditCampaign';
 import CampaignDetail from './pages/CampaignDetail';
-import Home from './pages/Home';
-
-// Protected Route wrapper
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-      </div>
-    );
-  }
-
-  return isAuthenticated ? children : <Navigate to="/login" />;
-};
-
-// Public Route wrapper (redirect to dashboard if already logged in)
-const PublicRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-      </div>
-    );
-  }
-
-  return !isAuthenticated ? children : <Navigate to="/dashboard" />;
-};
+import Features from './pages/Features';
+import Pricing from './pages/Pricing';
 
 function App() {
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-      <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
-
-      {/* Protected Routes */}
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/new-campaign" element={<ProtectedRoute><NewCampaign /></ProtectedRoute>} />
-      <Route path="/campaign/:id/edit" element={<ProtectedRoute><EditCampaign /></ProtectedRoute>} />
-      <Route path="/campaign/:id" element={<ProtectedRoute><CampaignDetail /></ProtectedRoute>} />
-
-      {/* Catch all - redirect to home */}
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+    <Router>
+      <div className="App">
+        {/* Navbar appears on ALL pages */}
+        <Navbar />
+        
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          
+          {/* Protected routes */}
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/new-campaign" element={<NewCampaign />} />
+          <Route path="/edit-campaign/:id" element={<EditCampaign />} />
+          
+          {/* Multiple possible routes for campaign details */}
+          <Route path="/campaigns/:id" element={<CampaignDetail />} />
+          <Route path="/campaign-detail/:id" element={<CampaignDetail />} />
+          
+          {/* Fallback route */}
+          <Route path="*" element={<Home />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

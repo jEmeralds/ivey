@@ -69,15 +69,15 @@ const Dashboard = () => {
     }
   };
 
-  // Handle campaign detail navigation
-  const handleCampaignClick = (campaignId) => {
-    // Try multiple possible routes for campaign details
+  const handleViewDetails = (campaignId) => {
+    console.log('Navigating to campaign details:', campaignId);
+    // Try the exact route that exists in your file structure
     navigate(`/campaigns/${campaignId}`);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20">
         <div className="flex items-center justify-center h-64">
           <div className="flex items-center gap-3">
             <svg className="w-6 h-6 animate-spin text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,9 +91,9 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors pt-20">
       
-      {/* Header */}
+      {/* Header Section - NO DUPLICATE NAVBAR */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -220,7 +220,7 @@ const Dashboard = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
                         <button 
-                          onClick={() => handleCampaignClick(campaign.id)}
+                          onClick={() => handleViewDetails(campaign.id)}
                           className="text-lg font-semibold text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors text-left"
                         >
                           {campaign.name}
@@ -254,7 +254,7 @@ const Dashboard = () => {
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleCampaignClick(campaign.id)}
+                        onClick={() => handleViewDetails(campaign.id)}
                         className="px-4 py-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors text-sm font-medium"
                       >
                         View Details →
