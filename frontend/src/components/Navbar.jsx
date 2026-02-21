@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTheme } from '../context/ThemeProvider';
 
 const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const location = useLocation();
   const navigate = useNavigate();
+  const { isDarkMode, toggleTheme, isLoading } = useTheme();
 
   useEffect(() => {
     // Check authentication status
@@ -18,46 +19,7 @@ const Navbar = () => {
       setIsLoggedIn(true);
       setUser(JSON.parse(userData));
     }
-
-    // Initialize theme properly with immediate DOM update
-    const initializeTheme = () => {
-      const savedTheme = localStorage.getItem('theme');
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      
-      if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-        setIsDarkMode(true);
-        document.documentElement.classList.add('dark');
-        document.body.classList.add('dark');
-      } else {
-        setIsDarkMode(false);
-        document.documentElement.classList.remove('dark');
-        document.body.classList.remove('dark');
-      }
-    };
-
-    initializeTheme();
   }, []);
-
-  const toggleDarkMode = () => {
-    const newMode = !isDarkMode;
-    setIsDarkMode(newMode);
-    
-    if (newMode) {
-      document.documentElement.classList.add('dark');
-      document.body.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.body.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-    
-    // Force re-render by triggering a small animation
-    document.documentElement.style.transition = 'background-color 0.3s ease';
-    setTimeout(() => {
-      document.documentElement.style.transition = '';
-    }, 300);
-  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -70,6 +32,11 @@ const Navbar = () => {
 
   const isActivePage = (path) => {
     return location.pathname === path;
+  };
+
+  const handleThemeToggle = () => {
+    console.log('Theme toggle clicked, current mode:', isDarkMode);
+    toggleTheme();
   };
 
   const NavLink = ({ to, children, className = "" }) => (
@@ -85,6 +52,20 @@ const Navbar = () => {
       {children}
     </Link>
   );
+
+  if (isLoading) {
+    return (
+      <nav className="bg-white border-b border-gray-200 transition-colors sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12">
+          <div className="flex items-center justify-between h-14 md:h-16 lg:h-20">
+            <div className="w-32 h-8 bg-gray-200 rounded animate-pulse"></div>
+            <div className="w-64 h-8 bg-gray-200 rounded animate-pulse"></div>
+            <div className="w-24 h-8 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 transition-colors sticky top-0 z-50 shadow-sm">
@@ -114,20 +95,24 @@ const Navbar = () => {
           {/* Right Side Actions */}
           <div className="flex items-center gap-2 md:gap-4">
             
-            {/* Dark Mode Toggle */}
+            {/* Dark Mode Toggle with Visual Feedback */}
             <button
-              onClick={toggleDarkMode}
-              className="p-2 md:p-2.5 rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+              onClick={handleThemeToggle}
+              className={`p-2 md:p-2.5 rounded-lg transition-all duration-200 ${
+                isDarkMode 
+                  ? 'text-yellow-500 hover:text-yellow-400 hover:bg-gray-800' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
               aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDarkMode ? (
-                <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z" />
                 </svg>
               ) : (
-                <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clipRule="evenodd" />
                 </svg>
               )}
             </button>
@@ -193,6 +178,25 @@ const Navbar = () => {
               {isLoggedIn && (
                 <NavLink to="/dashboard" className="block w-full text-left">Dashboard</NavLink>
               )}
+            </div>
+
+            {/* Mobile Theme Toggle */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <button
+                onClick={handleThemeToggle}
+                className="flex items-center gap-3 px-4 py-2 w-full text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                {isDarkMode ? (
+                  <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clipRule="evenodd" />
+                  </svg>
+                )}
+                <span>{isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</span>
+              </button>
             </div>
 
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
