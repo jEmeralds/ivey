@@ -74,7 +74,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-12">
         <div className="flex items-center justify-between h-16 lg:h-20">
           
-          {/* Logo */}
+          {/* Logo - SERVES AS HOME BUTTON */}
           <Link to="/" className="flex items-center gap-3 flex-shrink-0">
             <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -84,9 +84,8 @@ const Navbar = () => {
             <span className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">IVey</span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - REMOVED REDUNDANT HOME BUTTON */}
           <div className="hidden md:flex items-center gap-2">
-            <NavLink to="/">Home</NavLink>
             <NavLink to="/features">Features</NavLink>
             <NavLink to="/pricing">Pricing</NavLink>
             
@@ -159,11 +158,10 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu - ALSO REMOVED HOME FROM MOBILE */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-gray-200 dark:border-gray-700 py-4 space-y-2">
             <div className="flex flex-col space-y-2">
-              <NavLink to="/" className="block w-full text-left">Home</NavLink>
               <NavLink to="/features" className="block w-full text-left">Features</NavLink>
               <NavLink to="/pricing" className="block w-full text-left">Pricing</NavLink>
               

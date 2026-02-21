@@ -100,8 +100,9 @@ const Dashboard = () => {
               </p>
             </div>
             
+            {/* FIXED: Use correct route to NewCampaign */}
             <Link
-              to="/campaigns/new"
+              to="/new-campaign"
               className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -174,7 +175,7 @@ const Dashboard = () => {
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Your Campaigns</h2>
               {campaigns.length > 0 && (
                 <Link
-                  to="/campaigns/new"
+                  to="/new-campaign"
                   className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium text-sm transition-colors"
                 >
                   + Create New
@@ -196,7 +197,7 @@ const Dashboard = () => {
                 Get started by creating your first campaign. Generate viral content with AI in seconds.
               </p>
               <Link
-                to="/campaigns/new"
+                to="/new-campaign"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,8 +214,9 @@ const Dashboard = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
+                        {/* FIXED: Use correct route to CampaignDetail */}
                         <Link 
-                          to={`/campaigns/${campaign.id}`}
+                          to={`/campaign-detail/${campaign.id}`}
                           className="text-lg font-semibold text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
                         >
                           {campaign.name}
@@ -238,8 +240,9 @@ const Dashboard = () => {
                     </div>
                     
                     <div className="flex items-center gap-3 ml-4">
+                      {/* FIXED: Use correct route to EditCampaign */}
                       <Link
-                        to={`/campaigns/${campaign.id}/edit`}
+                        to={`/edit-campaign/${campaign.id}`}
                         className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                         title="Edit campaign"
                       >
@@ -248,7 +251,7 @@ const Dashboard = () => {
                         </svg>
                       </Link>
                       <Link
-                        to={`/campaigns/${campaign.id}`}
+                        to={`/campaign-detail/${campaign.id}`}
                         className="px-4 py-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors text-sm font-medium"
                       >
                         View Details →
