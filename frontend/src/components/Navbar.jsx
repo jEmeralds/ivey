@@ -1,157 +1,152 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { useAuth } from '../context/authContext';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
-  const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
   const location = useLocation();
-  const { user, logout } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const isHomePage = location.pathname === '/';
+  const navigate = useNavigate();
 
   useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [location.pathname]);
+    // Check authentication status
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    if (token && userData) {
+      setIsLoggedIn(true);
+      setUser(JSON.parse(userData));
+    }
 
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth > 768) {
-        setMobileMenuOpen(false);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    // Check theme preference
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+      setIsDarkMode(true);
+      document.documentElement.classList.add('dark');
+    }
   }, []);
 
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    
+    if (newMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     } else {
-      document.body.style.overflow = 'unset';
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [mobileMenuOpen]);
+  };
 
   const handleLogout = () => {
-    logout();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    setUser(null);
     navigate('/');
-    setMobileMenuOpen(false);
+    setIsMobileMenuOpen(false);
   };
 
-  const scrollToSection = (sectionId) => {
-    setMobileMenuOpen(false);
-    if (!isHomePage) {
-      navigate('/');
-      setTimeout(() => {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 100);
-    } else {
-      const element = document.getElementById(sectionId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
+  const isActivePage = (path) => {
+    return location.pathname === path;
   };
+
+  const NavLink = ({ to, children, className = "" }) => (
+    <Link
+      to={to}
+      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+        isActivePage(to)
+          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+          : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+      } ${className}`}
+      onClick={() => setIsMobileMenuOpen(false)}
+    >
+      {children}
+    </Link>
+  );
 
   return (
-    <>
-      <nav className="bg-slate-800/95 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <button
-              onClick={() => {
-                navigate('/');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="flex items-center gap-2 text-white font-bold text-xl hover:opacity-90 transition-opacity cursor-pointer"
-            >
-              <img src="/vite.svg" alt="IVey" className="w-8 h-8" />
-              IVey
-            </button>
-            
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-6">
-              <button 
-                onClick={() => {
-                  navigate('/');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className={`transition-colors ${location.pathname === '/' ? 'text-white' : 'text-slate-400 hover:text-white'}`}
-              >
-                Home
-              </button>
-              <button 
-                onClick={() => scrollToSection('features')} 
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                Features
-              </button>
-              <button 
-                onClick={() => scrollToSection('pricing')} 
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                Pricing
-              </button>
-              <button 
-                onClick={() => scrollToSection('contact')} 
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                Contact
-              </button>
-
-              <div className="h-6 w-px bg-slate-600"></div>
-
-              {user ? (
-                <>
-                  <Link 
-                    to="/dashboard" 
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                      location.pathname === '/dashboard' 
-                        ? 'bg-purple-600 text-white' 
-                        : 'text-slate-300 hover:text-white hover:bg-slate-700'
-                    }`}
-                  >
-                    Dashboard
-                  </Link>
-                  <button 
-                    onClick={handleLogout} 
-                    className="px-4 py-2 text-red-400 hover:text-red-300 transition-colors"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link 
-                    to="/login" 
-                    className="text-slate-300 hover:text-white transition-colors"
-                  >
-                    Login
-                  </Link>
-                  <Link 
-                    to="/signup" 
-                    className="px-5 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all"
-                  >
-                    Sign Up
-                  </Link>
-                </>
-              )}
+    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 transition-colors sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-6 lg:px-12">
+        <div className="flex items-center justify-between h-16 lg:h-20">
+          
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-3 flex-shrink-0">
+            <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
             </div>
+            <span className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">IVey</span>
+          </Link>
 
-            {/* Mobile Hamburger */}
-            <button 
-              className="md:hidden p-2 text-white hover:bg-slate-700 rounded-lg transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-2">
+            <NavLink to="/">Home</NavLink>
+            <NavLink to="/features">Features</NavLink>
+            <NavLink to="/pricing">Pricing</NavLink>
+            
+            {isLoggedIn && (
+              <NavLink to="/dashboard">Dashboard</NavLink>
+            )}
+          </div>
+
+          {/* Right Side Actions */}
+          <div className="flex items-center gap-4">
+            
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Toggle dark mode"
             >
-              {mobileMenuOpen ? (
+              {isDarkMode ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </button>
+
+            {/* Authentication */}
+            {isLoggedIn ? (
+              <div className="hidden md:flex items-center gap-4">
+                <span className="text-gray-700 dark:text-gray-300">
+                  Welcome, <span className="font-medium">{user?.name || 'User'}</span>
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="hidden md:flex items-center gap-4">
+                <NavLink to="/login">Sign In</NavLink>
+                <Link
+                  to="/signup"
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                >
+                  Get Started
+                </Link>
+              </div>
+            )}
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Toggle mobile menu"
+            >
+              {isMobileMenuOpen ? (
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -163,92 +158,50 @@ const Navbar = () => {
             </button>
           </div>
         </div>
-      </nav>
 
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 md:hidden" style={{ top: '64px' }}>
-          <div 
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          
-          <div className="absolute top-0 left-0 right-0 bg-slate-800 border-b border-slate-700 shadow-2xl">
-            <div className="px-4 py-4 space-y-1">
-              <button 
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  location.pathname === '/' ? 'bg-slate-700 text-white' : 'text-slate-300 hover:bg-slate-700/50'
-                }`}
-              >
-                Home
-              </button>
-              <button 
-                onClick={() => scrollToSection('features')} 
-                className="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors"
-              >
-                Features
-              </button>
-              <button 
-                onClick={() => scrollToSection('pricing')} 
-                className="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors"
-              >
-                Pricing
-              </button>
-              <button 
-                onClick={() => scrollToSection('contact')} 
-                className="w-full text-left px-4 py-3 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors"
-              >
-                Contact
-              </button>
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 dark:border-gray-700 py-4 space-y-2">
+            <div className="flex flex-col space-y-2">
+              <NavLink to="/" className="block w-full text-left">Home</NavLink>
+              <NavLink to="/features" className="block w-full text-left">Features</NavLink>
+              <NavLink to="/pricing" className="block w-full text-left">Pricing</NavLink>
               
-              <div className="my-3 border-t border-slate-700" />
-              
-              {user ? (
-                <>
-                  <Link 
-                    to="/dashboard"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`block px-4 py-3 rounded-lg transition-colors ${
-                      location.pathname === '/dashboard' ? 'bg-purple-600 text-white' : 'text-slate-300 hover:bg-slate-700/50'
-                    }`}
-                  >
-                    Dashboard
-                  </Link>
-                  <button 
-                    onClick={handleLogout} 
-                    className="w-full text-left px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+              {isLoggedIn && (
+                <NavLink to="/dashboard" className="block w-full text-left">Dashboard</NavLink>
+              )}
+            </div>
+
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+              {isLoggedIn ? (
+                <div className="space-y-2">
+                  <div className="px-4 py-2 text-gray-700 dark:text-gray-300">
+                    Welcome, <span className="font-medium">{user?.name || 'User'}</span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full text-left px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                   >
                     Logout
                   </button>
-                </>
+                </div>
               ) : (
-                <>
-                  <Link 
-                    to="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-4 py-3 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-colors"
-                  >
-                    Login
-                  </Link>
-                  <Link 
+                <div className="space-y-2">
+                  <NavLink to="/login" className="block w-full text-left">Sign In</NavLink>
+                  <Link
                     to="/signup"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block mt-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-lg text-center"
+                    className="block w-full text-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    Sign Up Free
+                    Get Started
                   </Link>
-                </>
+                </div>
               )}
             </div>
           </div>
-        </div>
-      )}
-    </>
+        )}
+      </div>
+    </nav>
   );
 };
 
