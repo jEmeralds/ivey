@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeProvider';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ThemeTest from './components/ThemeTest';
 
 // Import all pages
 import Home from './pages/Home';
@@ -17,12 +18,15 @@ import Pricing from './pages/Pricing';
 function App() {
   return (
     <ThemeProvider>
-      <div className="App min-h-screen flex flex-col bg-white dark:bg-gray-900 transition-colors">
+      <div className="App min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-all duration-300">
+        {/* Theme Debug Component - Remove after testing */}
+        <ThemeTest />
+        
         {/* Global Navbar appears on ALL pages */}
         <Navbar />
         
         {/* Main content area */}
-        <main className="flex-1">
+        <main className="flex-1 bg-white dark:bg-gray-900">
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Home />} />
