@@ -16,28 +16,32 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Check if user is logged in on mount
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    
-    if (token && userData) {
+ useEffect(() => {
+  const token = localStorage.getItem('token');
+  const userData = localStorage.getItem('user');
+  
+  if (token && userData && userData !== 'undefined' && userData !== 'null') {
+    try {
       setUser(JSON.parse(userData));
+    } catch (e) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
     }
-    setLoading(false);
-  }, []);
+  }
+  setLoading(false);
+}, []);
 
   const handleLogin = async (credentials) => {
-    try {
-      const data = await login(credentials);
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      setUser(data.user);
-      return data;
-    } catch (error) {
-      throw error;
-    }
-  };
+  try {
+    const data = await login(credentials.email, credentials.password);
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    setUser(data.user);
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
 
   const handleSignup = async (userData) => {
     try {
