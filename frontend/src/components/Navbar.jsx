@@ -9,7 +9,7 @@ const Navbar = () => {
   
   const location = useLocation();
   const navigate = useNavigate();
-  const { isDarkMode, toggleTheme, isLoading } = useTheme();
+  const { isDarkMode, toggleTheme } = useTheme();
 
   useEffect(() => {
     // Check authentication status
@@ -34,8 +34,10 @@ const Navbar = () => {
     return location.pathname === path;
   };
 
-  const handleThemeToggle = () => {
-    console.log('Theme toggle clicked, current mode:', isDarkMode);
+  // Simple theme toggle handler
+  const handleThemeToggle = (e) => {
+    e.preventDefault();
+    console.log('Theme button clicked! Current:', isDarkMode ? 'dark' : 'light');
     toggleTheme();
   };
 
@@ -52,20 +54,6 @@ const Navbar = () => {
       {children}
     </Link>
   );
-
-  if (isLoading) {
-    return (
-      <nav className="bg-white border-b border-gray-200 transition-colors sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12">
-          <div className="flex items-center justify-between h-14 md:h-16 lg:h-20">
-            <div className="w-32 h-8 bg-gray-200 rounded animate-pulse"></div>
-            <div className="w-64 h-8 bg-gray-200 rounded animate-pulse"></div>
-            <div className="w-24 h-8 bg-gray-200 rounded animate-pulse"></div>
-          </div>
-        </div>
-      </nav>
-    );
-  }
 
   return (
     <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 transition-colors sticky top-0 z-50 shadow-sm">
@@ -95,23 +83,21 @@ const Navbar = () => {
           {/* Right Side Actions */}
           <div className="flex items-center gap-2 md:gap-4">
             
-            {/* Dark Mode Toggle with Visual Feedback */}
+            {/* WORKING Dark Mode Toggle */}
             <button
               onClick={handleThemeToggle}
-              className={`p-2 md:p-2.5 rounded-lg transition-all duration-200 ${
-                isDarkMode 
-                  ? 'text-yellow-500 hover:text-yellow-400 hover:bg-gray-800' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
+              className="p-2 md:p-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-600"
               aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDarkMode ? (
-                <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24">
+                // Sun icon for dark mode (click to go light)
+                <svg className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z" />
                 </svg>
               ) : (
-                <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24">
+                // Moon icon for light mode (click to go dark)
+                <svg className="w-4 h-4 md:w-5 md:h-5 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
                   <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clipRule="evenodd" />
                 </svg>
               )}
@@ -199,6 +185,7 @@ const Navbar = () => {
               </button>
             </div>
 
+            {/* Mobile Auth */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
               {isLoggedIn ? (
                 <div className="space-y-3">
