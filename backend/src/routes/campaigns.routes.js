@@ -38,3 +38,19 @@ router.post('/:id/generate', generateIdeas);
 router.post('/:id/generate-strategy', generateMarketingStrategy);
 
 export default router;
+
+import { body } from 'express-validator';
+
+export const campaignValidation = [
+  body('name')
+    .trim()
+    .notEmpty()
+    .withMessage('Campaign name is required')
+    .isLength({ max: 100 })
+    .withMessage('Campaign name must be under 100 characters'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Description must be under 500 characters'),
+];
