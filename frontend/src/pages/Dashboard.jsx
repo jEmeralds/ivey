@@ -16,18 +16,23 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    
-    if (!token || !userData) {
-      navigate('/login');
-      return;
-    }
-    
+  const token = localStorage.getItem('token');
+  const userData = localStorage.getItem('user');
+  
+  if (!token || !userData || userData === 'undefined' || userData === 'null') {
+    navigate('/login');
+    return;
+  }
+  
+  try {
     setUser(JSON.parse(userData));
-    fetchCampaigns();
-  }, [navigate]);
+  } catch (e) {
+    navigate('/login');
+    return;
+  }
+  
+  fetchCampaigns();
+}, [navigate]);
 
   const fetchCampaigns = async () => {
     try {
