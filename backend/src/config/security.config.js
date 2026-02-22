@@ -1,178 +1,102 @@
-// Security Configuration for IVey Backend
-// Add to server.js
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import multer from 'multer';
+import authRoutes from './routes/auth.routes.js';
+import campaignRoutes from './routes/campaigns.routes.js';
+import mediaRoutes from './routes/media.routes.js';
+import {
+  setupHelmet,
+  apiLimiter,
+  authLimiter,
+  aiLimiter,
+  securityLogger,
+  checkEnvironment
+} from './config/security.config.js';
 
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import { body } from 'express-validator';
+dotenv.config();
 
-// 1. Security Headers (Helmet)
-export const setupHelmet = (app) => {
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
-      },
-    },
-    crossOriginEmbedderPolicy: false,
-  }));
-};
+const app = express();
+app.set('trust proxy', 1);
+const PORT = process.env.PORT || 5000;
 
-// 2. Rate Limiting
-export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// Check environment variables
+checkEnvironment();
 
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 login attempts per windowMs
-  message: 'Too many login attempts, please try again later.',
-  skipSuccessfulRequests: true,
-});
+// Security headers
+setupHelmet(app);
 
-export const aiLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20, // Limit AI generation to 20 per hour per IP
-  message: 'AI generation limit reached. Please try again later.',
-});
+// Body parser
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// 3. Input Validation Rules
-export const campaignValidation = [
-  body('name')
-    .trim()
-    .escape()
-    .notEmpty().withMessage('Campaign name is required')
-    .isLength({ min: 1, max: 100 }).withMessage('Name must be 1-100 characters'),
-  
-  body('description')
-    .optional()
-    .trim()
-    .escape()
-    .isLength({ max: 500 }).withMessage('Description must be under 500 characters'),
-  
-  body('targetAudience')
-    .trim()
-    .escape()
-    .notEmpty().withMessage('Target audience is required')
-    .isLength({ max: 200 }).withMessage('Target audience must be under 200 characters'),
-  
-  body('aiProvider')
-    .isIn(['claude', 'openai', 'gemini', 'grok']).withMessage('Invalid AI provider'),
-  
-  body('outputFormats')
-    .isArray({ min: 1 }).withMessage('At least one output format required')
-];
+// Security logging
+app.use(securityLogger);
 
-export const authValidation = [
-  body('email')
-    .trim()
-    .normalizeEmail()
-    .isEmail().withMessage('Invalid email address'),
-  
-  body('password')
-    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
-    .matches(/\d/).withMessage('Password must contain a number')
-    .matches(/[a-z]/).withMessage('Password must contain a lowercase letter')
-    .matches(/[A-Z]/).withMessage('Password must contain an uppercase letter')
-];
-
-// 4. CORS Configuration
-export const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+// CORS - Allow Vercel frontend
+app.use(cors({
+  origin: [
+    'https://ivey-steel.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5174'
+  ],
   credentials: true,
-  optionsSuccessStatus: 200
-};
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-// 5. File Upload Security
-export const uploadSecurity = {
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
-    files: 5 // Max 5 files per upload
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedMimes = [
-      'image/jpeg',
-      'image/jpg', 
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'video/mp4',
-      'video/webm'
-    ];
-    
-    if (!allowedMimes.includes(file.mimetype)) {
-      return cb(new Error('Invalid file type. Only images and videos allowed.'));
-    }
-    
-    // Check file extension matches mime type
-    const ext = file.originalname.split('.').pop().toLowerCase();
-    const validExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm'];
-    
-    if (!validExts.includes(ext)) {
-      return cb(new Error('Invalid file extension.'));
-    }
-    
-    cb(null, true);
-  }
-};
+// Rate limiting
+app.use('/api/', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/signup', authLimiter);
+app.use('/api/campaigns/:id/generate', aiLimiter);
+app.use('/api/campaigns/:id/generate-strategy', aiLimiter);
 
-// 6. Security Logger
-export const securityLogger = (req, res, next) => {
-  // Skip OPTIONS requests (CORS preflight)
-  if (req.method === 'OPTIONS') {
-    return next();
-  }
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
 
-  // Log suspicious activity
-  const suspiciousPatterns = [
-    /<script/i,
-    /javascript:/i,
-    /on\w+=/i,
-    /\.\.\//i, // Path traversal (fixed pattern)
-  ];
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/campaigns', campaignRoutes);
+app.use('/api/media', mediaRoutes);
 
-  const checkData = JSON.stringify(req.body) + JSON.stringify(req.query);
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
   
-  for (const pattern of suspiciousPatterns) {
-    if (pattern.test(checkData)) {
-      console.warn(`⚠️  SECURITY: Suspicious request detected from ${req.ip}`);
-      console.warn(`   Path: ${req.path}`);
-      console.warn(`   Method: ${req.method}`);
-      console.warn(`   User-Agent: ${req.get('user-agent')}`);
-      break;
+  // Handle multer errors
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
+    }
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ error: 'Too many files. Maximum is 5 files per upload.' });
     }
   }
   
-  next();
-};
+  // Handle other errors
+  res.status(err.status || 500).json({ 
+    error: err.message || 'Internal server error' 
+  });
+});
 
-// 7. Environment Check
-export const checkEnvironment = () => {
-  const required = [
-    'SUPABASE_URL',
-    'SUPABASE_SERVICE_KEY',
-    'JWT_SECRET',
-    'GEMINI_API_KEY'
-  ];
-  
-  const missing = required.filter(key => !process.env[key]);
-  
-  if (missing.length > 0) {
-    console.error('❌ Missing required environment variables:');
-    missing.forEach(key => console.error(`   - ${key}`));
-    process.exit(1);
-  }
-  
-  // Check JWT secret strength
-  if (process.env.JWT_SECRET.length < 32) {
-    console.warn('⚠️  WARNING: JWT_SECRET should be at least 32 characters');
-  }
-  
-  console.log('✅ Environment variables validated');
-};
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 IVey Backend running on port ${PORT}`);
+  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+});
+
+export default app;
