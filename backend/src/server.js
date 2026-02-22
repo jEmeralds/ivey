@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import multer from 'multer';
 import authRoutes from './routes/auth.routes.js';
 import campaignRoutes from './routes/campaigns.routes.js';
 import mediaRoutes from './routes/media.routes.js';
@@ -9,7 +10,6 @@ import {
   apiLimiter,
   authLimiter,
   aiLimiter,
-  corsOptions,
   securityLogger,
   checkEnvironment
 } from './config/security.config.js';
@@ -33,18 +33,19 @@ app.use(express.urlencoded({ extended: true }));
 // Security logging
 app.use(securityLogger);
 
-// NEW - allows your Vercel frontend
+// CORS - Allow Vercel frontend
 app.use(cors({
   origin: [
-    'https://ivey-steel.vercel.app',    // Your Vercel frontend URL
-    'http://localhost:3000',           // Keep for local development
-    'http://localhost:5173',           // Vite dev server
-    'http://localhost:5174'            // Alternative Vite port
+    'https://ivey-steel.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5174'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 // Rate limiting
 app.use('/api/', apiLimiter);
 app.use('/api/auth/login', authLimiter);
