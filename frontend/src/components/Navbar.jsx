@@ -1,18 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeProvider';
-import { useAuth } from '../context/authContext';
 
 const Navbar = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const location = useLocation();
   const navigate = useNavigate();
   const { isDarkMode, toggleTheme } = useTheme();
-  const { user, isAuthenticated, logout } = useAuth();
+
+  useEffect(() => {
+    // Check authentication status
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    if (token && userData) {
+      setIsLoggedIn(true);
+      setUser(JSON.parse(userData));
+    }
+  }, []);
 
   const handleLogout = () => {
-    logout();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    setUser(null);
     navigate('/');
     setIsMobileMenuOpen(false);
   };
@@ -21,6 +34,7 @@ const Navbar = () => {
     return location.pathname === path;
   };
 
+  // Simple theme toggle handler
   const handleThemeToggle = (e) => {
     e.preventDefault();
     console.log('Theme button clicked! Current:', isDarkMode ? 'dark' : 'light');
@@ -60,7 +74,8 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-1 md:gap-2">
             <NavLink to="/features">Features</NavLink>
             <NavLink to="/pricing">Pricing</NavLink>
-            {isAuthenticated && (
+            
+            {isLoggedIn && (
               <NavLink to="/dashboard">Dashboard</NavLink>
             )}
           </div>
@@ -68,17 +83,20 @@ const Navbar = () => {
           {/* Right Side Actions */}
           <div className="flex items-center gap-2 md:gap-4">
             
-            {/* Dark Mode Toggle */}
+            {/* WORKING Dark Mode Toggle */}
             <button
               onClick={handleThemeToggle}
               className="p-2 md:p-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-600"
               aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDarkMode ? (
+                // Sun icon for dark mode (click to go light)
                 <svg className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z" />
                 </svg>
               ) : (
+                // Moon icon for light mode (click to go dark)
                 <svg className="w-4 h-4 md:w-5 md:h-5 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
                   <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clipRule="evenodd" />
                 </svg>
@@ -86,16 +104,16 @@ const Navbar = () => {
             </button>
 
             {/* Authentication */}
-            {isAuthenticated ? (
+            {isLoggedIn ? (
               <div className="hidden md:flex items-center gap-3 md:gap-4">
                 <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg">
                   <div className="w-6 h-6 md:w-8 md:h-8 bg-purple-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-xs md:text-sm font-medium">
-                      {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+                      {(user?.name || 'U').charAt(0).toUpperCase()}
                     </span>
                   </div>
                   <span className="text-gray-700 dark:text-gray-300 text-xs md:text-sm font-medium max-w-20 md:max-w-none truncate">
-                    {user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}
+                    {user?.name?.split(' ')[0] || 'User'}
                   </span>
                 </div>
                 <button
@@ -142,7 +160,8 @@ const Navbar = () => {
             <div className="flex flex-col space-y-2">
               <NavLink to="/features" className="block w-full text-left">Features</NavLink>
               <NavLink to="/pricing" className="block w-full text-left">Pricing</NavLink>
-              {isAuthenticated && (
+              
+              {isLoggedIn && (
                 <NavLink to="/dashboard" className="block w-full text-left">Dashboard</NavLink>
               )}
             </div>
@@ -168,12 +187,12 @@ const Navbar = () => {
 
             {/* Mobile Auth */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-              {isAuthenticated ? (
+              {isLoggedIn ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 px-4 py-2">
                     <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
                       <span className="text-white text-sm font-medium">
-                        {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+                        {(user?.name || 'U').charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <div>
