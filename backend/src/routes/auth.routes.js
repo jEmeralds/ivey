@@ -5,10 +5,16 @@ import { validationResult } from 'express-validator';
 
 const router = express.Router();
 
-// Validation middleware
+// Fixed validation middleware with CORS headers
 const validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    // ADD CORS HEADERS TO ERROR RESPONSES
+    res.header('Access-Control-Allow-Origin', 'https://ivey-steel.vercel.app');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
     return res.status(400).json({ 
       error: 'Validation failed',
       details: errors.array() 
@@ -17,7 +23,7 @@ const validate = (req, res, next) => {
   next();
 };
 
-// Auth routes with validation
+// Auth routes with fixed validation
 router.post('/signup', authValidation, validate, signup);
 router.post('/login', authValidation, validate, login);
 
