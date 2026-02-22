@@ -1,5 +1,6 @@
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { body } from 'express-validator';
 
 export const setupHelmet = (app) => {
   app.use(helmet({
@@ -40,3 +41,17 @@ export const checkEnvironment = () => {
     console.log('✅ Environment variables validated');
   }
 };
+
+export const campaignValidation = [
+  body('name')
+    .trim()
+    .notEmpty()
+    .withMessage('Campaign name is required')
+    .isLength({ max: 100 })
+    .withMessage('Campaign name must be under 100 characters'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Description must be under 500 characters'),
+];
