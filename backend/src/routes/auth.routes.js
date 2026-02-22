@@ -1,30 +1,40 @@
 import express from 'express';
-import { signup, login } from '../controllers/auth.controller.js';
-import { authValidation } from '../config/security.config.js';
-import { validationResult } from 'express-validator';
+// import { signup, login } from '../controllers/auth.controller.js';  // TEMPORARILY DISABLED
 
 const router = express.Router();
 
-// Fixed validation middleware with CORS headers
-const validate = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    // ADD CORS HEADERS TO ERROR RESPONSES
-    res.header('Access-Control-Allow-Origin', 'https://ivey-steel.vercel.app');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    
-    return res.status(400).json({ 
-      error: 'Validation failed',
-      details: errors.array() 
-    });
-  }
-  next();
-};
+// SUPER SIMPLE TEST ROUTE - No validation, no controllers, just basic response
+router.post('/login', (req, res) => {
+  console.log('Login route hit!');
+  console.log('Request body:', req.body);
+  
+  // Manually add CORS headers
+  res.header('Access-Control-Allow-Origin', 'https://ivey-steel.vercel.app');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  res.json({
+    message: 'Login route working!',
+    timestamp: new Date().toISOString(),
+    body: req.body
+  });
+});
 
-// Auth routes with fixed validation
-router.post('/signup', authValidation, validate, signup);
-router.post('/login', authValidation, validate, login);
+router.post('/signup', (req, res) => {
+  console.log('Signup route hit!');
+  
+  // Manually add CORS headers  
+  res.header('Access-Control-Allow-Origin', 'https://ivey-steel.vercel.app');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  res.json({
+    message: 'Signup route working!',
+    timestamp: new Date().toISOString(),
+    body: req.body
+  });
+});
 
 export default router;
