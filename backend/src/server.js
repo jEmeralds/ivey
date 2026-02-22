@@ -33,18 +33,18 @@ app.use(express.urlencoded({ extended: true }));
 // Security logging
 app.use(securityLogger);
 
-// CORS - Allow Vercel frontend
-app.use(cors({
-  origin: [
-    'https://ivey-steel.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'http://localhost:5174'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// Explicit CORS handling to fix login preflight issues
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'https://ivey-steel.vercel.app');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 // Rate limiting
 app.use('/api/', apiLimiter);
