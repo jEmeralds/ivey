@@ -33,9 +33,18 @@ app.use(express.urlencoded({ extended: true }));
 // Security logging
 app.use(securityLogger);
 
-// CORS with credentials
-app.use(cors(corsOptions));
-
+// NEW - allows your Vercel frontend
+app.use(cors({
+  origin: [
+    'https://ivey-steel.vercel.app',    // Your Vercel frontend URL
+    'http://localhost:3000',           // Keep for local development
+    'http://localhost:5173',           // Vite dev server
+    'http://localhost:5174'            // Alternative Vite port
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 // Rate limiting
 app.use('/api/', apiLimiter);
 app.use('/api/auth/login', authLimiter);
