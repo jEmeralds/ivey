@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getCampaignById, generateIdeas, generateStrategy, getCampaignMedia } from '../services/api';
 import { OUTPUT_FORMATS } from '../constants/outputFormats';
 import MediaUpload from '../components/MediaUpload';
-import Navbar from '../components/Navbar';
+import ReactMarkdown from 'react-markdown';
+
 // Visual format identifiers
 const VISUAL_FORMATS = ['BANNER_AD', 'PRINT_AD', 'FLYER_TEXT', 'GOOGLE_SEARCH_AD'];
 
@@ -32,7 +33,9 @@ const StrategySection = ({ title, content, icon, defaultOpen = false }) => {
       </button>
       {isOpen && (
         <div className="px-5 py-4 bg-white">
-          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{content}</p>
+          <div className="prose prose-sm max-w-none text-gray-700">
+            <ReactMarkdown>{content}</ReactMarkdown>
+          </div>
         </div>
       )}
     </div>
@@ -44,11 +47,10 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
   const [activeTab, setActiveTab] = useState('copy');
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [copied, setCopied] = useState(false);
-  
-  // Parse content into sections for visual formats
+
   const parseVisualContent = (content) => {
     if (!content) return { copy: content, design: '' };
-    
+
     const contentLower = content.toLowerCase();
     const designMarkers = [
       '### design suggestions',
@@ -60,23 +62,23 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
       'size variations:',
       'layout suggestions:'
     ];
-    
+
     let splitIndex = -1;
-    
+
     for (const marker of designMarkers) {
       const idx = contentLower.indexOf(marker);
       if (idx !== -1 && (splitIndex === -1 || idx < splitIndex)) {
         splitIndex = idx;
       }
     }
-    
+
     if (splitIndex !== -1) {
       return {
         copy: content.substring(0, splitIndex).trim(),
         design: content.substring(splitIndex).trim()
       };
     }
-    
+
     return { copy: content, design: '' };
   };
 
@@ -92,8 +94,8 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all border border-gray-100">
-      {/* Header - Always visible */}
-      <div 
+      {/* Header */}
+      <div
         className="px-5 py-4 bg-gradient-to-r from-purple-50 to-blue-50 flex items-center justify-between cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -137,7 +139,6 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
       {/* Expanded Content */}
       {isExpanded && (
         <>
-          {/* Tabs for visual formats with design guidelines */}
           {isVisualFormat && hasDesign && (
             <div className="flex border-b border-gray-200">
               <button
@@ -163,13 +164,12 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
             </div>
           )}
 
-          {/* Content Area */}
           <div className="px-5 py-4">
             {(!isVisualFormat || !hasDesign) ? (
-              // Simple content display
-              <p className="text-gray-800 whitespace-pre-wrap">{item.content}</p>
+              <div className="prose prose-sm max-w-none text-gray-800">
+                <ReactMarkdown>{copy}</ReactMarkdown>
+              </div>
             ) : activeTab === 'copy' ? (
-              // Copy tab content
               <div>
                 <div className="flex justify-end mb-2">
                   <button
@@ -182,10 +182,11 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
                     Copy text only
                   </button>
                 </div>
-                <p className="text-gray-800 whitespace-pre-wrap">{copy}</p>
+                <div className="prose prose-sm max-w-none text-gray-800">
+                  <ReactMarkdown>{copy}</ReactMarkdown>
+                </div>
               </div>
             ) : (
-              // Design tab content
               <div>
                 <div className="flex justify-end mb-2">
                   <button
@@ -199,7 +200,9 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
                   </button>
                 </div>
                 <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                  <p className="text-gray-800 whitespace-pre-wrap">{design}</p>
+                  <div className="prose prose-sm max-w-none text-gray-800">
+                    <ReactMarkdown>{design}</ReactMarkdown>
+                  </div>
                 </div>
               </div>
             )}
@@ -213,9 +216,9 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
 // Parse strategy into sections
 const parseStrategy = (strategy) => {
   if (!strategy) return [];
-  
+
   const strategyText = typeof strategy === 'string' ? strategy : JSON.stringify(strategy, null, 2);
-  
+
   const sectionPatterns = [
     { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:\d+\.\s*)?(?:CAMPAIGN OBJECTIVES|Executive Summary|Overview)/i, title: 'Campaign Objectives', icon: '🎯' },
     { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:\d+\.\s*)?(?:TARGET AUDIENCE|Audience Analysis|Demographics)/i, title: 'Target Audience', icon: '👥' },
@@ -246,7 +249,7 @@ const parseStrategy = (strategy) => {
       const startIndex = section.index + section.matchLength;
       const endIndex = i < foundSections.length - 1 ? foundSections[i + 1].index : strategyText.length;
       const content = strategyText.substring(startIndex, endIndex).trim();
-      
+
       if (content.length > 10) {
         sections.push({
           title: section.title,
@@ -257,7 +260,6 @@ const parseStrategy = (strategy) => {
     });
   }
 
-  // Fallback if no sections found
   if (sections.length === 0) {
     sections.push({ title: 'Marketing Strategy', icon: '📊', content: strategyText });
   }
@@ -308,7 +310,7 @@ const CampaignDetail = () => {
       setError('');
       const data = await getCampaignById(id);
       const rawCampaign = data.campaign;
-      
+
       const safeCampaign = {
         id: String(rawCampaign.id || ''),
         name: String(rawCampaign.name || 'Untitled Campaign'),
@@ -321,7 +323,7 @@ const CampaignDetail = () => {
         updated_at: rawCampaign.updated_at,
         generated_content: Array.isArray(rawCampaign.generated_content) ? rawCampaign.generated_content : []
       };
-      
+
       setCampaign(safeCampaign);
       setGeneratedContent(safeCampaign.generated_content);
     } catch (err) {
@@ -423,7 +425,7 @@ const CampaignDetail = () => {
               <span className="text-sm text-gray-500">AI Provider</span>
               <p className="font-medium text-gray-900 mt-1">
                 {campaign.ai_provider === 'claude' ? '🤖 Claude' :
-                 campaign.ai_provider === 'openai' ? '🧠 OpenAI' : '💎 Gemini'}
+                  campaign.ai_provider === 'openai' ? '🧠 OpenAI' : '💎 Gemini'}
               </p>
             </div>
             <div>
@@ -451,7 +453,7 @@ const CampaignDetail = () => {
           <MediaUpload campaignId={id} media={media} onUploadSuccess={fetchMedia} />
         </div>
 
-        {/* Generate Buttons - Show when no content exists */}
+        {/* Generate Buttons */}
         {generatedContent.length === 0 && !strategy && (
           <div className="bg-white rounded-2xl shadow-xl p-12 text-center mb-8">
             <div className="text-6xl mb-4">✨</div>
@@ -459,7 +461,7 @@ const CampaignDetail = () => {
             <p className="text-gray-600 mb-8">
               Start by generating a marketing strategy, then create content for all formats
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={handleGenerateStrategy}
@@ -561,7 +563,6 @@ const CampaignDetail = () => {
         {/* Generated Content */}
         {generatedContent.length > 0 && (
           <div className="bg-white rounded-2xl shadow-xl p-8">
-            {/* Header with controls */}
             <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
               <h2 className="text-2xl font-bold text-gray-900">🎨 Generated Content</h2>
               <div className="flex gap-2 flex-wrap">
