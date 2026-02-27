@@ -33,7 +33,7 @@ const StrategySection = ({ title, content, icon, defaultOpen = false }) => {
       </button>
       {isOpen && (
         <div className="px-5 py-4 bg-white">
-          <div className="prose prose-sm max-w-none text-gray-700">
+          <div className="text-gray-700 leading-relaxed">
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         </div>
