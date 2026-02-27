@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
+import saveRoutes from './routes/save.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import campaignRoutes from './routes/campaigns.routes.js';
 import mediaRoutes from './routes/media.routes.js';
@@ -85,7 +86,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/media', mediaRoutes);
-
+app.use('/api', saveRoutes);
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
