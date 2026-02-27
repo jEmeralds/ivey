@@ -6,6 +6,20 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const BRAVE_SEARCH_API_KEY = process.env.BRAVE_SEARCH_API_KEY; // Optional
 
+const MARKDOWN_SYSTEM_INSTRUCTION = `You are an expert marketing strategist. Format ALL responses using clean, beautiful markdown:
+- Use ## for main section headers
+- Use ### for sub-headers
+- Use **bold** for key terms, important points, and emphasis
+- Use *italics* for supporting details or secondary emphasis
+- Use bullet points (-) for unordered lists
+- Use numbered lists (1. 2. 3.) for steps, rankings, or sequences
+- Use > blockquotes for important callouts, insights, or highlighted recommendations
+- Add a blank line between sections for readability
+- Use --- for section dividers where appropriate
+- Never output raw asterisks like ***text*** without proper markdown context
+- Structure content so it is easy to scan and read at a glance
+Your output will be rendered in a markdown viewer, so make it visually rich, well-structured, and professional.`;
+
 // Search the web for market intelligence
 async function searchMarketData(campaignData) {
   const { name, product_description, target_audience, output_formats } = campaignData;
@@ -15,19 +29,15 @@ async function searchMarketData(campaignData) {
   const searches = [];
   
   try {
-    // Search 1: Industry benchmarks
     const benchmarkQuery = `${product_description || name} marketing benchmarks engagement rates 2024`;
     searches.push(searchWeb(benchmarkQuery, 'benchmarks'));
     
-    // Search 2: Target audience insights
     const audienceQuery = `${target_audience} demographics behavior online platforms 2024`;
     searches.push(searchWeb(audienceQuery, 'audience'));
     
-    // Search 3: Competitor campaigns
     const competitorQuery = `${product_description || name} successful marketing campaigns examples`;
     searches.push(searchWeb(competitorQuery, 'competitors'));
     
-    // Search 4: Platform-specific trends
     const platformQuery = `${output_formats?.[0] || 'social media'} marketing trends best practices 2024`;
     searches.push(searchWeb(platformQuery, 'platforms'));
     
@@ -41,24 +51,20 @@ async function searchMarketData(campaignData) {
     };
   } catch (error) {
     console.error('Web search error:', error);
-    return null; // Return null if search fails, AI will work without it
+    return null;
   }
 }
 
-// Perform web search
 async function searchWeb(query, type) {
   console.log(`  Searching: ${query.substring(0, 60)}...`);
   
-  // Try Brave Search API first
   if (BRAVE_SEARCH_API_KEY) {
     return await searchBrave(query);
   }
   
-  // Fallback to DuckDuckGo HTML scraping (no API key needed)
   return await searchDuckDuckGo(query);
 }
 
-// Brave Search API (requires API key)
 async function searchBrave(query) {
   try {
     const response = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`, {
@@ -82,7 +88,6 @@ async function searchBrave(query) {
   }
 }
 
-// DuckDuckGo Instant Answer API (Free, no key needed)
 async function searchDuckDuckGo(query) {
   try {
     const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
@@ -92,7 +97,6 @@ async function searchDuckDuckGo(query) {
     const data = await response.json();
     const results = [];
     
-    // Extract relevant info
     if (data.AbstractText) {
       results.push({
         title: data.Heading || 'Overview',
@@ -101,7 +105,6 @@ async function searchDuckDuckGo(query) {
       });
     }
     
-    // Add related topics
     if (data.RelatedTopics) {
       data.RelatedTopics.slice(0, 4).forEach(topic => {
         if (topic.Text) {
@@ -128,10 +131,8 @@ export const generateMarketingStrategyAI = async (campaignData) => {
   console.log(`\n🤖 Generating AI strategy for: ${name}`);
   console.log(`   Provider: ${ai_provider}`);
   
-  // Step 1: Search the web for real market data
   const marketData = await searchMarketData(campaignData);
   
-  // Step 2: Build research-backed prompt
   let researchContext = '';
   
   if (marketData && Object.values(marketData).some(data => data?.length > 0)) {
@@ -159,7 +160,6 @@ export const generateMarketingStrategyAI = async (campaignData) => {
     console.log('⚠️  No market data found, proceeding with general strategy');
   }
 
-  // Build comprehensive prompt
   const prompt = `You are an expert marketing strategist with access to current market research.
 
 ${researchContext}
@@ -174,51 +174,51 @@ IMPORTANT: Use the market research data above to inform your recommendations. Wh
 
 Generate a comprehensive, data-driven marketing strategy that includes:
 
-1. CAMPAIGN OBJECTIVES
-   - 3-5 specific, measurable goals based on industry benchmarks from the research
+## 1. CAMPAIGN OBJECTIVES
+- 3-5 specific, measurable goals based on industry benchmarks from the research
 
-2. TARGET AUDIENCE ANALYSIS
-   - Demographics and psychographics (use research data)
-   - Pain points and desires
-   - Media consumption habits (reference platform data from research)
+## 2. TARGET AUDIENCE ANALYSIS
+- Demographics and psychographics (use research data)
+- Pain points and desires
+- Media consumption habits (reference platform data from research)
 
-3. KEY MESSAGES & VALUE PROPOSITIONS
-   - 3-5 core messages
-   - Unique selling points
-   - Emotional appeals
+## 3. KEY MESSAGES & VALUE PROPOSITIONS
+- 3-5 core messages
+- Unique selling points
+- Emotional appeals
 
-4. CONTENT STRATEGY
-   - Content pillars with percentage breakdown
-   - Posting frequency based on platform best practices
-   - Optimal posting times
+## 4. CONTENT STRATEGY
+- Content pillars with percentage breakdown
+- Posting frequency based on platform best practices
+- Optimal posting times
 
-5. DISTRIBUTION PLAN
-   - Platform-specific tactics for: ${output_formats?.slice(0, 5).join(', ')}
-   - Organic vs paid strategy informed by research
-   - Cross-promotion tactics
+## 5. DISTRIBUTION PLAN
+- Platform-specific tactics for: ${output_formats?.slice(0, 5).join(', ')}
+- Organic vs paid strategy informed by research
+- Cross-promotion tactics
 
-6. BUDGET RECOMMENDATIONS
-   - Allocation percentages based on industry standards
-   - Cost-effective approaches
+## 6. BUDGET RECOMMENDATIONS
+- Allocation percentages based on industry standards
+- Cost-effective approaches
 
-7. SUCCESS METRICS & KPIs
-   - Primary metrics with realistic benchmarks from research
-   - Target numbers based on similar campaigns
-   - Tools for measurement
+## 7. SUCCESS METRICS & KPIs
+- Primary metrics with realistic benchmarks from research
+- Target numbers based on similar campaigns
+- Tools for measurement
 
-8. TIMELINE & MILESTONES
-   - Week-by-week action plan
-   - Key milestones
+## 8. TIMELINE & MILESTONES
+- Week-by-week action plan
+- Key milestones
 
-9. COMPETITIVE INSIGHTS
-   - Analysis of competitor strategies from research
-   - Differentiation opportunities
+## 9. COMPETITIVE INSIGHTS
+- Analysis of competitor strategies from research
+- Differentiation opportunities
 
-10. OPTIMIZATION RECOMMENDATIONS
-    - A/B testing ideas
-    - Continuous improvement tactics
+## 10. OPTIMIZATION RECOMMENDATIONS
+- A/B testing ideas
+- Continuous improvement tactics
 
-Be specific, actionable, and data-driven. When providing metrics or benchmarks, cite whether they come from the research data or are industry estimates.`;
+Be specific, actionable, and data-driven. Use proper markdown formatting throughout with headers, bold text, bullet points, and numbered lists.`;
 
   try {
     let strategy;
@@ -259,12 +259,15 @@ async function callGeminiAPI(prompt) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: MARKDOWN_SYSTEM_INSTRUCTION }]
+      },
       contents: [{
         parts: [{ text: prompt }]
       }],
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 8192, // Increased for Gemini 2.5's thinking tokens
+        maxOutputTokens: 8192,
       }
     })
   });
@@ -284,7 +287,6 @@ async function callGeminiAPI(prompt) {
   console.log('  - Has parts:', !!data.candidates?.[0]?.content?.parts);
   console.log('  - Parts length:', data.candidates?.[0]?.content?.parts?.length);
   
-  // Validate response structure
   if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
     console.error('Invalid Gemini response structure:', JSON.stringify(data, null, 2));
     throw new Error('Invalid response from Gemini API');
@@ -294,7 +296,6 @@ async function callGeminiAPI(prompt) {
     console.error('Gemini response has no parts (content may be blocked)');
     console.error('Full response:', JSON.stringify(data, null, 2));
     
-    // Check if content was blocked by safety filters
     if (data.promptFeedback?.blockReason) {
       throw new Error(`Gemini blocked content: ${data.promptFeedback.blockReason}`);
     }
@@ -305,11 +306,13 @@ async function callGeminiAPI(prompt) {
   return data.candidates[0].content.parts[0].text;
 }
 
-// Claude API call (placeholder - implement when needed)
+// Claude API call
 async function callClaudeAPI(prompt) {
   if (!ANTHROPIC_API_KEY) {
     throw new Error('Claude API key not configured. Please add your Anthropic API key.');
   }
+
+  const formattedPrompt = `${MARKDOWN_SYSTEM_INSTRUCTION}\n\n${prompt}`;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -320,10 +323,10 @@ async function callClaudeAPI(prompt) {
     },
     body: JSON.stringify({
       model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 2048,
+      max_tokens: 8192,
       messages: [{
         role: 'user',
-        content: prompt
+        content: formattedPrompt
       }]
     })
   });
@@ -337,7 +340,7 @@ async function callClaudeAPI(prompt) {
   return data.content[0].text;
 }
 
-// OpenAI API call (placeholder - implement when needed)
+// OpenAI API call
 async function callOpenAIAPI(prompt) {
   if (!OPENAI_API_KEY) {
     throw new Error('OpenAI API key not configured. Please add your OpenAI API key.');
@@ -351,11 +354,17 @@ async function callOpenAIAPI(prompt) {
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
-      messages: [{
-        role: 'user',
-        content: prompt
-      }],
-      max_tokens: 2048,
+      messages: [
+        {
+          role: 'system',
+          content: MARKDOWN_SYSTEM_INSTRUCTION
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 8192,
       temperature: 0.7
     })
   });
@@ -369,7 +378,7 @@ async function callOpenAIAPI(prompt) {
   return data.choices[0].message.content;
 }
 
-// Generate content ideas (for later implementation)
+// Generate content ideas
 export const generateContentIdeasAI = async (campaignData, mediaUrls = []) => {
   const { name, product_description, target_audience, output_formats, ai_provider } = campaignData;
 
@@ -377,176 +386,304 @@ export const generateContentIdeasAI = async (campaignData, mediaUrls = []) => {
   console.log(`   Formats: ${output_formats?.length || 0} selected`);
   console.log(`   Provider: ${ai_provider}`);
 
-  // Build media context if images/videos are uploaded
   let mediaContext = '';
   if (mediaUrls && mediaUrls.length > 0) {
     mediaContext = `\n\nUPLOADED MEDIA:\nThe campaign has ${mediaUrls.length} media file(s) uploaded (product images/videos). Consider these visuals when creating content - reference the product's appearance, colors, and key visual elements in your content suggestions.\n`;
   }
 
-  // Create comprehensive prompts for each format
   const formatPrompts = {
-    'tiktok_script': `Create a viral 30-second TikTok script for "${name}".
-Product: ${product_description}
-Target: ${target_audience}${mediaContext}
+    'tiktok_script': `Create a viral 30-second TikTok script for **"${name}"**.
 
-Format as:
-HOOK (0-3 sec): [Attention-grabbing opening]
-BODY (3-25 sec): [Main content with product showcase]
-CTA (25-30 sec): [Call to action]
+**Product:** ${product_description}
+**Target Audience:** ${target_audience}${mediaContext}
 
-Include: Trending sound suggestions, visual cues, text overlays, hashtags.`,
+Structure your response as follows:
 
-    'instagram_caption': `Write an engaging Instagram caption for "${name}".
-Product: ${product_description}
-Target: ${target_audience}${mediaContext}
+## Hook (0-3 sec)
+[Attention-grabbing opening line]
 
-Include:
-- Compelling hook (first line)
-- Story/value proposition (2-3 lines)
-- Call to action
-- 15-20 relevant hashtags
-- Emoji usage for engagement
+## Body (3-25 sec)
+[Main content with product showcase - include visual cues and text overlay suggestions]
 
-Keep it authentic and conversational.`,
+## CTA (25-30 sec)
+[Strong call to action]
 
-    'youtube_video_ad': `Create a 60-second YouTube video ad script for "${name}".
-Product: ${product_description}
-Target: ${target_audience}${mediaContext}
+---
 
-Format as:
-0-5 SEC: Hook (grab attention immediately)
-5-15 SEC: Problem (pain point audience faces)
-15-40 SEC: Solution (how product solves it)
-40-50 SEC: Social proof/features
-50-60 SEC: Strong CTA
+## Production Notes
+- **Trending sound suggestions**
+- **Visual cues and transitions**
+- **Text overlays**
+- **Recommended hashtags**`,
 
-Include visual directions and key selling points.`,
+    'instagram_caption': `Write an engaging Instagram caption for **"${name}"**.
 
-    'facebook_post': `Write a Facebook post for "${name}".
-Product: ${product_description}
-Target: ${target_audience}${mediaContext}
+**Product:** ${product_description}
+**Target Audience:** ${target_audience}${mediaContext}
 
-Requirements:
-- Conversational tone
-- Story-driven (2-3 paragraphs)
-- Clear value proposition
-- Engaging question or CTA
-- 3-5 relevant hashtags
-- Emoji for personality
+## Caption
+[Write the full caption here with hook, body, and CTA]
 
-Make it shareable and comment-worthy.`,
+## Hashtags
+[List 15-20 relevant hashtags]
 
-    'twitter_post': `Create 3 Twitter/X post variations for "${name}".
-Product: ${product_description}
-Target: ${target_audience}${mediaContext}
+## Posting Tips
+- Best time to post
+- Suggested image/video style`,
 
-Each tweet should:
-- Be under 280 characters
-- Have a clear hook
-- Include relevant hashtags (2-3)
-- Have strong CTA
-- Be punchy and engaging
+    'youtube_video_ad': `Create a 60-second YouTube video ad script for **"${name}"**.
 
-Provide 3 different angles/approaches.`,
+**Product:** ${product_description}
+**Target Audience:** ${target_audience}${mediaContext}
 
-    'linkedin_post': `Write a professional LinkedIn post for "${name}".
-Product: ${product_description}
-Target: ${target_audience}${mediaContext}
+## Script
 
-Format:
-- Professional but engaging hook
-- Industry insight or problem statement
-- How product addresses this
-- Call to action for professionals
-- 3-5 relevant professional hashtags
+**0-5 SEC — Hook**
+[Grab attention immediately]
 
-Keep it valuable and shareable in professional circles.`,
+**5-15 SEC — Problem**
+[Pain point the audience faces]
 
-    'youtube_shorts': `Create a YouTube Shorts script (60 seconds) for "${name}".
-Product: ${product_description}
-Target: ${target_audience}${mediaContext}
+**15-40 SEC — Solution**
+[How the product solves it with visual directions]
 
-Structure:
-0-3 SEC: Hook (stop the scroll)
-3-45 SEC: Fast-paced content delivery
-45-60 SEC: CTA + follow prompt
+**40-50 SEC — Social Proof**
+[Features and credibility]
 
-Include visual cues, text overlays, pacing notes. Make it addictive and re-watchable.`,
+**50-60 SEC — CTA**
+[Strong call to action]
 
-    'banner_ad': `Design a banner ad copy for "${name}".
-Product: ${product_description}
-Target: ${target_audience}${mediaContext}
+---
 
-Provide:
-- Main headline (5-7 words, powerful)
-- Subheadline (10-15 words, benefit-focused)
-- Call to action button text (2-4 words)
-- Design suggestions (colors, imagery style)
-- Size variations: 728x90, 300x250, 160x600
+## Key Selling Points
+[List the main product benefits to highlight]`,
 
-Keep it clean, clear, and conversion-focused.`,
+    'facebook_post': `Write a Facebook post for **"${name}"**.
 
-    'google_search_ad': `Write Google Search Ad copy for "${name}".
-Product: ${product_description}
-Target: ${target_audience}${mediaContext}
+**Product:** ${product_description}
+**Target Audience:** ${target_audience}${mediaContext}
 
-Provide 3 ad variations, each with:
-- Headline 1 (30 chars max)
-- Headline 2 (30 chars max)
-- Headline 3 (30 chars max)
-- Description 1 (90 chars max)
-- Description 2 (90 chars max)
-- Display URL path suggestions
+## Post Content
+[Write the full post - conversational, story-driven, 2-3 paragraphs]
 
-Focus on keywords, benefits, and clear CTAs.`,
+## Hashtags
+[3-5 relevant hashtags]
 
-    'flyer_text': `Create flyer content for "${name}".
-Product: ${product_description}
-Target: ${target_audience}${mediaContext}
+## Engagement Tips
+- Suggested question to boost comments
+- Best time to post`,
 
-Include:
-- Main headline (attention-grabbing)
-- 3-5 key benefits/features
-- Special offer/promotion text
-- Contact information placeholder
-- Call to action
-- Design layout suggestions
+    'twitter_post': `Create 3 Twitter/X post variations for **"${name}"**.
 
-Keep it scannable and impactful for print.`,
+**Product:** ${product_description}
+**Target Audience:** ${target_audience}${mediaContext}
 
-    'print_ad': `Write print advertisement copy for "${name}".
-Product: ${product_description}
-Target: ${target_audience}${mediaContext}
+## Variation 1 — Direct Benefit
+[Tweet under 280 characters]
 
-Provide:
-- Main headline (powerful, memorable)
-- Body copy (3-4 sentences, benefit-focused)
-- Tagline/slogan
-- Call to action
-- Visual concept description
-- Layout suggestions (headline placement, image areas)
+## Variation 2 — Problem/Solution
+[Tweet under 280 characters]
 
-Make it magazine-quality and brand-building.`,
+## Variation 3 — Social Proof / FOMO
+[Tweet under 280 characters]
 
-    'email_campaign': `Create an email marketing campaign for "${name}".
-Product: ${product_description}
-Target: ${target_audience}${mediaContext}
+---
 
-Include:
-- Subject line (50 chars, high open rate)
-- Preview text (100 chars)
-- Email body (personalized, scannable)
-- 2-3 section headers
-- Clear CTA buttons (text suggestions)
-- P.S. line for urgency
+> Each tweet includes relevant hashtags (2-3) and a clear CTA.`,
 
-Focus on value and conversion.`
+    'linkedin_post': `Write a professional LinkedIn post for **"${name}"**.
+
+**Product:** ${product_description}
+**Target Audience:** ${target_audience}${mediaContext}
+
+## Post Content
+[Professional but engaging hook, industry insight, solution, CTA]
+
+## Hashtags
+[3-5 professional hashtags]
+
+## Engagement Strategy
+- Best time to post on LinkedIn
+- Suggested follow-up comment to pin`,
+
+    'youtube_shorts': `Create a YouTube Shorts script (60 seconds) for **"${name}"**.
+
+**Product:** ${product_description}
+**Target Audience:** ${target_audience}${mediaContext}
+
+## Script
+
+**0-3 SEC — Hook**
+[Stop the scroll — bold opening]
+
+**3-45 SEC — Content**
+[Fast-paced delivery with visual cues and text overlays]
+
+**45-60 SEC — CTA**
+[Subscribe prompt + call to action]
+
+---
+
+## Production Notes
+- Pacing and editing style
+- Text overlay suggestions
+- Music/sound recommendation`,
+
+    'banner_ad': `Design banner ad copy for **"${name}"**.
+
+**Product:** ${product_description}
+**Target Audience:** ${target_audience}${mediaContext}
+
+## Ad Copy
+
+**Main Headline** *(5-7 words)*
+[Powerful headline]
+
+**Subheadline** *(10-15 words)*
+[Benefit-focused subheadline]
+
+**CTA Button Text** *(2-4 words)*
+[Action-oriented button text]
+
+---
+
+## Design Suggestions
+- **Color palette:** [suggestions]
+- **Imagery style:** [suggestions]
+- **Font style:** [suggestions]
+
+## Size Variations
+- 728x90 (Leaderboard)
+- 300x250 (Medium Rectangle)
+- 160x600 (Wide Skyscraper)`,
+
+    'google_search_ad': `Write Google Search Ad copy for **"${name}"**.
+
+**Product:** ${product_description}
+**Target Audience:** ${target_audience}${mediaContext}
+
+## Ad Variation 1
+- **Headline 1** *(max 30 chars):*
+- **Headline 2** *(max 30 chars):*
+- **Headline 3** *(max 30 chars):*
+- **Description 1** *(max 90 chars):*
+- **Description 2** *(max 90 chars):*
+
+## Ad Variation 2
+- **Headline 1** *(max 30 chars):*
+- **Headline 2** *(max 30 chars):*
+- **Headline 3** *(max 30 chars):*
+- **Description 1** *(max 90 chars):*
+- **Description 2** *(max 90 chars):*
+
+## Ad Variation 3
+- **Headline 1** *(max 30 chars):*
+- **Headline 2** *(max 30 chars):*
+- **Headline 3** *(max 30 chars):*
+- **Description 1** *(max 90 chars):*
+- **Description 2** *(max 90 chars):*
+
+---
+
+## Display URL Suggestions
+- [path1/path2 suggestions]`,
+
+    'flyer_text': `Create flyer content for **"${name}"**.
+
+**Product:** ${product_description}
+**Target Audience:** ${target_audience}${mediaContext}
+
+## Headline
+[Attention-grabbing main headline]
+
+## Key Benefits
+1. [Benefit 1]
+2. [Benefit 2]
+3. [Benefit 3]
+4. [Benefit 4]
+5. [Benefit 5]
+
+## Special Offer
+[Promotion or offer text]
+
+## Call to Action
+[Clear next step]
+
+## Contact / Location
+[Placeholder for contact info]
+
+---
+
+## Layout Suggestions
+- [Design and placement recommendations]`,
+
+    'print_ad': `Write print advertisement copy for **"${name}"**.
+
+**Product:** ${product_description}
+**Target Audience:** ${target_audience}${mediaContext}
+
+## Headline
+[Powerful, memorable headline]
+
+## Body Copy
+[3-4 sentences, benefit-focused, magazine-quality]
+
+## Tagline
+[Memorable brand slogan]
+
+## Call to Action
+[Clear next step]
+
+---
+
+## Visual Concept
+- **Image area:** [description]
+- **Layout:** [headline placement, image balance]
+- **Tone:** [visual style guidance]`,
+
+    'email_campaign': `Create an email marketing campaign for **"${name}"**.
+
+**Product:** ${product_description}
+**Target Audience:** ${target_audience}${mediaContext}
+
+## Email Details
+
+**Subject Line** *(max 50 chars):*
+[High open-rate subject line]
+
+**Preview Text** *(max 100 chars):*
+[Compelling preview text]
+
+---
+
+## Email Body
+
+### Opening
+[Personalized, engaging hook]
+
+### Main Value Section
+[Core message and product benefit]
+
+### Social Proof / Features
+[Credibility and key features]
+
+### Call to Action
+**[CTA Button Text]** → [URL placeholder]
+
+---
+
+*P.S. [Urgency or bonus line]*
+
+---
+
+## Campaign Notes
+- Best send time
+- A/B test suggestion for subject line`
   };
 
   try {
     const generatedContent = [];
 
-    // Generate content for each selected format
     for (const format of output_formats || []) {
       const formatKey = format.toLowerCase();
       const prompt = formatPrompts[formatKey];
@@ -558,9 +695,8 @@ Focus on value and conversion.`
 
       console.log(`  Generating: ${format}...`);
 
-      // Add delay to avoid rate limiting (especially for Gemini free tier)
       if (generatedContent.length > 0) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
       let content;
