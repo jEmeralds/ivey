@@ -13,17 +13,17 @@ const StrategySection = ({ title, content, icon, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden mb-3">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-3">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-5 py-4 bg-gradient-to-r from-green-50 to-teal-50 flex items-center justify-between hover:from-green-100 hover:to-teal-100 transition-all"
+        className="w-full px-5 py-4 bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 flex items-center justify-between hover:from-green-100 hover:to-teal-100 dark:hover:from-green-900/30 dark:hover:to-teal-900/30 transition-all"
       >
         <div className="flex items-center gap-3">
           <span className="text-xl">{icon}</span>
-          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
         </div>
         <svg
-          className={`w-5 h-5 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -32,8 +32,8 @@ const StrategySection = ({ title, content, icon, defaultOpen = false }) => {
         </svg>
       </button>
       {isOpen && (
-        <div className="px-5 py-4 bg-white">
-          <div className="text-gray-700 leading-relaxed">
+        <div className="px-5 py-4 bg-white dark:bg-gray-800">
+          <div className="text-gray-700 dark:text-gray-300 leading-relaxed">
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         </div>
@@ -93,18 +93,18 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
   const hasDesign = design.length > 0;
 
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all border border-gray-100">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all border border-gray-100 dark:border-gray-700">
       {/* Header */}
       <div
-        className="px-5 py-4 bg-gradient-to-r from-purple-50 to-blue-50 flex items-center justify-between cursor-pointer"
+        className="px-5 py-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 flex items-center justify-between cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-purple-600">
+          <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
             {OUTPUT_FORMATS[item.format]?.platform || 'Content'}
           </span>
           {isVisualFormat && hasDesign && (
-            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+            <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full">
               + Design
             </span>
           )}
@@ -112,7 +112,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
         <div className="flex items-center gap-2">
           <button
             onClick={(e) => handleCopy(item.content, e)}
-            className={`transition-colors p-1 ${copied ? 'text-green-500' : 'text-gray-400 hover:text-purple-600'}`}
+            className={`transition-colors p-1 ${copied ? 'text-green-500' : 'text-gray-400 hover:text-purple-600 dark:hover:text-purple-400'}`}
             title={copied ? 'Copied!' : 'Copy to clipboard'}
           >
             {copied ? (
@@ -126,7 +126,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
             )}
           </button>
           <svg
-            className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+            className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -140,13 +140,13 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
       {isExpanded && (
         <>
           {isVisualFormat && hasDesign && (
-            <div className="flex border-b border-gray-200">
+            <div className="flex border-b border-gray-200 dark:border-gray-700">
               <button
                 onClick={() => setActiveTab('copy')}
                 className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === 'copy'
-                    ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
                 }`}
               >
                 📝 Ad Copy
@@ -155,8 +155,8 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
                 onClick={() => setActiveTab('design')}
                 className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === 'design'
-                    ? 'text-amber-600 border-b-2 border-amber-600 bg-amber-50'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    ? 'text-amber-600 dark:text-amber-400 border-b-2 border-amber-600 dark:border-amber-400 bg-amber-50 dark:bg-amber-900/20'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
                 }`}
               >
                 🎨 Design Guidelines
@@ -166,7 +166,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
 
           <div className="px-5 py-4">
             {(!isVisualFormat || !hasDesign) ? (
-              <div className="prose prose-sm max-w-none text-gray-800">
+              <div className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
                 <ReactMarkdown>{copy}</ReactMarkdown>
               </div>
             ) : activeTab === 'copy' ? (
@@ -174,7 +174,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
                 <div className="flex justify-end mb-2">
                   <button
                     onClick={() => handleCopy(copy)}
-                    className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1"
+                    className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 flex items-center gap-1"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -182,7 +182,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
                     Copy text only
                   </button>
                 </div>
-                <div className="prose prose-sm max-w-none text-gray-800">
+                <div className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
                   <ReactMarkdown>{copy}</ReactMarkdown>
                 </div>
               </div>
@@ -191,7 +191,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
                 <div className="flex justify-end mb-2">
                   <button
                     onClick={() => handleCopy(design)}
-                    className="text-xs text-amber-600 hover:text-amber-800 flex items-center gap-1"
+                    className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-1"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -199,8 +199,8 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
                     Copy guidelines
                   </button>
                 </div>
-                <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                  <div className="prose prose-sm max-w-none text-gray-800">
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+                  <div className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
                     <ReactMarkdown>{design}</ReactMarkdown>
                   </div>
                 </div>
@@ -374,10 +374,10 @@ const CampaignDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading campaign...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading campaign...</p>
         </div>
       </div>
     );
@@ -385,10 +385,10 @@ const CampaignDetail = () => {
 
   if (!campaign) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Campaign not found</h2>
-          <button onClick={() => navigate('/dashboard')} className="text-purple-600 hover:text-purple-700">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Campaign not found</h2>
+          <button onClick={() => navigate('/dashboard')} className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">
             ← Back to Dashboard
           </button>
         </div>
@@ -397,50 +397,51 @@ const CampaignDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 py-12 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12 px-4 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
+
         {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => navigate('/dashboard')}
-            className="text-purple-600 hover:text-purple-700 font-medium mb-4 flex items-center gap-2"
+            className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium mb-4 flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Back to Dashboard
           </button>
-          <h1 className="text-4xl font-bold text-gray-900">{campaign.name}</h1>
-          <p className="text-gray-600 mt-2">{campaign.description}</p>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{campaign.name}</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">{campaign.description}</p>
         </div>
 
         {/* Campaign Info Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-8">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-6 mb-8">
           <div className="grid md:grid-cols-3 gap-6">
             <div>
-              <span className="text-sm text-gray-500">Target Audience</span>
-              <p className="font-medium text-gray-900 mt-1">{campaign.target_audience}</p>
+              <span className="text-sm text-gray-500 dark:text-gray-400">Target Audience</span>
+              <p className="font-medium text-gray-900 dark:text-white mt-1">{campaign.target_audience}</p>
             </div>
             <div>
-              <span className="text-sm text-gray-500">AI Provider</span>
-              <p className="font-medium text-gray-900 mt-1">
+              <span className="text-sm text-gray-500 dark:text-gray-400">AI Provider</span>
+              <p className="font-medium text-gray-900 dark:text-white mt-1">
                 {campaign.ai_provider === 'claude' ? '🤖 Claude' :
                   campaign.ai_provider === 'openai' ? '🧠 OpenAI' : '💎 Gemini'}
               </p>
             </div>
             <div>
-              <span className="text-sm text-gray-500">Output Formats</span>
-              <p className="font-medium text-gray-900 mt-1">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Output Formats</span>
+              <p className="font-medium text-gray-900 dark:text-white mt-1">
                 {campaign.output_formats?.length || 0} formats selected
               </p>
             </div>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-gray-100">
-            <span className="text-sm text-gray-500 block mb-3">Selected Formats:</span>
+          <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+            <span className="text-sm text-gray-500 dark:text-gray-400 block mb-3">Selected Formats:</span>
             <div className="flex flex-wrap gap-2">
               {campaign.output_formats?.map((format) => (
-                <span key={format} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+                <span key={format} className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-sm font-medium">
                   {OUTPUT_FORMATS[format]?.name || format}
                 </span>
               ))}
@@ -455,13 +456,12 @@ const CampaignDetail = () => {
 
         {/* Generate Buttons */}
         {generatedContent.length === 0 && !strategy && (
-          <div className="bg-white rounded-2xl shadow-xl p-12 text-center mb-8">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-12 text-center mb-8">
             <div className="text-6xl mb-4">✨</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Ready to create your campaign?</h2>
-            <p className="text-gray-600 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Ready to create your campaign?</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-8">
               Start by generating a marketing strategy, then create content for all formats
             </p>
-
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={handleGenerateStrategy}
@@ -500,19 +500,19 @@ const CampaignDetail = () => {
 
         {/* Marketing Strategy Display */}
         {strategy && (
-          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-8 mb-8">
             <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-              <h2 className="text-2xl font-bold text-gray-900">📊 Marketing Strategy</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">📊 Marketing Strategy</h2>
               <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={() => setExpandAllStrategy(!expandAllStrategy)}
-                  className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all"
+                  className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
                 >
                   {expandAllStrategy ? '📖 Collapse All' : '📖 Expand All'}
                 </button>
                 <button
                   onClick={() => navigator.clipboard.writeText(typeof strategy === 'string' ? strategy : JSON.stringify(strategy, null, 2))}
-                  className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all"
+                  className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
                 >
                   📋 Copy All
                 </button>
@@ -539,8 +539,8 @@ const CampaignDetail = () => {
             </div>
 
             {generatedContent.length === 0 && (
-              <div className="mt-8 pt-6 border-t border-gray-200 text-center">
-                <p className="text-gray-600 mb-4">Ready to create content based on this strategy?</p>
+              <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 text-center">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">Ready to create content based on this strategy?</p>
                 <button
                   onClick={handleGenerate}
                   disabled={generating}
@@ -555,20 +555,20 @@ const CampaignDetail = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg mb-6">
             {error}
           </div>
         )}
 
         {/* Generated Content */}
         {generatedContent.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-xl p-8">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-8">
             <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-              <h2 className="text-2xl font-bold text-gray-900">🎨 Generated Content</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">🎨 Generated Content</h2>
               <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={() => setExpandAllContent(!expandAllContent)}
-                  className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all"
+                  className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
                 >
                   {expandAllContent ? '📖 Collapse All' : '📖 Expand All'}
                 </button>
@@ -589,7 +589,7 @@ const CampaignDetail = () => {
                 className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                   selectedFormat === 'all'
                     ? 'bg-purple-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                 }`}
               >
                 All ({generatedContent.length})
@@ -604,7 +604,7 @@ const CampaignDetail = () => {
                     className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
                       selectedFormat === format
                         ? 'bg-purple-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                   >
                     {OUTPUT_FORMATS[format]?.name || format} ({count})
@@ -616,9 +616,9 @@ const CampaignDetail = () => {
             {/* Content Cards by Format */}
             {Object.entries(groupedContent).map(([format, items]) => (
               <div key={format} className="mb-8">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                   <span>{OUTPUT_FORMATS[format]?.name || format}</span>
-                  <span className="text-sm text-gray-500 font-normal">
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-normal">
                     ({items.length} {items.length === 1 ? 'variation' : 'variations'})
                   </span>
                 </h3>
