@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeProvider';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import SharedContent from './pages/SharedContent';
 
 // Import all pages
 import Home from './pages/Home';
@@ -41,6 +42,7 @@ function App() {
             <Route path="/campaign-detail/:id" element={<CampaignDetail />} />
             <Route path="/campaign/:id" element={<CampaignDetail />} />
             
+            <Route path="/shared/:token" element={<SharedContent />} />
             {/* Fallback route */}
             <Route path="*" element={<Home />} />
           </Routes>

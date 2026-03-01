@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_URL,
@@ -79,9 +80,7 @@ export const getAvailableProviders = async () => {
 // Media Upload APIs
 export const uploadMedia = async (formData) => {
   const response = await api.post('/media/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+    headers: { 'Content-Type': 'multipart/form-data' }
   });
   return response.data;
 };
@@ -93,6 +92,44 @@ export const getCampaignMedia = async (campaignId) => {
 
 export const deleteMedia = async (mediaId) => {
   const response = await api.delete(`/media/${mediaId}`);
+  return response.data;
+};
+
+// ─── Save & Share APIs ───────────────────────────────────────────────────────
+
+export const saveContent = async ({ campaign_id, title, content, content_type, format }) => {
+  const response = await api.post('/save', { campaign_id, title, content, content_type, format });
+  return response.data;
+};
+
+export const getSavedContent = async (filters = {}) => {
+  const response = await api.get('/saved', { params: filters });
+  return response.data;
+};
+
+export const deleteSavedContent = async (id) => {
+  const response = await api.delete(`/saved/${id}`);
+  return response.data;
+};
+
+export const createShareLink = async ({ saved_content_id, title, content, expires_in_days }) => {
+  const response = await api.post('/share', { saved_content_id, title, content, expires_in_days });
+  return response.data;
+};
+
+export const getShareLinks = async () => {
+  const response = await api.get('/shares');
+  return response.data;
+};
+
+export const deactivateShareLink = async (token) => {
+  const response = await api.patch(`/share/${token}/deactivate`);
+  return response.data;
+};
+
+// Public - no auth needed
+export const getSharedContent = async (token) => {
+  const response = await axios.get(`${API_URL}/shared/${token}`);
   return response.data;
 };
 

@@ -1,39 +1,173 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getCampaignById, generateIdeas, generateStrategy, getCampaignMedia } from '../services/api';
+import {
+  getCampaignById, generateIdeas, generateStrategy, getCampaignMedia,
+  saveContent, getSavedContent, deleteSavedContent, createShareLink
+} from '../services/api';
 import { OUTPUT_FORMATS } from '../constants/outputFormats';
 import MediaUpload from '../components/MediaUpload';
 import ReactMarkdown from 'react-markdown';
 
-// Visual format identifiers
 const VISUAL_FORMATS = ['BANNER_AD', 'PRINT_AD', 'FLYER_TEXT', 'GOOGLE_SEARCH_AD'];
+const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.vercel.app';
 
-// Collapsible Section Component for Strategy
-const StrategySection = ({ title, content, icon, defaultOpen = false }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+// ─── Toast ────────────────────────────────────────────────────────────────────
+const Toast = ({ message, type, visible }) => {
+  if (!visible) return null;
+  const colors = {
+    success: 'bg-green-900/80 border-green-500 text-green-300',
+    error: 'bg-red-900/80 border-red-500 text-red-300',
+    info: 'bg-purple-900/80 border-purple-500 text-purple-300',
+  };
+  return (
+    <div className={`fixed bottom-8 right-8 z-50 flex items-center gap-3 px-5 py-3 rounded-xl border backdrop-blur-sm shadow-2xl transition-all duration-300 ${colors[type] || colors.success}`}>
+      <span className="text-sm font-medium">{message}</span>
+    </div>
+  );
+};
+
+// ─── Share Modal ──────────────────────────────────────────────────────────────
+const ShareModal = ({ isOpen, onClose, onShare, isLoading, shareUrl }) => {
+  const [expiry, setExpiry] = useState(7);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (!shareUrl) return;
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (!isOpen) return null;
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-3">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-5 py-4 bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 flex items-center justify-between hover:from-green-100 hover:to-teal-100 dark:hover:from-green-900/30 dark:hover:to-teal-900/30 transition-all"
-      >
-        <div className="flex items-center gap-3">
-          <span className="text-xl">{icon}</span>
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl p-7 w-full max-w-md mx-4 shadow-2xl">
+        <h2 className="text-lg font-bold text-white mb-1">🔗 Create Share Link</h2>
+        <p className="text-sm text-gray-400 mb-6">Anyone with this link can view the content — no login required.</p>
+
+        <div className="flex items-center gap-3 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 mb-5">
+          <span className="flex-1 text-xs text-purple-300 truncate font-mono">
+            {shareUrl || 'Generate the link below to get your shareable URL...'}
+          </span>
+          {shareUrl && (
+            <button onClick={handleCopy} className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${copied ? 'bg-green-500 text-gray-900' : 'bg-purple-600 text-white hover:bg-purple-700'}`}>
+              {copied ? '✅ Copied!' : 'Copy'}
+            </button>
+          )}
         </div>
-        <svg
-          className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+
+        <p className="text-xs text-gray-400 mb-2">Link expires in:</p>
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {[{ label: '24 hours', val: 1 }, { label: '7 days', val: 7 }, { label: '30 days', val: 30 }, { label: 'Never', val: null }].map(opt => (
+            <button key={opt.label} onClick={() => setExpiry(opt.val)} className={`px-4 py-1.5 rounded-full text-xs font-medium border transition-all ${expiry === opt.val ? 'border-purple-500 text-purple-300 bg-purple-500/10' : 'border-gray-700 text-gray-400 hover:border-gray-500'}`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-2 justify-end">
+          <button onClick={onClose} className="px-4 py-2 text-sm bg-gray-800 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-700 transition-all">Cancel</button>
+          <button onClick={() => onShare(expiry)} disabled={isLoading} className="px-5 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-all font-semibold">
+            {isLoading ? 'Generating...' : shareUrl ? '🔄 Regenerate' : '🔗 Generate & Copy'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Saved Library Panel ──────────────────────────────────────────────────────
+const SavedLibrary = ({ savedItems, onDelete, onShare }) => {
+  const [filter, setFilter] = useState('all');
+  const filtered = savedItems.filter(item => {
+    if (filter === 'all') return true;
+    if (filter === 'strategy') return item.content_type?.includes('strategy');
+    if (filter === 'content') return item.content_type === 'content';
+    return true;
+  });
+
+  if (savedItems.length === 0) return null;
+
+  return (
+    <div className="bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden mt-8">
+      <div className="px-6 py-4 border-b border-gray-700 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-base font-bold text-white">🗂️ Saved Library</span>
+          <span className="bg-purple-500/20 text-purple-300 text-xs font-semibold px-2 py-0.5 rounded-full">{savedItems.length} saved</span>
+        </div>
+        <div className="flex gap-1">
+          {['all', 'strategy', 'content'].map(tab => (
+            <button key={tab} onClick={() => setFilter(tab)} className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-all ${filter === tab ? 'bg-purple-500/20 text-purple-300' : 'text-gray-400 hover:text-gray-200'}`}>
+              {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {filtered.map(item => (
+        <div key={item.id} className="px-6 py-4 border-b border-gray-800 last:border-0 flex items-start gap-3 hover:bg-gray-800/50 transition-all group">
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0 ${item.content_type === 'content' ? 'bg-purple-500/10' : 'bg-green-500/10'}`}>
+            {item.content_type === 'content' ? '🎨' : '📊'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-white truncate">{item.title}</div>
+            <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
+              <span className="capitalize">{item.content_type?.replace('_', ' ')}</span>
+              <span className="w-1 h-1 rounded-full bg-gray-600 inline-block"></span>
+              <span>{new Date(item.created_at).toLocaleDateString()}</span>
+            </div>
+          </div>
+          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+            <button onClick={() => onShare({ title: item.title, content: item.content, savedId: item.id })} className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 flex items-center justify-center text-sm transition-all" title="Share">🔗</button>
+            <button onClick={() => onDelete(item.id)} className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center text-sm transition-all" title="Delete">🗑️</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ─── Strategy Section ─────────────────────────────────────────────────────────
+const StrategySection = ({ title, content, icon, defaultOpen, campaignName, onSave, onShare, savedKeys }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [saving, setSaving] = useState(false);
+  const key = `strategy_${title}`;
+  const isSaved = savedKeys.has(key);
+
+  const handleSave = async (e) => {
+    e.stopPropagation();
+    if (isSaved) return;
+    setSaving(true);
+    await onSave({ title: `${title} — ${campaignName}`, content, content_type: 'strategy_section', key });
+    setSaving(false);
+  };
+
+  const handleShare = (e) => {
+    e.stopPropagation();
+    onShare({ title: `${title} — ${campaignName}`, content });
+  };
+
+  return (
+    <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-3 group">
+      <button onClick={() => setIsOpen(!isOpen)} className="w-full px-5 py-4 bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/10 flex items-center justify-between hover:from-green-100 dark:hover:from-green-900/30 transition-all">
+        <div className="flex items-center gap-3">
+          <span className="text-lg">{icon}</span>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+            <button onClick={handleSave} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${isSaved ? 'bg-green-500/20 text-green-500' : 'bg-green-500/10 text-green-500 hover:bg-green-500/20'}`} title={isSaved ? 'Saved!' : 'Save section'}>
+              {saving ? '⏳' : isSaved ? '✅' : '🔖'}
+            </button>
+            <button onClick={handleShare} className="w-7 h-7 rounded-md bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 flex items-center justify-center text-xs transition-all" title="Share section">🔗</button>
+          </div>
+          <span className={`text-gray-400 text-xs transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+        </div>
       </button>
       {isOpen && (
-        <div className="px-5 py-4 bg-white dark:bg-gray-800">
-          <div className="text-gray-700 dark:text-gray-300 leading-relaxed">
+        <div className="px-5 py-4 bg-white dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700">
+          <div className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         </div>
@@ -42,170 +176,71 @@ const StrategySection = ({ title, content, icon, defaultOpen = false }) => {
   );
 };
 
-// Content Card with Copy/Design tabs for visual formats
-const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
+// ─── Content Card ─────────────────────────────────────────────────────────────
+const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, onSave, onShare, savedKeys }) => {
   const [activeTab, setActiveTab] = useState('copy');
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const formatName = OUTPUT_FORMATS[item.format]?.name || item.format;
+  const key = `content_${item.format}`;
+  const isSaved = savedKeys.has(key);
 
   const parseVisualContent = (content) => {
     if (!content) return { copy: content, design: '' };
-
-    const contentLower = content.toLowerCase();
-    const designMarkers = [
-      '### design suggestions',
-      '### design',
-      '**design suggestions**',
-      '**design',
-      'design suggestions:',
-      'design guidelines:',
-      'size variations:',
-      'layout suggestions:'
-    ];
-
+    const lower = content.toLowerCase();
+    const markers = ['### design suggestions', '### design', '**design suggestions**', 'design suggestions:', 'design guidelines:'];
     let splitIndex = -1;
-
-    for (const marker of designMarkers) {
-      const idx = contentLower.indexOf(marker);
-      if (idx !== -1 && (splitIndex === -1 || idx < splitIndex)) {
-        splitIndex = idx;
-      }
-    }
-
-    if (splitIndex !== -1) {
-      return {
-        copy: content.substring(0, splitIndex).trim(),
-        design: content.substring(splitIndex).trim()
-      };
-    }
-
+    for (const m of markers) { const idx = lower.indexOf(m); if (idx !== -1 && (splitIndex === -1 || idx < splitIndex)) splitIndex = idx; }
+    if (splitIndex !== -1) return { copy: content.substring(0, splitIndex).trim(), design: content.substring(splitIndex).trim() };
     return { copy: content, design: '' };
   };
 
-  const handleCopy = (text, e) => {
-    e?.stopPropagation();
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const { copy, design } = isVisualFormat ? parseVisualContent(item.content) : { copy: item.content, design: '' };
+
+  const handleCopy = (text, e) => { e?.stopPropagation(); navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+
+  const handleSave = async (e) => {
+    e.stopPropagation();
+    if (isSaved) return;
+    setSaving(true);
+    await onSave({ title: `${formatName} — ${campaignName}`, content: item.content, content_type: 'content', format: item.format, key });
+    setSaving(false);
   };
 
-  const { copy, design } = isVisualFormat ? parseVisualContent(item.content) : { copy: item.content, design: '' };
-  const hasDesign = design.length > 0;
+  const handleShare = (e) => { e.stopPropagation(); onShare({ title: `${formatName} — ${campaignName}`, content: item.content }); };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all border border-gray-100 dark:border-gray-700">
-      {/* Header */}
-      <div
-        className="px-5 py-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 flex items-center justify-between cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
-            {OUTPUT_FORMATS[item.format]?.platform || 'Content'}
-          </span>
-          {isVisualFormat && hasDesign && (
-            <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full">
-              + Design
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={(e) => handleCopy(item.content, e)}
-            className={`transition-colors p-1 ${copied ? 'text-green-500' : 'text-gray-400 hover:text-purple-600 dark:hover:text-purple-400'}`}
-            title={copied ? 'Copied!' : 'Copy to clipboard'}
-          >
-            {copied ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            )}
-          </button>
-          <svg
-            className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+    <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-xl transition-all group">
+      <div className="px-5 py-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/15 dark:to-blue-900/10 flex items-center justify-between cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+        <span className="text-xs font-medium text-purple-600 dark:text-purple-300 bg-purple-100 dark:bg-purple-500/10 px-3 py-1 rounded-full">
+          {OUTPUT_FORMATS[item.format]?.platform || formatName}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+            <button onClick={handleSave} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${isSaved ? 'bg-green-500/20 text-green-500' : 'bg-green-500/10 text-green-500 hover:bg-green-500/20'}`} title={isSaved ? 'Saved!' : 'Save'}>
+              {saving ? '⏳' : isSaved ? '✅' : '🔖'}
+            </button>
+            <button onClick={handleShare} className="w-7 h-7 rounded-md bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 flex items-center justify-center text-xs transition-all" title="Share">🔗</button>
+            <button onClick={(e) => handleCopy(item.content, e)} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${copied ? 'bg-green-500/20 text-green-500' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Copy">
+              {copied ? '✅' : '📋'}
+            </button>
+          </div>
+          <span className={`text-gray-400 text-xs transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
         </div>
       </div>
-
-      {/* Expanded Content */}
       {isExpanded && (
         <>
-          {isVisualFormat && hasDesign && (
-            <div className="flex border-b border-gray-200 dark:border-gray-700">
-              <button
-                onClick={() => setActiveTab('copy')}
-                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                  activeTab === 'copy'
-                    ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                📝 Ad Copy
-              </button>
-              <button
-                onClick={() => setActiveTab('design')}
-                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                  activeTab === 'design'
-                    ? 'text-amber-600 dark:text-amber-400 border-b-2 border-amber-600 dark:border-amber-400 bg-amber-50 dark:bg-amber-900/20'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                🎨 Design Guidelines
-              </button>
+          {isVisualFormat && design && (
+            <div className="flex border-b border-gray-100 dark:border-gray-700">
+              <button onClick={() => setActiveTab('copy')} className={`flex-1 px-4 py-2.5 text-xs font-medium transition-all ${activeTab === 'copy' ? 'text-purple-600 dark:text-purple-300 border-b-2 border-purple-500 bg-purple-50 dark:bg-purple-500/10' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>📝 Ad Copy</button>
+              <button onClick={() => setActiveTab('design')} className={`flex-1 px-4 py-2.5 text-xs font-medium transition-all ${activeTab === 'design' ? 'text-amber-600 dark:text-amber-300 border-b-2 border-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>🎨 Design Guidelines</button>
             </div>
           )}
-
           <div className="px-5 py-4">
-            {(!isVisualFormat || !hasDesign) ? (
-              <div className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
-                <ReactMarkdown>{copy}</ReactMarkdown>
-              </div>
-            ) : activeTab === 'copy' ? (
-              <div>
-                <div className="flex justify-end mb-2">
-                  <button
-                    onClick={() => handleCopy(copy)}
-                    className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 flex items-center gap-1"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Copy text only
-                  </button>
-                </div>
-                <div className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
-                  <ReactMarkdown>{copy}</ReactMarkdown>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div className="flex justify-end mb-2">
-                  <button
-                    onClick={() => handleCopy(design)}
-                    className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 flex items-center gap-1"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Copy guidelines
-                  </button>
-                </div>
-                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
-                  <div className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
-                    <ReactMarkdown>{design}</ReactMarkdown>
-                  </div>
-                </div>
-              </div>
-            )}
+            <div className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
+              <ReactMarkdown>{activeTab === 'design' && design ? design : copy}</ReactMarkdown>
+            </div>
           </div>
         </>
       )}
@@ -213,13 +248,11 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded = false }) => {
   );
 };
 
-// Parse strategy into sections
+// ─── Parse Strategy ───────────────────────────────────────────────────────────
 const parseStrategy = (strategy) => {
   if (!strategy) return [];
-
-  const strategyText = typeof strategy === 'string' ? strategy : JSON.stringify(strategy, null, 2);
-
-  const sectionPatterns = [
+  const text = typeof strategy === 'string' ? strategy : JSON.stringify(strategy, null, 2);
+  const patterns = [
     { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:\d+\.\s*)?(?:CAMPAIGN OBJECTIVES|Executive Summary|Overview)/i, title: 'Campaign Objectives', icon: '🎯' },
     { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:\d+\.\s*)?(?:TARGET AUDIENCE|Audience Analysis|Demographics)/i, title: 'Target Audience', icon: '👥' },
     { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:\d+\.\s*)?(?:KEY MESSAGES|Messaging|Value Propositions)/i, title: 'Key Messages', icon: '💬' },
@@ -231,412 +264,260 @@ const parseStrategy = (strategy) => {
     { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:\d+\.\s*)?(?:COMPETITIVE|Competitor)/i, title: 'Competitive Insights', icon: '🔍' },
     { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:\d+\.\s*)?(?:OPTIMIZATION|A\/B Testing)/i, title: 'Optimization', icon: '⚡' },
   ];
-
+  const found = [];
+  patterns.forEach(({ pattern, title, icon }) => { const match = text.match(pattern); if (match) found.push({ title, icon, index: match.index, matchLength: match[0].length }); });
+  found.sort((a, b) => a.index - b.index);
   const sections = [];
-  let foundSections = [];
-
-  sectionPatterns.forEach(({ pattern, title, icon }) => {
-    const match = strategyText.match(pattern);
-    if (match) {
-      foundSections.push({ title, icon, index: match.index, matchLength: match[0].length });
-    }
-  });
-
-  foundSections.sort((a, b) => a.index - b.index);
-
-  if (foundSections.length > 0) {
-    foundSections.forEach((section, i) => {
-      const startIndex = section.index + section.matchLength;
-      const endIndex = i < foundSections.length - 1 ? foundSections[i + 1].index : strategyText.length;
-      const content = strategyText.substring(startIndex, endIndex).trim();
-
-      if (content.length > 10) {
-        sections.push({
-          title: section.title,
-          icon: section.icon,
-          content: content.replace(/^[:\s]+/, '')
-        });
-      }
-    });
-  }
-
-  if (sections.length === 0) {
-    sections.push({ title: 'Marketing Strategy', icon: '📊', content: strategyText });
-  }
-
+  found.forEach((s, i) => { const start = s.index + s.matchLength; const end = i < found.length - 1 ? found[i + 1].index : text.length; const content = text.substring(start, end).trim().replace(/^[:\s]+/, ''); if (content.length > 10) sections.push({ title: s.title, icon: s.icon, content }); });
+  if (sections.length === 0) sections.push({ title: 'Marketing Strategy', icon: '📊', content: text });
   return sections;
 };
 
+// ─── Main Component ───────────────────────────────────────────────────────────
 const CampaignDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [campaign, setCampaign] = useState(null);
   const [generatedContent, setGeneratedContent] = useState([]);
   const [strategy, setStrategy] = useState(null);
   const [strategySections, setStrategySections] = useState([]);
   const [media, setMedia] = useState([]);
+  const [savedItems, setSavedItems] = useState([]);
+  const [savedKeys, setSavedKeys] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [generatingStrategy, setGeneratingStrategy] = useState(false);
   const [error, setError] = useState('');
   const [selectedFormat, setSelectedFormat] = useState('all');
-  const [expandAllStrategy, setExpandAllStrategy] = useState(false);
-  const [expandAllContent, setExpandAllContent] = useState(false);
+  const [expandAll, setExpandAll] = useState(false);
+  const [shareModal, setShareModal] = useState({ open: false, title: '', content: '', savedId: null });
+  const [shareUrl, setShareUrl] = useState('');
+  const [sharing, setSharing] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
-  useEffect(() => {
-    setError('');
-    fetchCampaign();
-    fetchMedia();
-  }, [id]);
-
-  useEffect(() => {
-    if (strategy) {
-      setStrategySections(parseStrategy(strategy));
-    }
-  }, [strategy]);
-
-  const fetchMedia = async () => {
-    try {
-      const data = await getCampaignMedia(id);
-      setMedia(data.media || []);
-    } catch (err) {
-      console.error('Failed to load media:', err);
-    }
+  const showToast = (message, type = 'success') => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
   };
+
+  useEffect(() => { fetchCampaign(); fetchMedia(); fetchSaved(); }, [id]);
+  useEffect(() => { if (strategy) setStrategySections(parseStrategy(strategy)); }, [strategy]);
 
   const fetchCampaign = async () => {
     try {
       setLoading(true);
-      setError('');
       const data = await getCampaignById(id);
-      const rawCampaign = data.campaign;
-
-      const safeCampaign = {
-        id: String(rawCampaign.id || ''),
-        name: String(rawCampaign.name || 'Untitled Campaign'),
-        description: String(rawCampaign.description || 'No description'),
-        target_audience: String(rawCampaign.target_audience || 'N/A'),
-        ai_provider: String(rawCampaign.ai_provider || 'claude'),
-        output_formats: Array.isArray(rawCampaign.output_formats) ? rawCampaign.output_formats : [],
-        status: String(rawCampaign.status || ''),
-        created_at: rawCampaign.created_at,
-        updated_at: rawCampaign.updated_at,
-        generated_content: Array.isArray(rawCampaign.generated_content) ? rawCampaign.generated_content : []
+      const raw = data.campaign;
+      const safe = {
+        id: String(raw.id || ''),
+        name: String(raw.name || 'Untitled Campaign'),
+        description: String(raw.product_description || raw.description || ''),
+        target_audience: String(raw.target_audience || ''),
+        ai_provider: String(raw.ai_provider || 'gemini'),
+        output_formats: Array.isArray(raw.output_formats) ? raw.output_formats : [],
+        status: String(raw.status || ''),
+        created_at: raw.created_at,
+        generated_content: Array.isArray(raw.generated_content) ? raw.generated_content : []
       };
+      setCampaign(safe);
+      setGeneratedContent(safe.generated_content);
+    } catch { setError('Failed to load campaign'); }
+    finally { setLoading(false); }
+  };
 
-      setCampaign(safeCampaign);
-      setGeneratedContent(safeCampaign.generated_content);
-    } catch (err) {
-      setError('Failed to load campaign');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const fetchMedia = async () => { try { const data = await getCampaignMedia(id); setMedia(data.media || []); } catch {} };
+
+  const fetchSaved = async () => {
+    try {
+      const data = await getSavedContent({ campaign_id: id });
+      const items = data.saved_content || [];
+      setSavedItems(items);
+      const keys = new Set(items.map(i => i.content_type === 'content' ? `content_${i.format}` : `strategy_${i.title?.split(' — ')[0]}`));
+      setSavedKeys(keys);
+    } catch {}
+  };
+
+  const handleSave = useCallback(async ({ title, content, content_type, format, key }) => {
+    try {
+      const data = await saveContent({ campaign_id: id, title, content, content_type, format });
+      setSavedItems(prev => [data.saved, ...prev]);
+      setSavedKeys(prev => new Set([...prev, key]));
+      showToast(`🔖 "${title}" saved!`);
+    } catch { showToast('Failed to save content', 'error'); }
+  }, [id]);
+
+  const handleDeleteSaved = async (savedId) => {
+    try { await deleteSavedContent(savedId); setSavedItems(prev => prev.filter(s => s.id !== savedId)); showToast('Removed from library'); }
+    catch { showToast('Failed to delete', 'error'); }
+  };
+
+  const openShareModal = ({ title, content, savedId = null }) => { setShareUrl(''); setShareModal({ open: true, title, content, savedId }); };
+
+  const handleCreateShare = async (expiryDays) => {
+    setSharing(true);
+    try {
+      const data = await createShareLink({ saved_content_id: shareModal.savedId, title: shareModal.title, content: shareModal.content, expires_in_days: expiryDays });
+      const url = `${FRONTEND_URL}/shared/${data.share_token}`;
+      setShareUrl(url);
+      navigator.clipboard.writeText(url);
+      showToast('🔗 Share link copied to clipboard!', 'info');
+    } catch { showToast('Failed to create share link', 'error'); }
+    finally { setSharing(false); }
+  };
+
+  const handleSaveAll = async () => {
+    let count = 0;
+    if (strategy) { await handleSave({ title: `Full Strategy — ${campaign?.name}`, content: typeof strategy === 'string' ? strategy : JSON.stringify(strategy), content_type: 'strategy', key: 'strategy_full' }); count++; }
+    for (const item of generatedContent) { const name = OUTPUT_FORMATS[item.format]?.name || item.format; await handleSave({ title: `${name} — ${campaign?.name}`, content: item.content, content_type: 'content', format: item.format, key: `content_${item.format}` }); count++; }
+    showToast(`🔖 ${count} items saved to library!`);
   };
 
   const handleGenerateStrategy = async () => {
-    try {
-      setGeneratingStrategy(true);
-      setError('');
-      const data = await generateStrategy(id);
-      setStrategy(data.strategy);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to generate strategy');
-      console.error(err);
-    } finally {
-      setGeneratingStrategy(false);
-    }
+    try { setGeneratingStrategy(true); setError(''); const data = await generateStrategy(id); setStrategy(data.strategy); }
+    catch (err) { setError(err.response?.data?.error || 'Failed to generate strategy'); }
+    finally { setGeneratingStrategy(false); }
   };
 
   const handleGenerate = async () => {
-    try {
-      setGenerating(true);
-      setError('');
-      const data = await generateIdeas(id);
-      setGeneratedContent(data.generatedContent || []);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to generate content');
-      console.error(err);
-    } finally {
-      setGenerating(false);
-    }
+    try { setGenerating(true); setError(''); const data = await generateIdeas(id); setGeneratedContent(data.generatedContent || []); }
+    catch (err) { setError(err.response?.data?.error || 'Failed to generate content'); }
+    finally { setGenerating(false); }
   };
 
-  const filteredContent = selectedFormat === 'all'
-    ? generatedContent
-    : generatedContent.filter(item => item.format === selectedFormat);
+  const filteredContent = selectedFormat === 'all' ? generatedContent : generatedContent.filter(i => i.format === selectedFormat);
+  const groupedContent = filteredContent.reduce((acc, item) => { if (!acc[item.format]) acc[item.format] = []; acc[item.format].push(item); return acc; }, {});
 
-  const groupedContent = filteredContent.reduce((acc, item) => {
-    if (!acc[item.format]) acc[item.format] = [];
-    acc[item.format].push(item);
-    return acc;
-  }, {});
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading campaign...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!campaign) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Campaign not found</h2>
-          <button onClick={() => navigate('/dashboard')} className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">
-            ← Back to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center"><div className="text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div><p className="mt-4 text-gray-500 dark:text-gray-400">Loading campaign...</p></div></div>;
+  if (!campaign) return <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center"><div className="text-center"><h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Campaign not found</h2><button onClick={() => navigate('/dashboard')} className="text-purple-500 hover:text-purple-400">← Back to Dashboard</button></div></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12 px-4 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-10 px-4 transition-colors duration-300">
+      <div className="max-w-5xl mx-auto">
 
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium mb-4 flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Dashboard
-          </button>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{campaign.name}</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">{campaign.description}</p>
-        </div>
+        {/* Back */}
+        <button onClick={() => navigate('/dashboard')} className="text-purple-500 hover:text-purple-400 font-medium mb-6 flex items-center gap-2 text-sm">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          Back to Dashboard
+        </button>
 
-        {/* Campaign Info Card */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-6 mb-8">
-          <div className="grid md:grid-cols-3 gap-6">
+        {/* Campaign Header */}
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 mb-6">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <span className="text-sm text-gray-500 dark:text-gray-400">Target Audience</span>
-              <p className="font-medium text-gray-900 dark:text-white mt-1">{campaign.target_audience}</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{campaign.name}</h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">{campaign.description}</p>
             </div>
-            <div>
-              <span className="text-sm text-gray-500 dark:text-gray-400">AI Provider</span>
-              <p className="font-medium text-gray-900 dark:text-white mt-1">
-                {campaign.ai_provider === 'claude' ? '🤖 Claude' :
-                  campaign.ai_provider === 'openai' ? '🧠 OpenAI' : '💎 Gemini'}
-              </p>
-            </div>
-            <div>
-              <span className="text-sm text-gray-500 dark:text-gray-400">Output Formats</span>
-              <p className="font-medium text-gray-900 dark:text-white mt-1">
-                {campaign.output_formats?.length || 0} formats selected
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
-            <span className="text-sm text-gray-500 dark:text-gray-400 block mb-3">Selected Formats:</span>
-            <div className="flex flex-wrap gap-2">
-              {campaign.output_formats?.map((format) => (
-                <span key={format} className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-sm font-medium">
-                  {OUTPUT_FORMATS[format]?.name || format}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Media Upload Section */}
-        <div className="mb-8">
-          <MediaUpload campaignId={id} media={media} onUploadSuccess={fetchMedia} />
-        </div>
-
-        {/* Generate Buttons */}
-        {generatedContent.length === 0 && !strategy && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-12 text-center mb-8">
-            <div className="text-6xl mb-4">✨</div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Ready to create your campaign?</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-8">
-              Start by generating a marketing strategy, then create content for all formats
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={handleGenerateStrategy}
-                disabled={generatingStrategy}
-                className="px-8 py-4 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-lg font-semibold hover:from-green-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
-              >
-                {generatingStrategy ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Generating Strategy...
-                  </span>
-                ) : '📊 Generate Marketing Strategy'}
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={() => navigator.clipboard.writeText(typeof strategy === 'string' ? strategy : '')} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
+                📋 Copy All
               </button>
+              <button onClick={handleSaveAll} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-green-500/10 border border-green-500/25 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-500/20 transition-all">
+                🔖 Save All
+              </button>
+              <button onClick={() => (strategy || generatedContent.length > 0) && openShareModal({ title: `${campaign.name} — Campaign`, content: typeof strategy === 'string' ? strategy : '' })} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-purple-500/10 border border-purple-500/25 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-500/20 transition-all">
+                🔗 Share
+              </button>
+            </div>
+          </div>
 
-              <button
-                onClick={handleGenerate}
-                disabled={generating}
-                className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
-              >
-                {generating ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Generating Content...
-                  </span>
-                ) : '🚀 Generate Content'}
+          <div className="grid md:grid-cols-3 gap-4 mt-6 pt-5 border-t border-gray-100 dark:border-gray-800">
+            <div><span className="text-xs text-gray-400">Target Audience</span><p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{campaign.target_audience}</p></div>
+            <div><span className="text-xs text-gray-400">AI Provider</span><p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{campaign.ai_provider === 'claude' ? '🤖 Claude' : campaign.ai_provider === 'openai' ? '🧠 OpenAI' : '💎 Gemini'}</p></div>
+            <div><span className="text-xs text-gray-400">Output Formats</span><p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{campaign.output_formats?.length || 0} formats selected</p></div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {campaign.output_formats?.map(f => <span key={f} className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs font-medium">{OUTPUT_FORMATS[f]?.name || f}</span>)}
+          </div>
+        </div>
+
+        {/* Media */}
+        <div className="mb-6"><MediaUpload campaignId={id} media={media} onUploadSuccess={fetchMedia} /></div>
+
+        {/* Generate buttons */}
+        {generatedContent.length === 0 && !strategy && (
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-12 text-center mb-6">
+            <div className="text-5xl mb-4">✨</div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Ready to create your campaign?</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-8 text-sm">Start by generating a marketing strategy, then create content for all formats</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button onClick={handleGenerateStrategy} disabled={generatingStrategy} className="px-7 py-3.5 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-lg font-semibold hover:from-green-700 hover:to-teal-700 disabled:opacity-50 transition-all shadow-lg text-sm">
+                {generatingStrategy ? '⏳ Generating Strategy...' : '📊 Generate Marketing Strategy'}
+              </button>
+              <button onClick={handleGenerate} disabled={generating} className="px-7 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all shadow-lg text-sm">
+                {generating ? '⏳ Generating Content...' : '🚀 Generate Content'}
               </button>
             </div>
           </div>
         )}
 
-        {/* Marketing Strategy Display */}
+        {/* Error */}
+        {error && <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl mb-6 text-sm">{error}</div>}
+
+        {/* Strategy */}
         {strategy && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-8 mb-8">
-            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">📊 Marketing Strategy</h2>
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-7 mb-6">
+            <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">📊 Marketing Strategy</h2>
               <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => setExpandAllStrategy(!expandAllStrategy)}
-                  className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
-                >
-                  {expandAllStrategy ? '📖 Collapse All' : '📖 Expand All'}
-                </button>
-                <button
-                  onClick={() => navigator.clipboard.writeText(typeof strategy === 'string' ? strategy : JSON.stringify(strategy, null, 2))}
-                  className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
-                >
-                  📋 Copy All
-                </button>
-                <button
-                  onClick={handleGenerateStrategy}
-                  disabled={generatingStrategy}
-                  className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-all"
-                >
-                  {generatingStrategy ? 'Regenerating...' : '🔄 Regenerate'}
-                </button>
+                <button onClick={() => navigator.clipboard.writeText(typeof strategy === 'string' ? strategy : '')} className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">📋 Copy All</button>
+                <button onClick={handleGenerateStrategy} disabled={generatingStrategy} className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-all">{generatingStrategy ? 'Regenerating...' : '🔄 Regenerate'}</button>
               </div>
             </div>
-
             <div className="space-y-2">
-              {strategySections.map((section, index) => (
-                <StrategySection
-                  key={index}
-                  title={section.title}
-                  content={section.content}
-                  icon={section.icon}
-                  defaultOpen={expandAllStrategy || index === 0}
-                />
+              {strategySections.map((section, i) => (
+                <StrategySection key={i} title={section.title} content={section.content} icon={section.icon} defaultOpen={i === 0} campaignName={campaign.name} onSave={handleSave} onShare={openShareModal} savedKeys={savedKeys} />
               ))}
             </div>
-
             {generatedContent.length === 0 && (
-              <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 text-center">
-                <p className="text-gray-600 dark:text-gray-400 mb-4">Ready to create content based on this strategy?</p>
-                <button
-                  onClick={handleGenerate}
-                  disabled={generating}
-                  className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all shadow-lg"
-                >
-                  {generating ? 'Generating...' : '🚀 Generate Content Now'}
-                </button>
+              <div className="mt-6 pt-5 border-t border-gray-200 dark:border-gray-700 text-center">
+                <p className="text-gray-500 dark:text-gray-400 mb-4 text-sm">Ready to create content based on this strategy?</p>
+                <button onClick={handleGenerate} disabled={generating} className="px-7 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold disabled:opacity-50 transition-all shadow-lg text-sm">{generating ? 'Generating...' : '🚀 Generate Content Now'}</button>
               </div>
             )}
           </div>
         )}
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
-
         {/* Generated Content */}
         {generatedContent.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-8">
-            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">🎨 Generated Content</h2>
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => setExpandAllContent(!expandAllContent)}
-                  className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
-                >
-                  {expandAllContent ? '📖 Collapse All' : '📖 Expand All'}
-                </button>
-                <button
-                  onClick={handleGenerate}
-                  disabled={generating}
-                  className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-all"
-                >
-                  {generating ? 'Regenerating...' : '🔄 Regenerate All'}
-                </button>
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-7">
+            <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">🎨 Generated Content</h2>
+              <div className="flex gap-2">
+                <button onClick={() => setExpandAll(!expandAll)} className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">{expandAll ? '📖 Collapse All' : '📖 Expand All'}</button>
+                <button onClick={handleGenerate} disabled={generating} className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-all">{generating ? 'Regenerating...' : '🔄 Regenerate All'}</button>
               </div>
             </div>
 
-            {/* Format Filter */}
-            <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
-              <button
-                onClick={() => setSelectedFormat('all')}
-                className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                  selectedFormat === 'all'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
-              >
-                All ({generatedContent.length})
-              </button>
-              {campaign.output_formats?.map((format) => {
-                const count = generatedContent.filter(item => item.format === format).length;
-                if (count === 0) return null;
-                return (
-                  <button
-                    key={format}
-                    onClick={() => setSelectedFormat(format)}
-                    className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                      selectedFormat === format
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    {OUTPUT_FORMATS[format]?.name || format} ({count})
-                  </button>
-                );
-              })}
+            <div className="flex gap-2 overflow-x-auto pb-3 mb-5">
+              <button onClick={() => setSelectedFormat('all')} className={`px-4 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${selectedFormat === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>All ({generatedContent.length})</button>
+              {campaign.output_formats?.map(format => { const count = generatedContent.filter(i => i.format === format).length; if (!count) return null; return <button key={format} onClick={() => setSelectedFormat(format)} className={`px-4 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${selectedFormat === format ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>{OUTPUT_FORMATS[format]?.name || format} ({count})</button>; })}
             </div>
 
-            {/* Content Cards by Format */}
             {Object.entries(groupedContent).map(([format, items]) => (
-              <div key={format} className="mb-8">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                  <span>{OUTPUT_FORMATS[format]?.name || format}</span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400 font-normal">
-                    ({items.length} {items.length === 1 ? 'variation' : 'variations'})
-                  </span>
+              <div key={format} className="mb-7">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                  {OUTPUT_FORMATS[format]?.name || format}
+                  <span className="text-xs text-gray-400 font-normal">({items.length} {items.length === 1 ? 'variation' : 'variations'})</span>
                 </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {items.map((item, index) => (
-                    <ContentCard
-                      key={index}
-                      item={item}
-                      isVisualFormat={VISUAL_FORMATS.includes(format)}
-                      defaultExpanded={expandAllContent}
-                    />
-                  ))}
+                <div className="grid md:grid-cols-2 gap-3">
+                  {items.map((item, idx) => <ContentCard key={idx} item={item} isVisualFormat={VISUAL_FORMATS.includes(format)} defaultExpanded={expandAll} campaignName={campaign.name} onSave={handleSave} onShare={openShareModal} savedKeys={savedKeys} />)}
                 </div>
               </div>
             ))}
           </div>
         )}
+
+        {/* Saved Library */}
+        <SavedLibrary savedItems={savedItems} onDelete={handleDeleteSaved} onShare={openShareModal} />
+
       </div>
+
+      {/* Share Modal */}
+      <ShareModal isOpen={shareModal.open} onClose={() => setShareModal(s => ({ ...s, open: false }))} onShare={handleCreateShare} isLoading={sharing} shareUrl={shareUrl} />
+
+      {/* Toast */}
+      <Toast message={toast.message} type={toast.type} visible={toast.visible} />
     </div>
   );
 };
