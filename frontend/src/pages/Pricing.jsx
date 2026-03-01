@@ -1,8 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useAuth } from '../context/authContext';
 
+// ─── Coming Soon Modal (paid plans) ──────────────────────────────────────────
 const ComingSoonModal = ({ plan, onClose }) => {
-  const [email, setEmail] = useState('');
+  const { user } = useAuth();
+  const [email, setEmail] = useState(user?.email || '');
   const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (e) => {
@@ -19,19 +22,17 @@ const ComingSoonModal = ({ plan, onClose }) => {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 w-full max-w-md shadow-2xl">
-        {/* Icon */}
         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-5 ${plan.name === 'Professional' ? 'bg-purple-500/15' : 'bg-blue-500/15'}`}>
           {plan.name === 'Professional' ? '⚡' : '🏢'}
         </div>
 
-        {/* Title */}
         <h2 className="text-xl font-bold text-white text-center mb-1">{plan.name} Plan — Coming Soon</h2>
         <p className="text-sm text-gray-400 text-center mb-6">
-          We're working hard to bring you the {plan.name} plan. Leave your email and we'll notify you the moment it launches.
+          We're working hard to bring you the {plan.name} plan. {user ? "We'll notify you at your registered email when it launches." : "Leave your email and we'll notify you the moment it launches."}
         </p>
 
         {/* What's included */}
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 mb-6">
+        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 mb-5">
           <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">What you'll get</p>
           <ul className="space-y-2">
             {plan.features.slice(0, 4).map((feature, i) => (
@@ -55,7 +56,7 @@ const ComingSoonModal = ({ plan, onClose }) => {
           <p className="text-xs text-gray-500 mt-1">billed annually · or ${plan.monthlyPrice}/mo monthly</p>
         </div>
 
-        {/* Email form */}
+        {/* Email notify */}
         {!submitted ? (
           <form onSubmit={handleSubmit} className="flex gap-2">
             <input
@@ -86,6 +87,7 @@ const ComingSoonModal = ({ plan, onClose }) => {
   );
 };
 
+// ─── Free Tier Modal (not logged in) ─────────────────────────────────────────
 const FreeTierModal = ({ onClose }) => {
   const navigate = useNavigate();
 
@@ -143,9 +145,12 @@ const FreeTierModal = ({ onClose }) => {
   );
 };
 
+// ─── Main Pricing Page ────────────────────────────────────────────────────────
 const Pricing = () => {
   const [isAnnual, setIsAnnual] = useState(false);
-  const [activeModal, setActiveModal] = useState(null); // 'free' | plan object
+  const [activeModal, setActiveModal] = useState(null);
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
 
   const plans = [
     {
@@ -211,10 +216,24 @@ const Pricing = () => {
 
   const handleCTA = (plan) => {
     if (plan.type === 'free') {
-      setActiveModal('free');
+      if (isAuthenticated) {
+        // Already logged in → go straight to dashboard
+        navigate('/dashboard');
+      } else {
+        // Not logged in → show free tier benefits modal
+        setActiveModal('free');
+      }
     } else {
+      // Paid plan → show coming soon modal
       setActiveModal(plan);
     }
+  };
+
+  const getCtaLabel = (plan) => {
+    if (plan.type === 'free') {
+      return isAuthenticated ? '🚀 Go to Dashboard' : 'Get Started Free';
+    }
+    return '🔔 Notify Me at Launch';
   };
 
   return (
@@ -232,8 +251,17 @@ const Pricing = () => {
               Cancel anytime with 30-day money-back guarantee.
             </p>
 
+            {/* Logged in banner */}
+            {isAuthenticated && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl mb-6">
+                <span className="text-green-600 dark:text-green-400 text-sm font-medium">
+                  ✅ You're signed in as {user?.email} — currently on the Starter plan
+                </span>
+              </div>
+            )}
+
             {/* Billing Toggle */}
-            <div className="flex items-center justify-center gap-4 mb-8">
+            <div className="flex items-center justify-center gap-4">
               <span className={`text-sm font-medium ${!isAnnual ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>Monthly</span>
               <button
                 onClick={() => setIsAnnual(!isAnnual)}
@@ -275,11 +303,20 @@ const Pricing = () => {
                 </div>
               )}
 
-              {/* Coming soon ribbon for paid plans */}
+              {/* Coming soon badge */}
               {plan.type === 'paid' && (
                 <div className="absolute top-4 right-4">
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${plan.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'}`}>
                     🚧 Coming Soon
+                  </span>
+                </div>
+              )}
+
+              {/* Current plan badge */}
+              {plan.type === 'free' && isAuthenticated && (
+                <div className="absolute top-4 right-4">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                    ✅ Your Plan
                   </span>
                 </div>
               )}
@@ -330,20 +367,16 @@ const Pricing = () => {
                 <button
                   onClick={() => handleCTA(plan)}
                   className={`w-full py-4 px-6 rounded-xl font-semibold text-center transition-all ${
-                    plan.popular
+                    plan.type === 'free' && isAuthenticated
+                      ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-500/20'
+                      : plan.popular
                       ? 'bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-500/25'
                       : plan.color === 'blue'
-                      ? 'bg-blue-600 text-white hover:bg-blue-700 opacity-80 hover:opacity-100'
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
                       : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
                   }`}
                 >
-                  {plan.type === 'paid' ? (
-                    <span className="flex items-center justify-center gap-2">
-                      🔔 {plan.cta} — Notify Me
-                    </span>
-                  ) : (
-                    plan.cta
-                  )}
+                  {getCtaLabel(plan)}
                 </button>
               </div>
             </div>
@@ -391,13 +424,24 @@ const Pricing = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Ready to get started?</h2>
-          <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">Join thousands of marketers using IVey to create viral content</p>
-          <Link to="/signup" className="inline-flex items-center gap-2 px-8 py-4 bg-purple-600 text-white rounded-xl font-semibold text-lg hover:bg-purple-700 transition-colors shadow-sm">
-            Start Free Today
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
-          </Link>
+          <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
+            {isAuthenticated ? "You're already on the Starter plan. Start creating campaigns now." : "Join thousands of marketers using IVey to create viral content"}
+          </p>
+          {isAuthenticated ? (
+            <Link to="/dashboard" className="inline-flex items-center gap-2 px-8 py-4 bg-green-600 text-white rounded-xl font-semibold text-lg hover:bg-green-700 transition-colors shadow-sm">
+              Go to Dashboard
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </Link>
+          ) : (
+            <Link to="/signup" className="inline-flex items-center gap-2 px-8 py-4 bg-purple-600 text-white rounded-xl font-semibold text-lg hover:bg-purple-700 transition-colors shadow-sm">
+              Start Free Today
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </Link>
+          )}
         </div>
       </div>
 
