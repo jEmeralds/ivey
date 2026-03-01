@@ -3,6 +3,7 @@ import { ThemeProvider } from './context/ThemeProvider';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import SharedContent from './pages/SharedContent';
+import { AuthProvider } from './context/authContext';
 
 // Import all pages
 import Home from './pages/Home';
@@ -17,7 +18,8 @@ import Pricing from './pages/Pricing';
 
 function App() {
   return (
-    <ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
       <div className="App min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-all duration-300">
         {/* Global Navbar appears on ALL pages */}
         <Navbar />
@@ -41,7 +43,7 @@ function App() {
             <Route path="/campaigns/:id" element={<CampaignDetail />} />
             <Route path="/campaign-detail/:id" element={<CampaignDetail />} />
             <Route path="/campaign/:id" element={<CampaignDetail />} />
-            
+
             <Route path="/shared/:token" element={<SharedContent />} />
             {/* Fallback route */}
             <Route path="*" element={<Home />} />
@@ -52,6 +54,7 @@ function App() {
         <Footer />
       </div>
     </ThemeProvider>
+    </AuthProvider>
   );
 }
 
