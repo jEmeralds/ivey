@@ -80,6 +80,8 @@ const ShareModal = ({ isOpen, onClose, onShare, isLoading, shareUrl }) => {
 // ─── Saved Library Panel ──────────────────────────────────────────────────────
 const SavedLibrary = ({ savedItems, onDelete, onShare }) => {
   const [filter, setFilter] = useState('all');
+  const [preview, setPreview] = useState(null); // item being previewed
+
   const filtered = savedItems.filter(item => {
     if (filter === 'all') return true;
     if (filter === 'strategy') return item.content_type?.includes('strategy');
@@ -90,41 +92,100 @@ const SavedLibrary = ({ savedItems, onDelete, onShare }) => {
   if (savedItems.length === 0) return null;
 
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden mt-8">
-      <div className="px-6 py-4 border-b border-gray-700 flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-base font-bold text-white">🗂️ Saved Library</span>
-          <span className="bg-purple-500/20 text-purple-300 text-xs font-semibold px-2 py-0.5 rounded-full">{savedItems.length} saved</span>
-        </div>
-        <div className="flex gap-1">
-          {['all', 'strategy', 'content'].map(tab => (
-            <button key={tab} onClick={() => setFilter(tab)} className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-all ${filter === tab ? 'bg-purple-500/20 text-purple-300' : 'text-gray-400 hover:text-gray-200'}`}>
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {filtered.map(item => (
-        <div key={item.id} className="px-6 py-4 border-b border-gray-800 last:border-0 flex items-start gap-3 hover:bg-gray-800/50 transition-all group">
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0 ${item.content_type === 'content' ? 'bg-purple-500/10' : 'bg-green-500/10'}`}>
-            {item.content_type === 'content' ? '🎨' : '📊'}
+    <>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden mt-8">
+        <div className="px-6 py-4 border-b border-gray-700 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-base font-bold text-white">🗂️ Saved Library</span>
+            <span className="bg-purple-500/20 text-purple-300 text-xs font-semibold px-2 py-0.5 rounded-full">{savedItems.length} saved</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-white truncate">{item.title}</div>
-            <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
-              <span className="capitalize">{item.content_type?.replace('_', ' ')}</span>
-              <span className="w-1 h-1 rounded-full bg-gray-600 inline-block"></span>
-              <span>{new Date(item.created_at).toLocaleDateString()}</span>
+          <div className="flex gap-1">
+            {['all', 'strategy', 'content'].map(tab => (
+              <button key={tab} onClick={() => setFilter(tab)} className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-all ${filter === tab ? 'bg-purple-500/20 text-purple-300' : 'text-gray-400 hover:text-gray-200'}`}>
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {filtered.map(item => (
+          <div
+            key={item.id}
+            onClick={() => setPreview(item)}
+            className="px-6 py-4 border-b border-gray-800 last:border-0 flex items-start gap-3 hover:bg-gray-800/50 transition-all group cursor-pointer"
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0 ${item.content_type === 'content' ? 'bg-purple-500/10' : 'bg-green-500/10'}`}>
+              {item.content_type === 'content' ? '🎨' : '📊'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-white truncate">{item.title}</div>
+              <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
+                <span className="capitalize">{item.content_type?.replace('_', ' ')}</span>
+                <span className="w-1 h-1 rounded-full bg-gray-600 inline-block"></span>
+                <span>{new Date(item.created_at).toLocaleDateString()}</span>
+              </div>
+            </div>
+            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all" onClick={e => e.stopPropagation()}>
+              <button
+                onClick={() => onShare({ title: item.title, content: item.content, savedId: item.id })}
+                className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 flex items-center justify-center text-sm transition-all"
+                title="Share"
+              >🔗</button>
+              <button
+                onClick={() => onDelete(item.id)}
+                className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center text-sm transition-all"
+                title="Delete"
+              >🗑️</button>
             </div>
           </div>
-          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-            <button onClick={() => onShare({ title: item.title, content: item.content, savedId: item.id })} className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 flex items-center justify-center text-sm transition-all" title="Share">🔗</button>
-            <button onClick={() => onDelete(item.id)} className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center text-sm transition-all" title="Delete">🗑️</button>
+        ))}
+      </div>
+
+      {/* Preview Modal */}
+      {preview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={(e) => e.target === e.currentTarget && setPreview(null)}
+        >
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-2xl mx-4 shadow-2xl max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-700 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-base font-bold text-white">{preview.title}</h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {preview.content_type?.replace('_', ' ')} · Saved {new Date(preview.created_at).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={() => { navigator.clipboard.writeText(preview.content); }}
+                  className="px-3 py-1.5 text-xs bg-gray-800 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-700 transition-all"
+                >
+                  📋 Copy
+                </button>
+                <button
+                  onClick={() => { onShare({ title: preview.title, content: preview.content, savedId: preview.id }); setPreview(null); }}
+                  className="px-3 py-1.5 text-xs bg-purple-500/10 border border-purple-500/25 text-purple-400 rounded-lg hover:bg-purple-500/20 transition-all"
+                >
+                  🔗 Share
+                </button>
+                <button
+                  onClick={() => setPreview(null)}
+                  className="w-7 h-7 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 flex items-center justify-center text-sm transition-all"
+                >✕</button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 py-5 overflow-y-auto flex-1">
+              <div className="prose prose-sm prose-invert max-w-none text-gray-300 leading-relaxed">
+                <ReactMarkdown>{preview.content}</ReactMarkdown>
+              </div>
+            </div>
           </div>
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 };
 
