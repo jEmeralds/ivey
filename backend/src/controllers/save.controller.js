@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '../config/supabase.js';
-import crypto from 'crypto';
+import { randomBytes } from 'crypto';
 
 // Save content (strategy section or generated content piece)
 export const saveContent = async (req, res) => {
@@ -102,7 +102,7 @@ export const createShareLink = async (req, res) => {
       return res.status(400).json({ error: 'title and content are required' });
     }
 
-    const shareToken = crypto.randomBytes(16).toString('hex');
+    const shareToken = randomBytes(16).toString('hex');
 
     let expiresAt = null;
     if (expires_in_days) {
