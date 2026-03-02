@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/authContext';
 
 const Home = () => {
   const [currentStat, setCurrentStat] = useState(0);
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
 
   const stats = [
     { number: '50K+', label: 'Content Pieces' },
@@ -18,14 +21,27 @@ const Home = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const handlePrimaryCTA = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      navigate('/signup');
+    }
+  };
+
+  const primaryLabel = isAuthenticated ? '🚀 Go to Dashboard' : 'Start Free Trial';
+  const primaryStyle = isAuthenticated
+    ? 'px-6 md:px-8 py-3 md:py-4 bg-green-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-green-700 transition-colors text-center'
+    : 'px-6 md:px-8 py-3 md:py-4 bg-purple-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-purple-700 transition-colors text-center';
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors pt-16 md:pt-20">
-      
+
       {/* Hero Section */}
       <div className="px-4 md:px-6 lg:px-12 py-8 md:py-16 lg:py-20">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-          
-          {/* Left Column - Content */}
+
+          {/* Left Column */}
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs md:text-sm mb-4 md:mb-6">
               <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,30 +49,47 @@ const Home = () => {
               </svg>
               <span>AI-Powered Marketing</span>
             </div>
-            
+
             <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 dark:text-white leading-tight mb-4 md:mb-6">
-              Generate Viral Marketing Content 
+              Generate Viral Marketing Content
               <span className="text-purple-600 dark:text-purple-400"> in Seconds</span>
             </h1>
-            
+
             <p className="text-base md:text-lg lg:text-xl text-gray-600 dark:text-gray-400 leading-relaxed mb-6 md:mb-8 max-w-lg">
               Create TikTok scripts, Instagram captions, email campaigns, and 13+ content formats using advanced AI. Built for marketing agencies and brands.
             </p>
 
+            {/* Logged in welcome */}
+            {isAuthenticated && (
+              <div className="flex items-center gap-2 mb-5 px-4 py-2.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl w-fit">
+                <span className="text-green-600 dark:text-green-400 text-sm font-medium">
+                  👋 Welcome back, {user?.name || user?.email?.split('@')[0]}!
+                </span>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-              <Link 
-                to="/signup"
-                className="px-6 md:px-8 py-3 md:py-4 bg-purple-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-purple-700 transition-colors text-center"
-              >
-                Start Free Trial
-              </Link>
-              
-              <Link 
-                to="/demo"
-                className="px-6 md:px-8 py-3 md:py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors text-center"
-              >
-                Watch Demo
-              </Link>
+              <button onClick={handlePrimaryCTA} className={primaryStyle}>
+                {primaryLabel}
+              </button>
+
+              {!isAuthenticated && (
+                <Link
+                  to="/login"
+                  className="px-6 md:px-8 py-3 md:py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors text-center"
+                >
+                  Sign In
+                </Link>
+              )}
+
+              {isAuthenticated && (
+                <Link
+                  to="/new-campaign"
+                  className="px-6 md:px-8 py-3 md:py-4 border-2 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-purple-400 dark:hover:border-purple-500 transition-colors text-center"
+                >
+                  ✨ New Campaign
+                </Link>
+              )}
             </div>
 
             {/* Social Proof */}
@@ -84,20 +117,17 @@ const Home = () => {
                   <div className="w-6 h-6 md:w-8 md:h-8 bg-purple-600 rounded-md md:rounded-lg"></div>
                   <span className="font-semibold text-sm md:text-base text-gray-900 dark:text-white">Campaign Brief</span>
                 </div>
-                
                 <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
                   <div className="h-3 md:h-4 bg-gray-100 dark:bg-gray-700 rounded w-3/4"></div>
                   <div className="h-3 md:h-4 bg-gray-100 dark:bg-gray-700 rounded w-1/2"></div>
                   <div className="h-3 md:h-4 bg-gray-100 dark:bg-gray-700 rounded w-5/6"></div>
                 </div>
-                
                 <div className="flex gap-2">
                   <div className="px-2 md:px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs">TikTok</div>
                   <div className="px-2 md:px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs">Instagram</div>
                   <div className="px-2 md:px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs">Email</div>
                 </div>
               </div>
-              
               <div className="flex justify-center mt-4 md:mt-6">
                 <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600 dark:text-gray-400">
                   <svg className="w-3 h-3 md:w-4 md:h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,8 +154,6 @@ const Home = () => {
           </div>
 
           <div className="grid gap-6 md:gap-8 md:grid-cols-2 lg:grid-cols-3">
-            
-            {/* Feature 1 */}
             <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-xl md:rounded-2xl shadow-sm">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg md:rounded-xl flex items-center justify-center mb-4 md:mb-6">
                 <svg className="w-5 h-5 md:w-6 md:h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,7 +166,6 @@ const Home = () => {
               </p>
             </div>
 
-            {/* Feature 2 */}
             <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-xl md:rounded-2xl shadow-sm">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg md:rounded-xl flex items-center justify-center mb-4 md:mb-6">
                 <svg className="w-5 h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,7 +178,6 @@ const Home = () => {
               </p>
             </div>
 
-            {/* Feature 3 */}
             <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-xl md:rounded-2xl shadow-sm md:col-span-2 lg:col-span-1">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 dark:bg-green-900/30 rounded-lg md:rounded-xl flex items-center justify-center mb-4 md:mb-6">
                 <svg className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,26 +197,36 @@ const Home = () => {
       <div className="px-4 md:px-6 lg:px-12 py-12 md:py-16 lg:py-20">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-4 md:mb-6">
-            Ready to 10x your content creation speed?
+            {isAuthenticated ? `Welcome back, ${user?.name || user?.email?.split('@')[0]}!` : 'Ready to 10x your content creation speed?'}
           </h2>
           <p className="text-base md:text-lg lg:text-xl text-gray-600 dark:text-gray-400 mb-6 md:mb-8">
-            Join thousands of marketers using AI to create viral content that converts.
+            {isAuthenticated
+              ? "Your campaigns are waiting. Jump back in and keep creating."
+              : "Join thousands of marketers using AI to create viral content that converts."}
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
-            <Link 
-              to="/signup"
-              className="px-6 md:px-8 py-3 md:py-4 bg-purple-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-purple-700 transition-colors"
-            >
-              Start Free Trial
-            </Link>
-            
-            <Link 
-              to="/pricing"
-              className="px-6 md:px-8 py-3 md:py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
-            >
-              View Pricing
-            </Link>
+            <button onClick={handlePrimaryCTA} className={primaryStyle}>
+              {primaryLabel}
+            </button>
+
+            {!isAuthenticated && (
+              <Link
+                to="/pricing"
+                className="px-6 md:px-8 py-3 md:py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+              >
+                View Pricing
+              </Link>
+            )}
+
+            {isAuthenticated && (
+              <Link
+                to="/new-campaign"
+                className="px-6 md:px-8 py-3 md:py-4 border-2 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-purple-400 transition-colors"
+              >
+                ✨ New Campaign
+              </Link>
+            )}
           </div>
         </div>
       </div>
