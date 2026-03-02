@@ -1,43 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeProvider';
+import { useAuth } from '../context/authContext';
 
 const Navbar = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   const location = useLocation();
   const navigate = useNavigate();
   const { isDarkMode, toggleTheme } = useTheme();
-
-  useEffect(() => {
-    // Check authentication status
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
-    if (token && userData) {
-      setIsLoggedIn(true);
-      setUser(JSON.parse(userData));
-    }
-  }, []);
+  const { isAuthenticated, user, logout } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setIsLoggedIn(false);
-    setUser(null);
+    logout();
     navigate('/');
     setIsMobileMenuOpen(false);
   };
 
-  const isActivePage = (path) => {
-    return location.pathname === path;
-  };
+  const isActivePage = (path) => location.pathname === path;
 
-  // Simple theme toggle handler
   const handleThemeToggle = (e) => {
     e.preventDefault();
-    console.log('Theme button clicked! Current:', isDarkMode ? 'dark' : 'light');
     toggleTheme();
   };
 
@@ -59,7 +42,7 @@ const Navbar = () => {
     <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 transition-colors sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12">
         <div className="flex items-center justify-between h-14 md:h-16 lg:h-20">
-          
+
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 md:gap-3 flex-shrink-0 group">
             <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -70,41 +53,35 @@ const Navbar = () => {
             <span className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">IVey</span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-1 md:gap-2">
             <NavLink to="/features">Features</NavLink>
             <NavLink to="/pricing">Pricing</NavLink>
-            
-            {isLoggedIn && (
-              <NavLink to="/dashboard">Dashboard</NavLink>
-            )}
+            {isAuthenticated && <NavLink to="/dashboard">Dashboard</NavLink>}
           </div>
 
-          {/* Right Side Actions */}
+          {/* Right Side */}
           <div className="flex items-center gap-2 md:gap-4">
-            
-            {/* WORKING Dark Mode Toggle */}
+
+            {/* Theme Toggle */}
             <button
               onClick={handleThemeToggle}
               className="p-2 md:p-2.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-600"
               aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-              title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDarkMode ? (
-                // Sun icon for dark mode (click to go light)
                 <svg className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z" />
                 </svg>
               ) : (
-                // Moon icon for light mode (click to go dark)
                 <svg className="w-4 h-4 md:w-5 md:h-5 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
                   <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clipRule="evenodd" />
                 </svg>
               )}
             </button>
 
-            {/* Authentication */}
-            {isLoggedIn ? (
+            {/* Desktop Auth */}
+            {isAuthenticated ? (
               <div className="hidden md:flex items-center gap-3 md:gap-4">
                 <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg">
                   <div className="w-6 h-6 md:w-8 md:h-8 bg-purple-600 rounded-full flex items-center justify-center">
@@ -113,7 +90,7 @@ const Navbar = () => {
                     </span>
                   </div>
                   <span className="text-gray-700 dark:text-gray-300 text-xs md:text-sm font-medium max-w-20 md:max-w-none truncate">
-                    {user?.name?.split(' ')[0] || 'User'}
+                    {user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}
                   </span>
                 </div>
                 <button
@@ -139,7 +116,6 @@ const Navbar = () => {
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-              aria-label="Toggle mobile menu"
             >
               {isMobileMenuOpen ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,12 +134,9 @@ const Navbar = () => {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-gray-200 dark:border-gray-700 py-4 space-y-2 bg-white dark:bg-gray-900">
             <div className="flex flex-col space-y-2">
-              <NavLink to="/features" className="block w-full text-left">Features</NavLink>
-              <NavLink to="/pricing" className="block w-full text-left">Pricing</NavLink>
-              
-              {isLoggedIn && (
-                <NavLink to="/dashboard" className="block w-full text-left">Dashboard</NavLink>
-              )}
+              <NavLink to="/features">Features</NavLink>
+              <NavLink to="/pricing">Pricing</NavLink>
+              {isAuthenticated && <NavLink to="/dashboard">Dashboard</NavLink>}
             </div>
 
             {/* Mobile Theme Toggle */}
@@ -187,7 +160,7 @@ const Navbar = () => {
 
             {/* Mobile Auth */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-              {isLoggedIn ? (
+              {isAuthenticated ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 px-4 py-2">
                     <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
@@ -197,11 +170,9 @@ const Navbar = () => {
                     </div>
                     <div>
                       <div className="text-gray-900 dark:text-white font-medium text-sm">
-                        {user?.name || 'User'}
+                        {user?.name || user?.email?.split('@')[0] || 'User'}
                       </div>
-                      <div className="text-gray-500 dark:text-gray-400 text-xs">
-                        {user?.email}
-                      </div>
+                      <div className="text-gray-500 dark:text-gray-400 text-xs">{user?.email}</div>
                     </div>
                   </div>
                   <button
@@ -213,7 +184,7 @@ const Navbar = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <NavLink to="/login" className="block w-full text-left">Sign In</NavLink>
+                  <NavLink to="/login">Sign In</NavLink>
                   <Link
                     to="/signup"
                     className="block w-full text-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
