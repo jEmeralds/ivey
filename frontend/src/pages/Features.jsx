@@ -1,6 +1,10 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/authContext';
 
 const Features = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
   const features = [
     {
       icon: (
@@ -10,13 +14,7 @@ const Features = () => {
       ),
       title: "15+ Content Formats",
       description: "Generate content for TikTok, Instagram, YouTube, email campaigns, banner ads, and more from a single campaign brief.",
-      details: [
-        "TikTok Scripts & YouTube Shorts",
-        "Instagram Captions & Stories",
-        "Email Marketing Campaigns", 
-        "Google & Facebook Ads",
-        "Print & Banner Advertisements"
-      ]
+      details: ["TikTok Scripts & YouTube Shorts", "Instagram Captions & Stories", "Email Marketing Campaigns", "Google & Facebook Ads", "Print & Banner Advertisements"]
     },
     {
       icon: (
@@ -26,13 +24,7 @@ const Features = () => {
       ),
       title: "Multi-AI Providers",
       description: "Choose from Claude, GPT-4, and Gemini to get the best results for different types of content generation.",
-      details: [
-        "Claude Sonnet for strategic thinking",
-        "GPT-4o for creative content",
-        "Gemini for fast generation",
-        "Automatic provider optimization",
-        "Switch providers per campaign"
-      ]
+      details: ["Claude Sonnet for strategic thinking", "GPT-4o for creative content", "Gemini for fast generation", "Automatic provider optimization", "Switch providers per campaign"]
     },
     {
       icon: (
@@ -42,13 +34,7 @@ const Features = () => {
       ),
       title: "Lightning Speed",
       description: "Generate comprehensive marketing strategies and content in 30-60 seconds, not hours.",
-      details: [
-        "30-second strategy generation",
-        "60-second content creation",
-        "Batch content generation",
-        "Optimized AI models",
-        "No waiting, instant results"
-      ]
+      details: ["30-second strategy generation", "60-second content creation", "Batch content generation", "Optimized AI models", "No waiting, instant results"]
     },
     {
       icon: (
@@ -58,13 +44,7 @@ const Features = () => {
       ),
       title: "Campaign Analytics",
       description: "Track campaign performance with built-in analytics and optimization recommendations.",
-      details: [
-        "Content performance tracking",
-        "Engagement rate analysis",
-        "A/B testing suggestions", 
-        "ROI measurement tools",
-        "Optimization recommendations"
-      ]
+      details: ["Content performance tracking", "Engagement rate analysis", "A/B testing suggestions", "ROI measurement tools", "Optimization recommendations"]
     },
     {
       icon: (
@@ -74,13 +54,7 @@ const Features = () => {
       ),
       title: "Team Collaboration",
       description: "Built for agencies and teams with collaboration tools, shared campaigns, and role management.",
-      details: [
-        "Shared campaign workspaces",
-        "Team member invitations",
-        "Role-based permissions",
-        "Comment and feedback system",
-        "Brand consistency tools"
-      ]
+      details: ["Shared campaign workspaces", "Team member invitations", "Role-based permissions", "Comment and feedback system", "Brand consistency tools"]
     },
     {
       icon: (
@@ -90,44 +64,40 @@ const Features = () => {
       ),
       title: "Media Integration",
       description: "Upload product images and videos to generate content that references your visuals perfectly.",
-      details: [
-        "Image and video uploads",
-        "Visual content analysis",
-        "Brand asset library",
-        "Automatic visual references",
-        "Media optimization suggestions"
-      ]
+      details: ["Image and video uploads", "Visual content analysis", "Brand asset library", "Automatic visual references", "Media optimization suggestions"]
     }
   ];
 
+  const handlePrimaryCTA = () => isAuthenticated ? navigate('/dashboard') : navigate('/signup');
+  const handleSecondaryCTA = () => isAuthenticated ? navigate('/new-campaign') : navigate('/pricing');
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
-      
-      {/* Hero Section */}
+
+      {/* Hero */}
       <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16 lg:py-24">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-              Everything you need to create 
+              Everything you need to create
               <span className="text-purple-600 dark:text-purple-400"> viral content</span>
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
-              IVey combines the power of multiple AI models with marketing expertise to help you create 
-              campaigns that actually convert. From strategy to execution in seconds.
+              IVey combines the power of multiple AI models with marketing expertise to help you create campaigns that actually convert. From strategy to execution in seconds.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link 
-                to="/signup"
+              <button
+                onClick={handlePrimaryCTA}
                 className="px-8 py-4 bg-purple-600 text-white rounded-xl font-semibold text-lg hover:bg-purple-700 transition-colors shadow-sm"
               >
-                Start Free Trial
-              </Link>
-              <Link 
-                to="/pricing"
+                {isAuthenticated ? '🚀 Go to Dashboard' : 'Start Free Trial'}
+              </button>
+              <button
+                onClick={handleSecondaryCTA}
                 className="px-8 py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-lg hover:border-purple-500 dark:hover:border-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
               >
-                View Pricing
-              </Link>
+                {isAuthenticated ? '✨ New Campaign' : 'View Pricing'}
+              </button>
             </div>
           </div>
         </div>
@@ -154,15 +124,11 @@ const Features = () => {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
-                    {feature.description}
-                  </p>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{feature.title}</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">{feature.description}</p>
                   <ul className="space-y-2">
-                    {feature.details.map((detail, detailIndex) => (
-                      <li key={detailIndex} className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                    {feature.details.map((detail, i) => (
+                      <li key={i} className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
                         <div className="w-1.5 h-1.5 bg-purple-600 dark:bg-purple-400 rounded-full flex-shrink-0"></div>
                         {detail}
                       </li>
@@ -175,61 +141,53 @@ const Features = () => {
         </div>
       </div>
 
-      {/* Stats Section */}
+      {/* Stats */}
       <div className="bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              Trusted by marketing teams worldwide
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              Join thousands of marketers using IVey to create viral content
-            </p>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Trusted by marketing teams worldwide</h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400">Join thousands of marketers using IVey to create viral content</p>
           </div>
-
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">50,000+</div>
-              <div className="text-gray-600 dark:text-gray-400">Content pieces generated</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">2.3M+</div>
-              <div className="text-gray-600 dark:text-gray-400">Words written</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">15+</div>
-              <div className="text-gray-600 dark:text-gray-400">Content formats</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">30s</div>
-              <div className="text-gray-600 dark:text-gray-400">Average generation time</div>
-            </div>
+            {[
+              { num: '50,000+', label: 'Content pieces generated' },
+              { num: '2.3M+', label: 'Words written' },
+              { num: '15+', label: 'Content formats' },
+              { num: '30s', label: 'Average generation time' },
+            ].map((stat, i) => (
+              <div key={i} className="text-center">
+                <div className="text-3xl lg:text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">{stat.num}</div>
+                <div className="text-gray-600 dark:text-gray-400">{stat.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* CTA Section */}
+      {/* Bottom CTA */}
       <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16 lg:py-24">
         <div className="text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-6">
-            Ready to transform your content marketing?
+            {isAuthenticated ? 'Ready to create your next campaign?' : 'Ready to transform your content marketing?'}
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
-            Stop spending hours writing content. Let AI handle the heavy lifting while you focus on strategy.
+            {isAuthenticated
+              ? 'Head to your dashboard and start generating viral content now.'
+              : 'Stop spending hours writing content. Let AI handle the heavy lifting while you focus on strategy.'}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
-              to="/signup"
+            <button
+              onClick={handlePrimaryCTA}
               className="px-8 py-4 bg-purple-600 text-white rounded-xl font-semibold text-lg hover:bg-purple-700 transition-colors shadow-sm"
             >
-              Start Free Trial
-            </Link>
-            <Link 
-              to="/demo"
+              {isAuthenticated ? '🚀 Go to Dashboard' : 'Start Free Trial'}
+            </button>
+            <button
+              onClick={handleSecondaryCTA}
               className="px-8 py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-lg hover:border-purple-500 dark:hover:border-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
             >
-              Watch Demo
-            </Link>
+              {isAuthenticated ? '✨ New Campaign' : 'Watch Demo'}
+            </button>
           </div>
         </div>
       </div>

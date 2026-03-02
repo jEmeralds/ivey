@@ -3,9 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 
 const Home = () => {
-  const [currentStat, setCurrentStat] = useState(0);
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const [currentStat, setCurrentStat] = useState(0);
 
   const stats = [
     { number: '50K+', label: 'Content Pieces' },
@@ -21,18 +21,7 @@ const Home = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handlePrimaryCTA = () => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    } else {
-      navigate('/signup');
-    }
-  };
-
-  const primaryLabel = isAuthenticated ? '🚀 Go to Dashboard' : 'Start Free Trial';
-  const primaryStyle = isAuthenticated
-    ? 'px-6 md:px-8 py-3 md:py-4 bg-green-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-green-700 transition-colors text-center'
-    : 'px-6 md:px-8 py-3 md:py-4 bg-purple-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-purple-700 transition-colors text-center';
+  const displayName = user?.name || user?.email?.split('@')[0] || 'there';
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors pt-16 md:pt-20">
@@ -59,36 +48,47 @@ const Home = () => {
               Create TikTok scripts, Instagram captions, email campaigns, and 13+ content formats using advanced AI. Built for marketing agencies and brands.
             </p>
 
-            {/* Logged in welcome */}
+            {/* Auth-aware welcome */}
             {isAuthenticated && (
               <div className="flex items-center gap-2 mb-5 px-4 py-2.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl w-fit">
                 <span className="text-green-600 dark:text-green-400 text-sm font-medium">
-                  👋 Welcome back, {user?.name || user?.email?.split('@')[0]}!
+                  👋 Welcome back, {displayName}!
                 </span>
               </div>
             )}
 
+            {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-              <button onClick={handlePrimaryCTA} className={primaryStyle}>
-                {primaryLabel}
-              </button>
-
-              {!isAuthenticated && (
-                <Link
-                  to="/login"
-                  className="px-6 md:px-8 py-3 md:py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors text-center"
-                >
-                  Sign In
-                </Link>
-              )}
-
-              {isAuthenticated && (
-                <Link
-                  to="/new-campaign"
-                  className="px-6 md:px-8 py-3 md:py-4 border-2 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-purple-400 dark:hover:border-purple-500 transition-colors text-center"
-                >
-                  ✨ New Campaign
-                </Link>
+              {isAuthenticated ? (
+                <>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="px-6 md:px-8 py-3 md:py-4 bg-green-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-green-700 transition-colors text-center"
+                  >
+                    🚀 Go to Dashboard
+                  </button>
+                  <button
+                    onClick={() => navigate('/new-campaign')}
+                    className="px-6 md:px-8 py-3 md:py-4 border-2 border-purple-400 dark:border-purple-600 text-purple-700 dark:text-purple-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors text-center"
+                  >
+                    ✨ New Campaign
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate('/signup')}
+                    className="px-6 md:px-8 py-3 md:py-4 bg-purple-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-purple-700 transition-colors text-center"
+                  >
+                    Start Free Trial
+                  </button>
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="px-6 md:px-8 py-3 md:py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors text-center"
+                  >
+                    Sign In
+                  </button>
+                </>
               )}
             </div>
 
@@ -152,7 +152,6 @@ const Home = () => {
               Stop spending hours writing content. Let AI do the heavy lifting while you focus on strategy.
             </p>
           </div>
-
           <div className="grid gap-6 md:gap-8 md:grid-cols-2 lg:grid-cols-3">
             <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-xl md:rounded-2xl shadow-sm">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg md:rounded-xl flex items-center justify-center mb-4 md:mb-6">
@@ -161,11 +160,8 @@ const Home = () => {
                 </svg>
               </div>
               <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2 md:mb-3">15+ Content Formats</h3>
-              <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                Generate TikTok scripts, Instagram captions, YouTube ads, email campaigns, and more from one brief.
-              </p>
+              <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Generate TikTok scripts, Instagram captions, YouTube ads, email campaigns, and more from one brief.</p>
             </div>
-
             <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-xl md:rounded-2xl shadow-sm">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg md:rounded-xl flex items-center justify-center mb-4 md:mb-6">
                 <svg className="w-5 h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -173,11 +169,8 @@ const Home = () => {
                 </svg>
               </div>
               <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2 md:mb-3">Lightning Fast</h3>
-              <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                Generate comprehensive marketing strategies and content in 30 seconds, not 30 minutes.
-              </p>
+              <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Generate comprehensive marketing strategies and content in 30 seconds, not 30 minutes.</p>
             </div>
-
             <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-xl md:rounded-2xl shadow-sm md:col-span-2 lg:col-span-1">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 dark:bg-green-900/30 rounded-lg md:rounded-xl flex items-center justify-center mb-4 md:mb-6">
                 <svg className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,47 +178,42 @@ const Home = () => {
                 </svg>
               </div>
               <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2 md:mb-3">Multi-AI Power</h3>
-              <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                Choose between Claude, GPT-4, and Gemini for optimal results based on your content type.
-              </p>
+              <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Choose between Claude, GPT-4, and Gemini for optimal results based on your content type.</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* CTA Section */}
+      {/* Bottom CTA */}
       <div className="px-4 md:px-6 lg:px-12 py-12 md:py-16 lg:py-20">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-4 md:mb-6">
-            {isAuthenticated ? `Welcome back, ${user?.name || user?.email?.split('@')[0]}!` : 'Ready to 10x your content creation speed?'}
+            {isAuthenticated ? `Welcome back, ${displayName}!` : 'Ready to 10x your content creation speed?'}
           </h2>
           <p className="text-base md:text-lg lg:text-xl text-gray-600 dark:text-gray-400 mb-6 md:mb-8">
             {isAuthenticated
-              ? "Your campaigns are waiting. Jump back in and keep creating."
-              : "Join thousands of marketers using AI to create viral content that converts."}
+              ? 'Your campaigns are waiting. Jump back in and keep creating.'
+              : 'Join thousands of marketers using AI to create viral content that converts.'}
           </p>
-
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
-            <button onClick={handlePrimaryCTA} className={primaryStyle}>
-              {primaryLabel}
-            </button>
-
-            {!isAuthenticated && (
-              <Link
-                to="/pricing"
-                className="px-6 md:px-8 py-3 md:py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
-              >
-                View Pricing
-              </Link>
-            )}
-
-            {isAuthenticated && (
-              <Link
-                to="/new-campaign"
-                className="px-6 md:px-8 py-3 md:py-4 border-2 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-purple-400 transition-colors"
-              >
-                ✨ New Campaign
-              </Link>
+            {isAuthenticated ? (
+              <>
+                <button onClick={() => navigate('/dashboard')} className="px-6 md:px-8 py-3 md:py-4 bg-green-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-green-700 transition-colors">
+                  🚀 Go to Dashboard
+                </button>
+                <button onClick={() => navigate('/new-campaign')} className="px-6 md:px-8 py-3 md:py-4 border-2 border-purple-400 dark:border-purple-600 text-purple-700 dark:text-purple-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors">
+                  ✨ New Campaign
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => navigate('/signup')} className="px-6 md:px-8 py-3 md:py-4 bg-purple-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-purple-700 transition-colors">
+                  Start Free Trial
+                </button>
+                <Link to="/pricing" className="px-6 md:px-8 py-3 md:py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
+                  View Pricing
+                </Link>
+              </>
             )}
           </div>
         </div>
