@@ -1,9 +1,9 @@
 import { Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeProvider';
+import { AuthProvider } from './context/authContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import SharedContent from './pages/SharedContent';
-import { AuthProvider } from './context/authContext';
 
 // Import all pages
 import Home from './pages/Home';
@@ -20,40 +20,42 @@ function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-      <div className="App min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-all duration-300">
-        {/* Global Navbar appears on ALL pages */}
-        <Navbar />
-        
-        {/* Main content area */}
-        <main className="flex-1 bg-gray-50 dark:bg-gray-900">
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Home />} />
-            <Route path="/features" element={<Features />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            
-            {/* Protected routes */}
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/new-campaign" element={<NewCampaign />} />
-            <Route path="/edit-campaign/:id" element={<EditCampaign />} />
-            
-            {/* Campaign detail routes - multiple patterns to catch all possibilities */}
-            <Route path="/campaigns/:id" element={<CampaignDetail />} />
-            <Route path="/campaign-detail/:id" element={<CampaignDetail />} />
-            <Route path="/campaign/:id" element={<CampaignDetail />} />
+        <div className="App min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-all duration-300">
+          {/* Global Navbar appears on ALL pages */}
+          <Navbar />
 
-            <Route path="/shared/:token" element={<SharedContent />} />
-            {/* Fallback route */}
-            <Route path="*" element={<Home />} />
-          </Routes>
-        </main>
-        
-        {/* Global Footer appears on ALL pages */}
-        <Footer />
-      </div>
-    </ThemeProvider>
+          {/* Main content area */}
+          <main className="flex-1 bg-gray-50 dark:bg-gray-900">
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/features" element={<Features />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+
+              {/* Protected routes */}
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/new-campaign" element={<NewCampaign />} />
+              <Route path="/edit-campaign/:id" element={<EditCampaign />} />
+
+              {/* Campaign detail routes */}
+              <Route path="/campaigns/:id" element={<CampaignDetail />} />
+              <Route path="/campaign-detail/:id" element={<CampaignDetail />} />
+              <Route path="/campaign/:id" element={<CampaignDetail />} />
+
+              {/* Public shared content */}
+              <Route path="/shared/:token" element={<SharedContent />} />
+
+              {/* Fallback route */}
+              <Route path="*" element={<Home />} />
+            </Routes>
+          </main>
+
+          {/* Global Footer appears on ALL pages */}
+          <Footer />
+        </div>
+      </ThemeProvider>
     </AuthProvider>
   );
 }
