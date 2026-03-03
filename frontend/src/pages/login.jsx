@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { login } from '../services/api';
+import { useAuth } from '../context/authContext'; // ← CHANGED: was importing login from api
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -10,6 +10,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth(); // ← ADDED: get login from AuthProvider
 
   const handleChange = (e) => {
     setFormData({
@@ -24,11 +25,8 @@ const Login = () => {
     setError('');
 
     try {
-      const response = await login(formData.email, formData.password);
-      
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      
+      await login({ email: formData.email, password: formData.password }); // ← CHANGED: use AuthProvider's login
+      // AuthProvider handles localStorage + setUser() internally
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Please try again.');
