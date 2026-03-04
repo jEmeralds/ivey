@@ -31,7 +31,6 @@ const ComingSoonModal = ({ plan, onClose }) => {
           We're working hard to bring you the {plan.name} plan. {user ? "We'll notify you at your registered email when it launches." : "Leave your email and we'll notify you the moment it launches."}
         </p>
 
-        {/* What's included */}
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 mb-5">
           <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">What you'll get</p>
           <ul className="space-y-2">
@@ -47,7 +46,6 @@ const ComingSoonModal = ({ plan, onClose }) => {
           </ul>
         </div>
 
-        {/* Price preview */}
         <div className={`rounded-xl p-4 mb-6 text-center border ${plan.name === 'Professional' ? 'bg-purple-500/10 border-purple-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
           <p className="text-xs text-gray-400 mb-1">Starting at</p>
           <p className={`text-3xl font-bold ${plan.name === 'Professional' ? 'text-purple-300' : 'text-blue-300'}`}>
@@ -56,7 +54,6 @@ const ComingSoonModal = ({ plan, onClose }) => {
           <p className="text-xs text-gray-500 mt-1">billed annually · or ${plan.monthlyPrice}/mo monthly</p>
         </div>
 
-        {/* Email notify */}
         {!submitted ? (
           <form onSubmit={handleSubmit} className="flex gap-2">
             <input
@@ -87,7 +84,7 @@ const ComingSoonModal = ({ plan, onClose }) => {
   );
 };
 
-// ─── Free Tier Modal (not logged in) ─────────────────────────────────────────
+// ─── Free Tier Modal ──────────────────────────────────────────────────────────
 const FreeTierModal = ({ onClose }) => {
   const navigate = useNavigate();
 
@@ -217,14 +214,11 @@ const Pricing = () => {
   const handleCTA = (plan) => {
     if (plan.type === 'free') {
       if (isAuthenticated) {
-        // Already logged in → go straight to dashboard
         navigate('/dashboard');
       } else {
-        // Not logged in → show free tier benefits modal
         setActiveModal('free');
       }
     } else {
-      // Paid plan → show coming soon modal
       setActiveModal(plan);
     }
   };
@@ -239,8 +233,8 @@ const Pricing = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
 
-      {/* Hero */}
-      <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      {/* Hero — flat, same bg as page */}
+      <div className="bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16 lg:py-24">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
@@ -251,7 +245,6 @@ const Pricing = () => {
               Cancel anytime with 30-day money-back guarantee.
             </p>
 
-            {/* Logged in banner */}
             {isAuthenticated && (
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl mb-6">
                 <span className="text-green-600 dark:text-green-400 text-sm font-medium">
@@ -294,7 +287,6 @@ const Pricing = () => {
                   : 'border-gray-200 dark:border-gray-700'
               }`}
             >
-              {/* Popular badge */}
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                   <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-medium bg-purple-600 text-white shadow-lg">
@@ -303,7 +295,6 @@ const Pricing = () => {
                 </div>
               )}
 
-              {/* Coming soon badge */}
               {plan.type === 'paid' && (
                 <div className="absolute top-4 right-4">
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${plan.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'}`}>
@@ -312,7 +303,6 @@ const Pricing = () => {
                 </div>
               )}
 
-              {/* Current plan badge */}
               {plan.type === 'free' && isAuthenticated && (
                 <div className="absolute top-4 right-4">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
@@ -396,8 +386,8 @@ const Pricing = () => {
         </div>
       </div>
 
-      {/* FAQ */}
-      <div className="bg-gray-50 dark:bg-gray-800">
+      {/* FAQ — flat, same bg as page */}
+      <div className="bg-white dark:bg-gray-900">
         <div className="max-w-4xl mx-auto px-6 lg:px-12 py-16">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Frequently asked questions</h2>
@@ -411,7 +401,7 @@ const Pricing = () => {
               { q: "Is there a free trial?", a: "Our Starter plan is completely free forever. For paid plans, we offer a 14-day free trial with full access to all features once they launch." },
               { q: "When will paid plans be available?", a: "We're actively building out our paid plans and payment infrastructure. Sign up for notifications on the pricing cards above and we'll let you know the moment they launch." },
             ].map((faq, i) => (
-              <div key={i} className="bg-white dark:bg-gray-900 rounded-xl p-6">
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
                 <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">{faq.q}</h3>
                 <p className="text-gray-600 dark:text-gray-400 text-sm">{faq.a}</p>
               </div>

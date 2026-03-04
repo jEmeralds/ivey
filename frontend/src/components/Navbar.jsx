@@ -39,7 +39,7 @@ const Navbar = () => {
   );
 
   return (
-    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 transition-colors sticky top-0 z-50 shadow-sm">
+    <nav className="bg-gray-50 dark:bg-gray-900 transition-colors sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-12">
         <div className="flex items-center justify-between h-14 md:h-16 lg:h-20">
 
@@ -132,7 +132,7 @@ const Navbar = () => {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 dark:border-gray-700 py-4 space-y-2 bg-white dark:bg-gray-900">
+          <div className="md:hidden py-4 space-y-2 bg-gray-50 dark:bg-gray-900">
             <div className="flex flex-col space-y-2">
               <NavLink to="/features">Features</NavLink>
               <NavLink to="/pricing">Pricing</NavLink>
@@ -140,7 +140,7 @@ const Navbar = () => {
             </div>
 
             {/* Mobile Theme Toggle */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="pt-4">
               <button
                 onClick={handleThemeToggle}
                 className="flex items-center gap-3 px-4 py-2 w-full text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -159,7 +159,7 @@ const Navbar = () => {
             </div>
 
             {/* Mobile Auth */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+            <div className="pt-4 mt-4">
               {isAuthenticated ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 px-4 py-2">

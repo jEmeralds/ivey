@@ -141,8 +141,8 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Features Section */}
-      <div className="px-4 md:px-6 lg:px-12 py-12 md:py-16 lg:py-20 bg-gray-50 dark:bg-gray-800">
+      {/* Features Section — flat, same bg as page */}
+      <div className="px-4 md:px-6 lg:px-12 py-12 md:py-16 lg:py-20 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -153,7 +153,7 @@ const Home = () => {
             </p>
           </div>
           <div className="grid gap-6 md:gap-8 md:grid-cols-2 lg:grid-cols-3">
-            <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-xl md:rounded-2xl shadow-sm">
+            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg md:rounded-xl flex items-center justify-center mb-4 md:mb-6">
                 <svg className="w-5 h-5 md:w-6 md:h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -162,7 +162,7 @@ const Home = () => {
               <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2 md:mb-3">15+ Content Formats</h3>
               <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Generate TikTok scripts, Instagram captions, YouTube ads, email campaigns, and more from one brief.</p>
             </div>
-            <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-xl md:rounded-2xl shadow-sm">
+            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg md:rounded-xl flex items-center justify-center mb-4 md:mb-6">
                 <svg className="w-5 h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -171,7 +171,7 @@ const Home = () => {
               <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2 md:mb-3">Lightning Fast</h3>
               <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">Generate comprehensive marketing strategies and content in 30 seconds, not 30 minutes.</p>
             </div>
-            <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-xl md:rounded-2xl shadow-sm md:col-span-2 lg:col-span-1">
+            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-xl md:rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 md:col-span-2 lg:col-span-1">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 dark:bg-green-900/30 rounded-lg md:rounded-xl flex items-center justify-center mb-4 md:mb-6">
                 <svg className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />

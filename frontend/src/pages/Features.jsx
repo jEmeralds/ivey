@@ -74,8 +74,8 @@ const Features = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
 
-      {/* Hero */}
-      <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      {/* Hero — flat, same bg as page */}
+      <div className="bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16 lg:py-24">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
@@ -141,8 +141,8 @@ const Features = () => {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="bg-gray-50 dark:bg-gray-800">
+      {/* Stats — flat, same bg as page */}
+      <div className="bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-16">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Trusted by marketing teams worldwide</h2>

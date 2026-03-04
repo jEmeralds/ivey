@@ -40,7 +40,6 @@ const Dashboard = () => {
       const response = await getCampaigns();
       setCampaigns(response.campaigns || []);
       
-      // Calculate stats
       const totalCampaigns = response.campaigns?.length || 0;
       const contentGenerated = response.campaigns?.reduce((acc, campaign) => 
         acc + (campaign.content_count || 0), 0) || 0;
@@ -75,7 +74,6 @@ const Dashboard = () => {
   };
 
   const handleViewDetails = (campaignId) => {
-    console.log('Navigating to campaign details:', campaignId);
     navigate(`/campaigns/${campaignId}`);
   };
 
@@ -97,8 +95,8 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors pt-16 md:pt-20">
       
-      {/* Header Section */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      {/* Header Section — flat, no border, same bg as page */}
+      <div className="bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-6 md:py-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -194,7 +192,6 @@ const Dashboard = () => {
           </div>
 
           {campaigns.length === 0 ? (
-            /* Empty State */
             <div className="p-12 text-center">
               <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,7 +213,6 @@ const Dashboard = () => {
               </Link>
             </div>
           ) : (
-            /* Campaigns List - Compact Desktop, Good Mobile */
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {campaigns.map((campaign) => (
                 <div key={campaign.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
@@ -299,7 +295,6 @@ const Dashboard = () => {
                       <button
                         onClick={() => navigate(`/edit-campaign/${campaign.id}`)}
                         className="flex items-center gap-2 px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-sm"
-                        title="Edit campaign"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
