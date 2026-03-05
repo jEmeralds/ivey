@@ -10,7 +10,7 @@ import ReactMarkdown from 'react-markdown';
 
 const VISUAL_FORMATS = ['BANNER_AD', 'PRINT_AD', 'FLYER_TEXT', 'GOOGLE_SEARCH_AD'];
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.vercel.app';
-const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-backend-production.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app';
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 const Toast = ({ message, type, visible }) => {
@@ -269,7 +269,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
     setImageLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/campaigns/${campaignId}/generate-visual`, {
+      const res = await fetch(`${API_URL}/campaigns/${campaignId}/generate-visual`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ format: item.format, adCopy: item.content })
@@ -626,3 +626,4 @@ const CampaignDetail = () => {
 };
 
 export default CampaignDetail;
+
