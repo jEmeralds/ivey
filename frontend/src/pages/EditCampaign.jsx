@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getCampaignById, updateCampaign } from '../services/api';
 import { OUTPUT_FORMATS } from '../constants/outputFormats';
@@ -90,7 +90,7 @@ const EditCampaign = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading campaign...</p>
         </div>
       </div>
@@ -103,7 +103,7 @@ const EditCampaign = () => {
         {/* Back Button */}
         <button
           onClick={() => navigate(`/campaign/${id}`)}
-          className="flex items-center gap-2 text-purple-600 hover:text-purple-700 font-medium mb-6 transition-colors"
+          className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium mb-6 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -132,7 +132,7 @@ const EditCampaign = () => {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Summer Product Launch 2024"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
               />
             </div>
 
@@ -147,7 +147,7 @@ const EditCampaign = () => {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Describe your product, service, or campaign goal..."
                 rows="4"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all resize-none"
               />
             </div>
 
@@ -162,7 +162,7 @@ const EditCampaign = () => {
                 value={formData.targetAudience}
                 onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
                 placeholder="e.g., Young professionals aged 25-35, tech-savvy"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
               />
             </div>
 
@@ -179,7 +179,7 @@ const EditCampaign = () => {
                     onClick={() => setFormData({ ...formData, aiProvider: provider })}
                     className={`px-4 py-3 rounded-lg font-medium transition-all ${
                       formData.aiProvider === provider
-                        ? 'bg-purple-600 text-white shadow-lg scale-105'
+                        ? 'bg-emerald-600 text-white shadow-lg scale-105'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -201,7 +201,7 @@ const EditCampaign = () => {
                   <button
                     type="button"
                     onClick={selectAllFormats}
-                    className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                    className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
                   >
                     Select All
                   </button>
@@ -224,14 +224,14 @@ const EditCampaign = () => {
                     onClick={() => handleFormatToggle(key)}
                     className={`p-4 rounded-lg border-2 transition-all text-left ${
                       formData.outputFormats.includes(key)
-                        ? 'border-purple-500 bg-purple-50 shadow-md'
+                        ? 'border-emerald-500 bg-emerald-50 shadow-md'
                         : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center ${
                         formData.outputFormats.includes(key)
-                          ? 'bg-purple-600 border-purple-600'
+                          ? 'bg-emerald-600 border-emerald-600'
                           : 'border-gray-300'
                       }`}>
                         {formData.outputFormats.includes(key) && (
@@ -281,7 +281,7 @@ const EditCampaign = () => {
               <button
                 type="submit"
                 disabled={saving || formData.outputFormats.length === 0}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
               >
                 {saving ? (
                   <span className="flex items-center justify-center gap-2">

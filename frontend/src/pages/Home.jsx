@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 
@@ -14,11 +14,11 @@ const DEMO_DATA = {
 const TYPING_SPEED = 28; // ms per char
 
 const TAG_COLORS = {
-  'TikTok Script':     'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700',
-  'Instagram Caption': 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700',
-  'Email Campaign':    'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700',
+  'TikTok Script':     'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
+  'Instagram Caption': 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
+  'Email Campaign':    'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-green-700',
   'YouTube Ad':        'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700',
-  'Facebook Post':     'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700',
+  'Facebook Post':     'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
 };
 
 const ALL_FORMAT_OPTIONS = [
@@ -225,7 +225,7 @@ const CampaignDemoModal = ({ onClose }) => {
         {/* ── Modal Header ── */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-amber-400 to-amber-600 rounded-lg flex items-center justify-center">
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
@@ -248,13 +248,13 @@ const CampaignDemoModal = ({ onClose }) => {
             {STEPS.slice(0, -1).map((s, i) => (
               <div key={s.id} className="flex items-center gap-1 flex-1">
                 <div className={`h-1.5 w-full rounded-full transition-all duration-500 ${
-                  i < stepIdx ? 'bg-purple-600' : i === stepIdx ? 'bg-purple-400' : 'bg-gray-200 dark:bg-gray-700'
+                  i < stepIdx ? 'bg-emerald-600' : i === stepIdx ? 'bg-emerald-400' : 'bg-gray-200 dark:bg-gray-700'
                 }`} />
               </div>
             ))}
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
               {currentStep.icon} {currentStep.label}
             </span>
             <span className="text-xs text-gray-400">Step {Math.min(stepIdx + 1, STEPS.length - 1)} of {STEPS.length - 1}</span>
@@ -268,14 +268,14 @@ const CampaignDemoModal = ({ onClose }) => {
           <div className={`transition-all duration-300 ${stepIdx >= 0 ? 'opacity-100' : 'opacity-30'}`}>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
               Campaign Name
-              {stepIdx === 0 && <span className="ml-2 text-xs text-purple-500 animate-pulse">● typing...</span>}
+              {stepIdx === 0 && <span className="ml-2 text-xs text-emerald-500 animate-pulse">● typing...</span>}
             </label>
             <div className={`w-full px-4 py-3 border-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm min-h-[46px] transition-all duration-200 ${
-              stepIdx === 0 ? 'border-purple-500 shadow-sm shadow-purple-200 dark:shadow-purple-900/30' : 'border-gray-200 dark:border-gray-700'
+              stepIdx === 0 ? 'border-emerald-500 shadow-sm shadow-emerald-200 dark:shadow-emerald-900/30' : 'border-gray-200 dark:border-gray-700'
             }`}>
               {nameVal || <span className="text-gray-400 dark:text-gray-500">e.g. Summer Sale Campaign</span>}
               {stepIdx === 0 && nameVal.length < DEMO_DATA.name.length && (
-                <span className="animate-pulse text-purple-500 ml-0.5">|</span>
+                <span className="animate-pulse text-emerald-500 ml-0.5">|</span>
               )}
             </div>
           </div>
@@ -284,14 +284,14 @@ const CampaignDemoModal = ({ onClose }) => {
           <div className={`transition-all duration-300 ${stepIdx >= 1 ? 'opacity-100' : 'opacity-30'}`}>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
               Campaign Description
-              {stepIdx === 1 && <span className="ml-2 text-xs text-purple-500 animate-pulse">● typing...</span>}
+              {stepIdx === 1 && <span className="ml-2 text-xs text-emerald-500 animate-pulse">● typing...</span>}
             </label>
             <div className={`w-full px-4 py-3 border-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm min-h-[88px] leading-relaxed transition-all duration-200 ${
-              stepIdx === 1 ? 'border-purple-500 shadow-sm shadow-purple-200 dark:shadow-purple-900/30' : 'border-gray-200 dark:border-gray-700'
+              stepIdx === 1 ? 'border-emerald-500 shadow-sm shadow-emerald-200 dark:shadow-emerald-900/30' : 'border-gray-200 dark:border-gray-700'
             }`}>
               {descVal || <span className="text-gray-400 dark:text-gray-500">Describe your campaign goals, product, and key messages...</span>}
               {stepIdx === 1 && descVal.length < DEMO_DATA.description.length && (
-                <span className="animate-pulse text-purple-500 ml-0.5">|</span>
+                <span className="animate-pulse text-emerald-500 ml-0.5">|</span>
               )}
             </div>
           </div>
@@ -300,14 +300,14 @@ const CampaignDemoModal = ({ onClose }) => {
           <div className={`transition-all duration-300 ${stepIdx >= 2 ? 'opacity-100' : 'opacity-30'}`}>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
               Target Audience
-              {stepIdx === 2 && <span className="ml-2 text-xs text-purple-500 animate-pulse">● typing...</span>}
+              {stepIdx === 2 && <span className="ml-2 text-xs text-emerald-500 animate-pulse">● typing...</span>}
             </label>
             <div className={`w-full px-4 py-3 border-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm min-h-[46px] transition-all duration-200 ${
-              stepIdx === 2 ? 'border-purple-500 shadow-sm shadow-purple-200 dark:shadow-purple-900/30' : 'border-gray-200 dark:border-gray-700'
+              stepIdx === 2 ? 'border-emerald-500 shadow-sm shadow-emerald-200 dark:shadow-emerald-900/30' : 'border-gray-200 dark:border-gray-700'
             }`}>
               {audienceVal || <span className="text-gray-400 dark:text-gray-500">e.g. Young adults 18–35 interested in fitness</span>}
               {stepIdx === 2 && audienceVal.length < DEMO_DATA.audience.length && (
-                <span className="animate-pulse text-purple-500 ml-0.5">|</span>
+                <span className="animate-pulse text-emerald-500 ml-0.5">|</span>
               )}
             </div>
           </div>
@@ -316,10 +316,10 @@ const CampaignDemoModal = ({ onClose }) => {
           <div className={`transition-all duration-300 ${stepIdx >= 3 ? 'opacity-100' : 'opacity-30'}`}>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
               Output Formats
-              {stepIdx === 3 && <span className="ml-2 text-xs text-purple-500 animate-pulse">● selecting...</span>}
+              {stepIdx === 3 && <span className="ml-2 text-xs text-emerald-500 animate-pulse">● selecting...</span>}
             </label>
             <div className={`p-3 border-2 rounded-xl bg-gray-50 dark:bg-gray-800 transition-all duration-200 ${
-              stepIdx === 3 ? 'border-purple-500 shadow-sm shadow-purple-200 dark:shadow-purple-900/30' : 'border-gray-200 dark:border-gray-700'
+              stepIdx === 3 ? 'border-emerald-500 shadow-sm shadow-emerald-200 dark:shadow-emerald-900/30' : 'border-gray-200 dark:border-gray-700'
             }`}>
               <div className="flex flex-wrap gap-2">
                 {ALL_FORMAT_OPTIONS.map(fmt => {
@@ -329,7 +329,7 @@ const CampaignDemoModal = ({ onClose }) => {
                     <span key={fmt} className={`
                       px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-300
                       ${selected
-                        ? `${TAG_COLORS[fmt] || 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300'} ${justSelected ? 'scale-110' : 'scale-100'}`
+                        ? `${TAG_COLORS[fmt] || 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-300'} ${justSelected ? 'scale-110' : 'scale-100'}`
                         : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600'
                       }
                     `}>
@@ -345,17 +345,17 @@ const CampaignDemoModal = ({ onClose }) => {
           <div className={`transition-all duration-300 ${stepIdx >= 4 ? 'opacity-100' : 'opacity-30'}`}>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
               AI Provider
-              {stepIdx === 4 && <span className="ml-2 text-xs text-purple-500 animate-pulse">● selecting...</span>}
+              {stepIdx === 4 && <span className="ml-2 text-xs text-emerald-500 animate-pulse">● selecting...</span>}
             </label>
             <div className={`p-3 border-2 rounded-xl bg-gray-50 dark:bg-gray-800 transition-all duration-200 ${
-              stepIdx === 4 ? 'border-purple-500 shadow-sm shadow-purple-200 dark:shadow-purple-900/30' : 'border-gray-200 dark:border-gray-700'
+              stepIdx === 4 ? 'border-emerald-500 shadow-sm shadow-emerald-200 dark:shadow-emerald-900/30' : 'border-gray-200 dark:border-gray-700'
             }`}>
               <div className="flex flex-wrap gap-2">
                 {PROVIDERS.map(p => (
                   <span key={p} className={`
                     px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-300
                     ${selProvider === p
-                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-400 scale-105'
+                      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-400 scale-105'
                       : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600'}
                   `}>
                     {selProvider === p ? '✓ ' : ''}{p}
@@ -372,16 +372,16 @@ const CampaignDemoModal = ({ onClose }) => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400 font-medium flex items-center gap-2">
-                      <svg className="w-4 h-4 animate-spin text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 animate-spin text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                       AI generating your campaign...
                     </span>
-                    <span className="font-bold text-purple-600 dark:text-purple-400 tabular-nums">{progress}%</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{progress}%</span>
                   </div>
                   <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500 rounded-full transition-all duration-75 bg-[length:200%_100%] animate-shimmer"
+                      className="h-full bg-gradient-to-r from-emerald-500 via-amber-400 to-emerald-500 rounded-full transition-all duration-75 bg-[length:200%_100%] animate-shimmer"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
@@ -393,22 +393,22 @@ const CampaignDemoModal = ({ onClose }) => {
                   </p>
                 </div>
               ) : (
-                <div className="rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-5 text-center space-y-3">
+                <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-5 text-center space-y-3">
                   <div className="text-3xl">🎉</div>
-                  <h3 className="text-base font-bold text-green-700 dark:text-green-300">Campaign Created Successfully!</h3>
-                  <p className="text-sm text-green-600 dark:text-green-400">
+                  <h3 className="text-base font-bold text-amber-700 dark:text-amber-300">Campaign Created Successfully!</h3>
+                  <p className="text-sm text-amber-600 dark:text-amber-400">
                     <strong>"{DEMO_DATA.name}"</strong> is ready with {DEMO_DATA.formats.length} content pieces across {DEMO_DATA.formats.length} formats — generated in 31 seconds.
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center pt-1">
                     {DEMO_DATA.formats.map(fmt => (
-                      <span key={fmt} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${TAG_COLORS[fmt] || 'bg-purple-100 text-purple-700 border-purple-300'}`}>
+                      <span key={fmt} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${TAG_COLORS[fmt] || 'bg-emerald-100 text-emerald-700 border-emerald-300'}`}>
                         ✓ {fmt}
                       </span>
                     ))}
                   </div>
                   <button
                     onClick={onClose}
-                    className="mt-2 px-6 py-2.5 bg-purple-600 text-white rounded-xl font-semibold text-sm hover:bg-purple-700 transition-colors shadow-sm"
+                    className="mt-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold text-sm hover:bg-emerald-700 transition-colors shadow-sm"
                   >
                     Try It Yourself →
                   </button>
@@ -427,7 +427,7 @@ const CampaignDemoModal = ({ onClose }) => {
             >
               {paused ? (
                 <>
-                  <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
                   </svg>
                   Resume
@@ -446,7 +446,7 @@ const CampaignDemoModal = ({ onClose }) => {
               {!isLastStep && (
                 <button
                   onClick={skipStep}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
                 >
                   Skip Step
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -472,7 +472,7 @@ const CampaignDemoModal = ({ onClose }) => {
 const CampaignBriefCard = ({ onOpenDemo }) => (
   <div className="bg-white dark:bg-gray-800 rounded-lg md:rounded-xl shadow-lg p-4 md:p-6">
     <div className="flex items-center gap-3 mb-4">
-      <div className="w-6 h-6 md:w-8 md:h-8 bg-purple-600 rounded-md md:rounded-lg" />
+      <div className="w-6 h-6 md:w-8 md:h-8 bg-emerald-600 rounded-md md:rounded-lg" />
       <span className="font-semibold text-sm md:text-base text-gray-900 dark:text-white">Campaign Brief</span>
     </div>
     <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
@@ -481,15 +481,15 @@ const CampaignBriefCard = ({ onOpenDemo }) => (
       <div className="h-3 md:h-4 bg-gray-100 dark:bg-gray-700 rounded w-5/6" />
     </div>
     <div className="flex gap-2 mb-5">
-      <div className="px-2 md:px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs">TikTok</div>
-      <div className="px-2 md:px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs">Instagram</div>
-      <div className="px-2 md:px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs">Email</div>
+      <div className="px-2 md:px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full text-xs">TikTok</div>
+      <div className="px-2 md:px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full text-xs">Instagram</div>
+      <div className="px-2 md:px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-xs">Email</div>
     </div>
 
     {/* Demo button */}
     <button
       onClick={onOpenDemo}
-      className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-sm font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-md shadow-purple-500/25 hover:shadow-lg hover:shadow-purple-500/30 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+      className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-lg text-sm font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-md shadow-emerald-500/25 hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
     >
       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
         <path d="M8 5v14l11-7z" />
@@ -499,7 +499,7 @@ const CampaignBriefCard = ({ onOpenDemo }) => (
 
     <div className="flex justify-center mt-4">
       <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600 dark:text-gray-400">
-        <svg className="w-3 h-3 md:w-4 md:h-4 animate-spin text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-3 h-3 md:w-4 md:h-4 animate-spin text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
         <span>AI generating content...</span>
@@ -528,7 +528,7 @@ const Home = () => {
 
           {/* Left */}
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs md:text-sm mb-4 md:mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full text-xs md:text-sm mb-4 md:mb-6">
               <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
@@ -537,7 +537,7 @@ const Home = () => {
 
             <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 dark:text-white leading-tight mb-4 md:mb-6">
               Generate Viral Marketing Content
-              <span className="text-purple-600 dark:text-purple-400"> in Seconds</span>
+              <span className="text-emerald-600 dark:text-emerald-400"> in Seconds</span>
             </h1>
 
             <p className="text-base md:text-lg lg:text-xl text-gray-600 dark:text-gray-400 leading-relaxed mb-6 md:mb-8 max-w-lg">
@@ -545,8 +545,8 @@ const Home = () => {
             </p>
 
             {isAuthenticated && (
-              <div className="flex items-center gap-2 mb-5 px-4 py-2.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl w-fit">
-                <span className="text-green-600 dark:text-green-400 text-sm font-medium">
+              <div className="flex items-center gap-2 mb-5 px-4 py-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl w-fit">
+                <span className="text-amber-600 dark:text-amber-400 text-sm font-medium">
                   👋 Welcome back, {displayName}!
                 </span>
               </div>
@@ -555,16 +555,16 @@ const Home = () => {
             <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
               {isAuthenticated ? (
                 <>
-                  <button onClick={() => navigate('/dashboard')} className="px-6 md:px-8 py-3 md:py-4 bg-green-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-green-700 transition-colors text-center">
+                  <button onClick={() => navigate('/dashboard')} className="px-6 md:px-8 py-3 md:py-4 bg-amber-500 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-amber-600 transition-colors text-center">
                     🚀 Go to Dashboard
                   </button>
-                  <button onClick={() => navigate('/new-campaign')} className="px-6 md:px-8 py-3 md:py-4 border-2 border-purple-400 dark:border-purple-600 text-purple-700 dark:text-purple-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors text-center">
+                  <button onClick={() => navigate('/new-campaign')} className="px-6 md:px-8 py-3 md:py-4 border-2 border-emerald-400 dark:border-emerald-600 text-emerald-700 dark:text-emerald-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors text-center">
                     ✨ New Campaign
                   </button>
                 </>
               ) : (
                 <>
-                  <button onClick={() => navigate('/signup')} className="px-6 md:px-8 py-3 md:py-4 bg-purple-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-purple-700 transition-colors text-center">
+                  <button onClick={() => navigate('/signup')} className="px-6 md:px-8 py-3 md:py-4 bg-emerald-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-emerald-700 transition-colors text-center">
                     Start Free Trial
                   </button>
                   <button onClick={() => navigate('/login')} className="px-6 md:px-8 py-3 md:py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors text-center">
@@ -642,12 +642,12 @@ const Home = () => {
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
             {isAuthenticated ? (
               <>
-                <button onClick={() => navigate('/dashboard')} className="px-6 md:px-8 py-3 md:py-4 bg-green-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-green-700 transition-colors">🚀 Go to Dashboard</button>
-                <button onClick={() => navigate('/new-campaign')} className="px-6 md:px-8 py-3 md:py-4 border-2 border-purple-400 dark:border-purple-600 text-purple-700 dark:text-purple-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors">✨ New Campaign</button>
+                <button onClick={() => navigate('/dashboard')} className="px-6 md:px-8 py-3 md:py-4 bg-amber-500 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-amber-600 transition-colors">🚀 Go to Dashboard</button>
+                <button onClick={() => navigate('/new-campaign')} className="px-6 md:px-8 py-3 md:py-4 border-2 border-emerald-400 dark:border-emerald-600 text-emerald-700 dark:text-emerald-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">✨ New Campaign</button>
               </>
             ) : (
               <>
-                <button onClick={() => navigate('/signup')} className="px-6 md:px-8 py-3 md:py-4 bg-purple-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-purple-700 transition-colors">Start Free Trial</button>
+                <button onClick={() => navigate('/signup')} className="px-6 md:px-8 py-3 md:py-4 bg-emerald-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-emerald-700 transition-colors">Start Free Trial</button>
                 <Link to="/pricing" className="px-6 md:px-8 py-3 md:py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors">View Pricing</Link>
               </>
             )}

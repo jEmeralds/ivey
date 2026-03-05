@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 
 const Features = () => {
@@ -80,7 +80,7 @@ const Features = () => {
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
               Everything you need to create
-              <span className="text-purple-600 dark:text-purple-400"> viral content</span>
+              <span className="text-emerald-600 dark:text-emerald-400"> viral content</span>
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
               IVey combines the power of multiple AI models with marketing expertise to help you create campaigns that actually convert. From strategy to execution in seconds.
@@ -88,13 +88,13 @@ const Features = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={handlePrimaryCTA}
-                className="px-8 py-4 bg-purple-600 text-white rounded-xl font-semibold text-lg hover:bg-purple-700 transition-colors shadow-sm"
+                className="px-8 py-4 bg-emerald-600 text-white rounded-xl font-semibold text-lg hover:bg-emerald-700 transition-colors shadow-sm"
               >
                 {isAuthenticated ? '🚀 Go to Dashboard' : 'Start Free Trial'}
               </button>
               <button
                 onClick={handleSecondaryCTA}
-                className="px-8 py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-lg hover:border-purple-500 dark:hover:border-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                className="px-8 py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-lg hover:border-emerald-500 dark:hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
               >
                 {isAuthenticated ? '✨ New Campaign' : 'View Pricing'}
               </button>
@@ -119,7 +119,7 @@ const Features = () => {
             <div key={index} className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-start gap-6">
                 <div className="flex-shrink-0">
-                  <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center text-purple-600 dark:text-purple-400">
+                  <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                     {feature.icon}
                   </div>
                 </div>
@@ -129,7 +129,7 @@ const Features = () => {
                   <ul className="space-y-2">
                     {feature.details.map((detail, i) => (
                       <li key={i} className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
-                        <div className="w-1.5 h-1.5 bg-purple-600 dark:bg-purple-400 rounded-full flex-shrink-0"></div>
+                        <div className="w-1.5 h-1.5 bg-emerald-600 dark:bg-emerald-400 rounded-full flex-shrink-0"></div>
                         {detail}
                       </li>
                     ))}
@@ -156,7 +156,7 @@ const Features = () => {
               { num: '30s', label: 'Average generation time' },
             ].map((stat, i) => (
               <div key={i} className="text-center">
-                <div className="text-3xl lg:text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">{stat.num}</div>
+                <div className="text-3xl lg:text-4xl font-bold text-emerald-600 dark:text-emerald-400 mb-2">{stat.num}</div>
                 <div className="text-gray-600 dark:text-gray-400">{stat.label}</div>
               </div>
             ))}
@@ -178,13 +178,13 @@ const Features = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={handlePrimaryCTA}
-              className="px-8 py-4 bg-purple-600 text-white rounded-xl font-semibold text-lg hover:bg-purple-700 transition-colors shadow-sm"
+              className="px-8 py-4 bg-emerald-600 text-white rounded-xl font-semibold text-lg hover:bg-emerald-700 transition-colors shadow-sm"
             >
               {isAuthenticated ? '🚀 Go to Dashboard' : 'Start Free Trial'}
             </button>
             <button
               onClick={handleSecondaryCTA}
-              className="px-8 py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-lg hover:border-purple-500 dark:hover:border-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+              className="px-8 py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-lg hover:border-emerald-500 dark:hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
             >
               {isAuthenticated ? '✨ New Campaign' : 'Watch Demo'}
             </button>

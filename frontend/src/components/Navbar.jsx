@@ -29,8 +29,8 @@ const Navbar = () => {
       to={to}
       className={`px-3 md:px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm md:text-base ${
         isActivePage(to)
-          ? 'bg-purple-600 text-white shadow-sm'
-          : 'text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+          ? 'bg-emerald-600 text-white shadow-sm'
+          : 'text-gray-700 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-100 dark:hover:bg-gray-700'
       } ${className}`}
       onClick={() => setIsMobileMenuOpen(false)}
     >
@@ -84,7 +84,7 @@ const Navbar = () => {
             {isAuthenticated ? (
               <div className="hidden md:flex items-center gap-3 md:gap-4">
                 <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                  <div className="w-6 h-6 md:w-8 md:h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                  <div className="w-6 h-6 md:w-8 md:h-8 bg-emerald-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-xs md:text-sm font-medium">
                       {(user?.name || 'U').charAt(0).toUpperCase()}
                     </span>
@@ -105,7 +105,7 @@ const Navbar = () => {
                 <NavLink to="/login">Sign In</NavLink>
                 <Link
                   to="/signup"
-                  className="px-4 md:px-6 py-2 md:py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md text-xs md:text-sm"
+                  className="px-4 md:px-6 py-2 md:py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md text-xs md:text-sm"
                 >
                   Get Started
                 </Link>
@@ -163,7 +163,7 @@ const Navbar = () => {
               {isAuthenticated ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 px-4 py-2">
-                    <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center">
                       <span className="text-white text-sm font-medium">
                         {(user?.name || 'U').charAt(0).toUpperCase()}
                       </span>
@@ -187,7 +187,7 @@ const Navbar = () => {
                   <NavLink to="/login">Sign In</NavLink>
                   <Link
                     to="/signup"
-                    className="block w-full text-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                    className="block w-full text-center px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Get Started

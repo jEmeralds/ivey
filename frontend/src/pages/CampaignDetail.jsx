@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   getCampaignById, generateIdeas, generateStrategy, getCampaignMedia,
@@ -15,9 +15,9 @@ const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.ve
 const Toast = ({ message, type, visible }) => {
   if (!visible) return null;
   const colors = {
-    success: 'bg-green-900/80 border-green-500 text-green-300',
+    success: 'bg-green-900/80 border-amber-500 text-amber-300',
     error: 'bg-red-900/80 border-red-500 text-red-300',
-    info: 'bg-purple-900/80 border-purple-500 text-purple-300',
+    info: 'bg-purple-900/80 border-emerald-500 text-emerald-300',
   };
   return (
     <div className={`fixed bottom-8 right-8 z-50 flex items-center gap-3 px-5 py-3 rounded-xl border backdrop-blur-sm shadow-2xl transition-all duration-300 ${colors[type] || colors.success}`}>
@@ -47,11 +47,11 @@ const ShareModal = ({ isOpen, onClose, onShare, isLoading, shareUrl }) => {
         <p className="text-sm text-gray-400 mb-6">Anyone with this link can view the content — no login required.</p>
 
         <div className="flex items-center gap-3 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 mb-5">
-          <span className="flex-1 text-xs text-purple-300 truncate font-mono">
+          <span className="flex-1 text-xs text-emerald-300 truncate font-mono">
             {shareUrl || 'Generate the link below to get your shareable URL...'}
           </span>
           {shareUrl && (
-            <button onClick={handleCopy} className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${copied ? 'bg-green-500 text-gray-900' : 'bg-purple-600 text-white hover:bg-purple-700'}`}>
+            <button onClick={handleCopy} className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${copied ? 'bg-amber-500 text-gray-900' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}>
               {copied ? '✅ Copied!' : 'Copy'}
             </button>
           )}
@@ -60,7 +60,7 @@ const ShareModal = ({ isOpen, onClose, onShare, isLoading, shareUrl }) => {
         <p className="text-xs text-gray-400 mb-2">Link expires in:</p>
         <div className="flex gap-2 mb-6 flex-wrap">
           {[{ label: '24 hours', val: 1 }, { label: '7 days', val: 7 }, { label: '30 days', val: 30 }, { label: 'Never', val: null }].map(opt => (
-            <button key={opt.label} onClick={() => setExpiry(opt.val)} className={`px-4 py-1.5 rounded-full text-xs font-medium border transition-all ${expiry === opt.val ? 'border-purple-500 text-purple-300 bg-purple-500/10' : 'border-gray-700 text-gray-400 hover:border-gray-500'}`}>
+            <button key={opt.label} onClick={() => setExpiry(opt.val)} className={`px-4 py-1.5 rounded-full text-xs font-medium border transition-all ${expiry === opt.val ? 'border-emerald-500 text-emerald-300 bg-emerald-500/10' : 'border-gray-700 text-gray-400 hover:border-gray-500'}`}>
               {opt.label}
             </button>
           ))}
@@ -68,7 +68,7 @@ const ShareModal = ({ isOpen, onClose, onShare, isLoading, shareUrl }) => {
 
         <div className="flex gap-2 justify-end">
           <button onClick={onClose} className="px-4 py-2 text-sm bg-gray-800 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-700 transition-all">Cancel</button>
-          <button onClick={() => onShare(expiry)} disabled={isLoading} className="px-5 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-all font-semibold">
+          <button onClick={() => onShare(expiry)} disabled={isLoading} className="px-5 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-all font-semibold">
             {isLoading ? 'Generating...' : shareUrl ? '🔄 Regenerate' : '🔗 Generate & Copy'}
           </button>
         </div>
@@ -97,11 +97,11 @@ const SavedLibrary = ({ savedItems, onDelete, onShare }) => {
         <div className="px-6 py-4 border-b border-gray-700 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <span className="text-base font-bold text-white">🗂️ Saved Library</span>
-            <span className="bg-purple-500/20 text-purple-300 text-xs font-semibold px-2 py-0.5 rounded-full">{savedItems.length} saved</span>
+            <span className="bg-emerald-500/20 text-emerald-300 text-xs font-semibold px-2 py-0.5 rounded-full">{savedItems.length} saved</span>
           </div>
           <div className="flex gap-1">
             {['all', 'strategy', 'content'].map(tab => (
-              <button key={tab} onClick={() => setFilter(tab)} className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-all ${filter === tab ? 'bg-purple-500/20 text-purple-300' : 'text-gray-400 hover:text-gray-200'}`}>
+              <button key={tab} onClick={() => setFilter(tab)} className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-all ${filter === tab ? 'bg-emerald-500/20 text-emerald-300' : 'text-gray-400 hover:text-gray-200'}`}>
                 {tab}
               </button>
             ))}
@@ -114,7 +114,7 @@ const SavedLibrary = ({ savedItems, onDelete, onShare }) => {
             onClick={() => setPreview(item)}
             className="px-6 py-4 border-b border-gray-800 last:border-0 flex items-start gap-3 hover:bg-gray-800/50 transition-all group cursor-pointer"
           >
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0 ${item.content_type === 'content' ? 'bg-purple-500/10' : 'bg-green-500/10'}`}>
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0 ${item.content_type === 'content' ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
               {item.content_type === 'content' ? '🎨' : '📊'}
             </div>
             <div className="flex-1 min-w-0">
@@ -128,7 +128,7 @@ const SavedLibrary = ({ savedItems, onDelete, onShare }) => {
             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all" onClick={e => e.stopPropagation()}>
               <button
                 onClick={() => onShare({ title: item.title, content: item.content, savedId: item.id })}
-                className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 flex items-center justify-center text-sm transition-all"
+                className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center text-sm transition-all"
                 title="Share"
               >🔗</button>
               <button
@@ -165,7 +165,7 @@ const SavedLibrary = ({ savedItems, onDelete, onShare }) => {
                 </button>
                 <button
                   onClick={() => { onShare({ title: preview.title, content: preview.content, savedId: preview.id }); setPreview(null); }}
-                  className="px-3 py-1.5 text-xs bg-purple-500/10 border border-purple-500/25 text-purple-400 rounded-lg hover:bg-purple-500/20 transition-all"
+                  className="px-3 py-1.5 text-xs bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 rounded-lg hover:bg-emerald-500/20 transition-all"
                 >
                   🔗 Share
                 </button>
@@ -218,10 +218,10 @@ const StrategySection = ({ title, content, icon, defaultOpen, campaignName, onSa
         </div>
         <div className="flex items-center gap-2">
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-            <button onClick={handleSave} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${isSaved ? 'bg-green-500/20 text-green-500' : 'bg-green-500/10 text-green-500 hover:bg-green-500/20'}`} title={isSaved ? 'Saved!' : 'Save section'}>
+            <button onClick={handleSave} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${isSaved ? 'bg-amber-500/20 text-amber-500' : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'}`} title={isSaved ? 'Saved!' : 'Save section'}>
               {saving ? '⏳' : isSaved ? '✅' : '🔖'}
             </button>
-            <button onClick={handleShare} className="w-7 h-7 rounded-md bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 flex items-center justify-center text-xs transition-all" title="Share section">🔗</button>
+            <button onClick={handleShare} className="w-7 h-7 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 flex items-center justify-center text-xs transition-all" title="Share section">🔗</button>
           </div>
           <span className={`text-gray-400 text-xs transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
         </div>
@@ -274,16 +274,16 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, onSa
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-xl transition-all group">
       <div className="px-5 py-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/15 dark:to-blue-900/10 flex items-center justify-between cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
-        <span className="text-xs font-medium text-purple-600 dark:text-purple-300 bg-purple-100 dark:bg-purple-500/10 px-3 py-1 rounded-full">
+        <span className="text-xs font-medium text-emerald-600 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/10 px-3 py-1 rounded-full">
           {OUTPUT_FORMATS[item.format]?.platform || formatName}
         </span>
         <div className="flex items-center gap-1.5">
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-            <button onClick={handleSave} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${isSaved ? 'bg-green-500/20 text-green-500' : 'bg-green-500/10 text-green-500 hover:bg-green-500/20'}`} title={isSaved ? 'Saved!' : 'Save'}>
+            <button onClick={handleSave} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${isSaved ? 'bg-amber-500/20 text-amber-500' : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'}`} title={isSaved ? 'Saved!' : 'Save'}>
               {saving ? '⏳' : isSaved ? '✅' : '🔖'}
             </button>
-            <button onClick={handleShare} className="w-7 h-7 rounded-md bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 flex items-center justify-center text-xs transition-all" title="Share">🔗</button>
-            <button onClick={(e) => handleCopy(item.content, e)} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${copied ? 'bg-green-500/20 text-green-500' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Copy">
+            <button onClick={handleShare} className="w-7 h-7 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 flex items-center justify-center text-xs transition-all" title="Share">🔗</button>
+            <button onClick={(e) => handleCopy(item.content, e)} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${copied ? 'bg-amber-500/20 text-amber-500' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Copy">
               {copied ? '✅' : '📋'}
             </button>
           </div>
@@ -294,7 +294,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, onSa
         <>
           {isVisualFormat && design && (
             <div className="flex border-b border-gray-100 dark:border-gray-700">
-              <button onClick={() => setActiveTab('copy')} className={`flex-1 px-4 py-2.5 text-xs font-medium transition-all ${activeTab === 'copy' ? 'text-purple-600 dark:text-purple-300 border-b-2 border-purple-500 bg-purple-50 dark:bg-purple-500/10' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>📝 Ad Copy</button>
+              <button onClick={() => setActiveTab('copy')} className={`flex-1 px-4 py-2.5 text-xs font-medium transition-all ${activeTab === 'copy' ? 'text-emerald-600 dark:text-emerald-300 border-b-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>📝 Ad Copy</button>
               <button onClick={() => setActiveTab('design')} className={`flex-1 px-4 py-2.5 text-xs font-medium transition-all ${activeTab === 'design' ? 'text-amber-600 dark:text-amber-300 border-b-2 border-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>🎨 Design Guidelines</button>
             </div>
           )}
@@ -449,15 +449,15 @@ const CampaignDetail = () => {
   const filteredContent = selectedFormat === 'all' ? generatedContent : generatedContent.filter(i => i.format === selectedFormat);
   const groupedContent = filteredContent.reduce((acc, item) => { if (!acc[item.format]) acc[item.format] = []; acc[item.format].push(item); return acc; }, {});
 
-  if (loading) return <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center"><div className="text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div><p className="mt-4 text-gray-500 dark:text-gray-400">Loading campaign...</p></div></div>;
-  if (!campaign) return <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center"><div className="text-center"><h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Campaign not found</h2><button onClick={() => navigate('/dashboard')} className="text-purple-500 hover:text-purple-400">← Back to Dashboard</button></div></div>;
+  if (loading) return <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center"><div className="text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div><p className="mt-4 text-gray-500 dark:text-gray-400">Loading campaign...</p></div></div>;
+  if (!campaign) return <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center"><div className="text-center"><h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Campaign not found</h2><button onClick={() => navigate('/dashboard')} className="text-emerald-500 hover:text-emerald-400">← Back to Dashboard</button></div></div>;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-10 px-4 transition-colors duration-300">
       <div className="max-w-5xl mx-auto">
 
         {/* Back */}
-        <button onClick={() => navigate('/dashboard')} className="text-purple-500 hover:text-purple-400 font-medium mb-6 flex items-center gap-2 text-sm">
+        <button onClick={() => navigate('/dashboard')} className="text-emerald-500 hover:text-emerald-400 font-medium mb-6 flex items-center gap-2 text-sm">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Back to Dashboard
         </button>
@@ -473,10 +473,10 @@ const CampaignDetail = () => {
               <button onClick={() => navigator.clipboard.writeText(typeof strategy === 'string' ? strategy : '')} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
                 📋 Copy All
               </button>
-              <button onClick={handleSaveAll} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-green-500/10 border border-green-500/25 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-500/20 transition-all">
+              <button onClick={handleSaveAll} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-500/20 transition-all">
                 🔖 Save All
               </button>
-              <button onClick={() => (strategy || generatedContent.length > 0) && openShareModal({ title: `${campaign.name} — Campaign`, content: typeof strategy === 'string' ? strategy : '' })} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-purple-500/10 border border-purple-500/25 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-500/20 transition-all">
+              <button onClick={() => (strategy || generatedContent.length > 0) && openShareModal({ title: `${campaign.name} — Campaign`, content: typeof strategy === 'string' ? strategy : '' })} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-500/20 transition-all">
                 🔗 Share
               </button>
             </div>
@@ -488,7 +488,7 @@ const CampaignDetail = () => {
             <div><span className="text-xs text-gray-400">Output Formats</span><p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{campaign.output_formats?.length || 0} formats selected</p></div>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            {campaign.output_formats?.map(f => <span key={f} className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs font-medium">{OUTPUT_FORMATS[f]?.name || f}</span>)}
+            {campaign.output_formats?.map(f => <span key={f} className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full text-xs font-medium">{OUTPUT_FORMATS[f]?.name || f}</span>)}
           </div>
         </div>
 
@@ -505,7 +505,7 @@ const CampaignDetail = () => {
               <button onClick={handleGenerateStrategy} disabled={generatingStrategy} className="px-7 py-3.5 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-lg font-semibold hover:from-green-700 hover:to-teal-700 disabled:opacity-50 transition-all shadow-lg text-sm">
                 {generatingStrategy ? '⏳ Generating Strategy...' : '📊 Generate Marketing Strategy'}
               </button>
-              <button onClick={handleGenerate} disabled={generating} className="px-7 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all shadow-lg text-sm">
+              <button onClick={handleGenerate} disabled={generating} className="px-7 py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all shadow-lg text-sm">
                 {generating ? '⏳ Generating Content...' : '🚀 Generate Content'}
               </button>
             </div>
@@ -522,7 +522,7 @@ const CampaignDetail = () => {
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">📊 Marketing Strategy</h2>
               <div className="flex gap-2 flex-wrap">
                 <button onClick={() => navigator.clipboard.writeText(typeof strategy === 'string' ? strategy : '')} className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">📋 Copy All</button>
-                <button onClick={handleGenerateStrategy} disabled={generatingStrategy} className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-all">{generatingStrategy ? 'Regenerating...' : '🔄 Regenerate'}</button>
+                <button onClick={handleGenerateStrategy} disabled={generatingStrategy} className="px-3 py-1.5 text-xs bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-all">{generatingStrategy ? 'Regenerating...' : '🔄 Regenerate'}</button>
               </div>
             </div>
             <div className="space-y-2">
@@ -533,7 +533,7 @@ const CampaignDetail = () => {
             {generatedContent.length === 0 && (
               <div className="mt-6 pt-5 border-t border-gray-200 dark:border-gray-700 text-center">
                 <p className="text-gray-500 dark:text-gray-400 mb-4 text-sm">Ready to create content based on this strategy?</p>
-                <button onClick={handleGenerate} disabled={generating} className="px-7 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold disabled:opacity-50 transition-all shadow-lg text-sm">{generating ? 'Generating...' : '🚀 Generate Content Now'}</button>
+                <button onClick={handleGenerate} disabled={generating} className="px-7 py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-lg font-semibold disabled:opacity-50 transition-all shadow-lg text-sm">{generating ? 'Generating...' : '🚀 Generate Content Now'}</button>
               </div>
             )}
           </div>
@@ -546,13 +546,13 @@ const CampaignDetail = () => {
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">🎨 Generated Content</h2>
               <div className="flex gap-2">
                 <button onClick={() => setExpandAll(!expandAll)} className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">{expandAll ? '📖 Collapse All' : '📖 Expand All'}</button>
-                <button onClick={handleGenerate} disabled={generating} className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-all">{generating ? 'Regenerating...' : '🔄 Regenerate All'}</button>
+                <button onClick={handleGenerate} disabled={generating} className="px-3 py-1.5 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-all">{generating ? 'Regenerating...' : '🔄 Regenerate All'}</button>
               </div>
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-3 mb-5">
-              <button onClick={() => setSelectedFormat('all')} className={`px-4 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${selectedFormat === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>All ({generatedContent.length})</button>
-              {campaign.output_formats?.map(format => { const count = generatedContent.filter(i => i.format === format).length; if (!count) return null; return <button key={format} onClick={() => setSelectedFormat(format)} className={`px-4 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${selectedFormat === format ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>{OUTPUT_FORMATS[format]?.name || format} ({count})</button>; })}
+              <button onClick={() => setSelectedFormat('all')} className={`px-4 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${selectedFormat === 'all' ? 'bg-emerald-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>All ({generatedContent.length})</button>
+              {campaign.output_formats?.map(format => { const count = generatedContent.filter(i => i.format === format).length; if (!count) return null; return <button key={format} onClick={() => setSelectedFormat(format)} className={`px-4 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${selectedFormat === format ? 'bg-emerald-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>{OUTPUT_FORMATS[format]?.name || format} ({count})</button>; })}
             </div>
 
             {Object.entries(groupedContent).map(([format, items]) => (

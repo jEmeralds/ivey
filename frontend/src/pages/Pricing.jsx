@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+﻿import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../context/authContext';
 
@@ -22,7 +22,7 @@ const ComingSoonModal = ({ plan, onClose }) => {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 w-full max-w-md shadow-2xl">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-5 ${plan.name === 'Professional' ? 'bg-purple-500/15' : 'bg-blue-500/15'}`}>
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-5 ${plan.name === 'Professional' ? 'bg-emerald-500/15' : 'bg-blue-500/15'}`}>
           {plan.name === 'Professional' ? '⚡' : '🏢'}
         </div>
 
@@ -36,7 +36,7 @@ const ComingSoonModal = ({ plan, onClose }) => {
           <ul className="space-y-2">
             {plan.features.slice(0, 4).map((feature, i) => (
               <li key={i} className="flex items-center gap-2 text-sm text-gray-300">
-                <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-xs ${plan.name === 'Professional' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}`}>✓</span>
+                <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-xs ${plan.name === 'Professional' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-emerald-400'}`}>✓</span>
                 {feature}
               </li>
             ))}
@@ -46,9 +46,9 @@ const ComingSoonModal = ({ plan, onClose }) => {
           </ul>
         </div>
 
-        <div className={`rounded-xl p-4 mb-6 text-center border ${plan.name === 'Professional' ? 'bg-purple-500/10 border-purple-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
+        <div className={`rounded-xl p-4 mb-6 text-center border ${plan.name === 'Professional' ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
           <p className="text-xs text-gray-400 mb-1">Starting at</p>
-          <p className={`text-3xl font-bold ${plan.name === 'Professional' ? 'text-purple-300' : 'text-blue-300'}`}>
+          <p className={`text-3xl font-bold ${plan.name === 'Professional' ? 'text-emerald-300' : 'text-emerald-300'}`}>
             ${plan.annualPrice}<span className="text-sm font-normal text-gray-400">/mo</span>
           </p>
           <p className="text-xs text-gray-500 mt-1">billed annually · or ${plan.monthlyPrice}/mo monthly</p>
@@ -61,18 +61,18 @@ const ComingSoonModal = ({ plan, onClose }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="flex-1 bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-4 py-2.5 placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-all"
+              className="flex-1 bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-4 py-2.5 placeholder-gray-500 focus:outline-none focus:border-emerald-500 transition-all"
             />
             <button
               type="submit"
-              className={`px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all ${plan.name === 'Professional' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+              className={`px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all ${plan.name === 'Professional' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
             >
               Notify Me
             </button>
           </form>
         ) : (
-          <div className="flex items-center justify-center gap-2 py-3 bg-green-500/10 border border-green-500/20 rounded-xl">
-            <span className="text-green-400 text-sm font-medium">✅ You're on the list! We'll notify you at {email}</span>
+          <div className="flex items-center justify-center gap-2 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+            <span className="text-amber-400 text-sm font-medium">✅ You're on the list! We'll notify you at {email}</span>
           </div>
         )}
 
@@ -104,7 +104,7 @@ const FreeTierModal = ({ onClose }) => {
     >
       <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 w-full max-w-lg shadow-2xl">
         <div className="text-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-green-500/15 flex items-center justify-center text-2xl mx-auto mb-4">🆓</div>
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/15 flex items-center justify-center text-2xl mx-auto mb-4">🆓</div>
           <h2 className="text-xl font-bold text-white mb-1">What's included in Starter</h2>
           <p className="text-sm text-gray-400">Everything you need to get started — completely free, no credit card needed.</p>
         </div>
@@ -122,7 +122,7 @@ const FreeTierModal = ({ onClose }) => {
         <div className="flex gap-3">
           <button
             onClick={() => { onClose(); navigate('/signup'); }}
-            className="flex-1 py-3 bg-purple-600 text-white rounded-xl font-semibold text-sm hover:bg-purple-700 transition-all"
+            className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-semibold text-sm hover:bg-emerald-700 transition-all"
           >
             Create Free Account
           </button>
@@ -246,8 +246,8 @@ const Pricing = () => {
             </p>
 
             {isAuthenticated && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl mb-6">
-                <span className="text-green-600 dark:text-green-400 text-sm font-medium">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl mb-6">
+                <span className="text-amber-600 dark:text-amber-400 text-sm font-medium">
                   ✅ You're signed in as {user?.email} — currently on the Starter plan
                 </span>
               </div>
@@ -258,13 +258,13 @@ const Pricing = () => {
               <span className={`text-sm font-medium ${!isAnnual ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>Monthly</span>
               <button
                 onClick={() => setIsAnnual(!isAnnual)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${isAnnual ? 'bg-purple-600' : 'bg-gray-200 dark:bg-gray-600'}`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${isAnnual ? 'bg-emerald-600' : 'bg-gray-200 dark:bg-gray-600'}`}
               >
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isAnnual ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
               <span className={`text-sm font-medium ${isAnnual ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                 Annual
-                <span className="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
+                <span className="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-green-800 dark:text-amber-300">
                   Save 20%
                 </span>
               </span>
@@ -281,7 +281,7 @@ const Pricing = () => {
               key={index}
               className={`relative bg-white dark:bg-gray-800 rounded-2xl border-2 shadow-sm transition-all hover:shadow-xl hover:-translate-y-1 ${
                 plan.popular
-                  ? 'border-purple-500 dark:border-purple-400 shadow-purple-100 dark:shadow-purple-900/20'
+                  ? 'border-emerald-500 dark:border-emerald-400 shadow-purple-100 dark:shadow-purple-900/20'
                   : plan.color === 'blue'
                   ? 'border-gray-200 dark:border-blue-900/50'
                   : 'border-gray-200 dark:border-gray-700'
@@ -289,7 +289,7 @@ const Pricing = () => {
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-medium bg-purple-600 text-white shadow-lg">
+                  <span className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-medium bg-emerald-600 text-white shadow-lg">
                     Most Popular
                   </span>
                 </div>
@@ -297,7 +297,7 @@ const Pricing = () => {
 
               {plan.type === 'paid' && (
                 <div className="absolute top-4 right-4">
-                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${plan.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'}`}>
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${plan.color === 'purple' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'}`}>
                     🚧 Coming Soon
                   </span>
                 </div>
@@ -305,7 +305,7 @@ const Pricing = () => {
 
               {plan.type === 'free' && isAuthenticated && (
                 <div className="absolute top-4 right-4">
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
                     ✅ Your Plan
                   </span>
                 </div>
@@ -325,11 +325,11 @@ const Pricing = () => {
                   {isAnnual && plan.monthlyPrice > 0 && (
                     <p className="text-xs text-gray-400 mt-2">
                       Billed as ${(plan.annualPrice * 12).toFixed(0)}/year
-                      <span className="ml-1 text-green-500 font-medium">(save ${((plan.monthlyPrice - plan.annualPrice) * 12).toFixed(0)})</span>
+                      <span className="ml-1 text-amber-500 font-medium">(save ${((plan.monthlyPrice - plan.annualPrice) * 12).toFixed(0)})</span>
                     </p>
                   )}
                   {plan.monthlyPrice === 0 && (
-                    <p className="text-xs text-green-500 font-medium mt-2">Free forever · No credit card needed</p>
+                    <p className="text-xs text-amber-500 font-medium mt-2">Free forever · No credit card needed</p>
                   )}
                 </div>
 
@@ -337,14 +337,14 @@ const Pricing = () => {
                   {plan.features.map((feature, i) => (
                     <li key={i} className="flex items-center gap-3">
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        plan.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/30' :
-                        plan.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30' :
-                        'bg-green-100 dark:bg-green-900/30'
+                        plan.color === 'purple' ? 'bg-emerald-100 dark:bg-emerald-900/30' :
+                        plan.color === 'blue' ? 'bg-emerald-100 dark:bg-emerald-900/30' :
+                        'bg-amber-100 dark:bg-amber-900/30'
                       }`}>
                         <svg className={`w-3 h-3 ${
-                          plan.color === 'purple' ? 'text-purple-600 dark:text-purple-400' :
-                          plan.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
-                          'text-green-600 dark:text-green-400'
+                          plan.color === 'purple' ? 'text-emerald-600 dark:text-emerald-400' :
+                          plan.color === 'blue' ? 'text-emerald-600 dark:text-emerald-400' :
+                          'text-amber-600 dark:text-amber-400'
                         }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
@@ -358,11 +358,11 @@ const Pricing = () => {
                   onClick={() => handleCTA(plan)}
                   className={`w-full py-4 px-6 rounded-xl font-semibold text-center transition-all ${
                     plan.type === 'free' && isAuthenticated
-                      ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-500/20'
+                      ? 'bg-amber-500 text-white hover:bg-amber-600 shadow-lg shadow-amber-500/20'
                       : plan.popular
-                      ? 'bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-500/25'
+                      ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-500/25'
                       : plan.color === 'blue'
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                       : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
                   }`}
                 >
@@ -375,11 +375,11 @@ const Pricing = () => {
 
         {/* Guarantee */}
         <div className="text-center mt-16">
-          <div className="inline-flex items-center gap-3 px-6 py-3 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
-            <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="inline-flex items-center gap-3 px-6 py-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+            <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
-            <span className="text-green-700 dark:text-green-300 font-medium text-sm">
+            <span className="text-amber-700 dark:text-amber-300 font-medium text-sm">
               30-day money-back guarantee on all paid plans
             </span>
           </div>
@@ -418,14 +418,14 @@ const Pricing = () => {
             {isAuthenticated ? "You're already on the Starter plan. Start creating campaigns now." : "Join thousands of marketers using IVey to create viral content"}
           </p>
           {isAuthenticated ? (
-            <Link to="/dashboard" className="inline-flex items-center gap-2 px-8 py-4 bg-green-600 text-white rounded-xl font-semibold text-lg hover:bg-green-700 transition-colors shadow-sm">
+            <Link to="/dashboard" className="inline-flex items-center gap-2 px-8 py-4 bg-amber-500 text-white rounded-xl font-semibold text-lg hover:bg-amber-600 transition-colors shadow-sm">
               Go to Dashboard
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </Link>
           ) : (
-            <Link to="/signup" className="inline-flex items-center gap-2 px-8 py-4 bg-purple-600 text-white rounded-xl font-semibold text-lg hover:bg-purple-700 transition-colors shadow-sm">
+            <Link to="/signup" className="inline-flex items-center gap-2 px-8 py-4 bg-emerald-600 text-white rounded-xl font-semibold text-lg hover:bg-emerald-700 transition-colors shadow-sm">
               Start Free Today
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
