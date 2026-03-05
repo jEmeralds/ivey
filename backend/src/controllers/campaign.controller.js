@@ -311,3 +311,59 @@ export const generateMarketingStrategy = async (req, res) => {
     res.status(500).json({ error: error.message || 'Failed to generate strategy' });
   }
 };
+// ─── ADD THIS FUNCTION TO THE BOTTOM OF campaign.controller.js ───────────────
+
+// Generate a DALL-E visual for a specific content format
+export const generateVisual = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+    const { format, adCopy } = req.body;
+
+    // Verify campaign ownership
+    const { data: campaign, error: campaignError } = await supabaseAdmin
+      .from('campaigns')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
+    if (campaignError || !campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+
+    if (!format) {
+      return res.status(400).json({ error: 'Format is required' });
+    }
+
+    const { generateVisualAI } = await import('../services/ai.service.js');
+
+    const result = await generateVisualAI({
+      campaignName:       campaign.name,
+      productDescription: campaign.product_description,
+      targetAudience:     campaign.target_audience,
+      format,
+      adCopy: adCopy || ''
+    });
+
+    res.json({
+      message: 'Visual generated successfully',
+      imageUrl:      result.imageUrl,
+      revisedPrompt: result.revisedPrompt,
+      format:        result.format,
+      generatedAt:   result.generatedAt
+    });
+
+  } catch (error) {
+    console.error('Generate visual error:', error);
+
+    if (error.message.includes('API key not configured')) {
+      return res.status(503).json({ error: 'OpenAI API key required for image generation.' });
+    }
+    if (error.message.includes('content_policy_violation') || error.message.includes('safety')) {
+      return res.status(422).json({ error: 'Image could not be generated due to content policy. Try rephrasing your campaign description.' });
+    }
+
+    res.status(500).json({ error: error.message || 'Failed to generate visual' });
+  }
+};

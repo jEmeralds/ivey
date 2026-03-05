@@ -729,3 +729,70 @@ Structure your response as follows:
     throw error;
   }
 };
+// ─── DALL-E Visual Generation ─────────────────────────────────────────────────
+export const generateVisualAI = async ({ campaignName, productDescription, targetAudience, format, adCopy }) => {
+  if (!OPENAI_API_KEY) throw new Error('OpenAI API key not configured. DALL-E requires an OpenAI key.');
+
+  console.log(`\n🎨 Generating visual for: ${campaignName} — ${format}`);
+
+  const formatStyles = {
+    'tiktok_script':     'vertical social media video thumbnail, bold colors, Gen-Z aesthetic, energetic and dynamic',
+    'instagram_caption': 'square social media post, lifestyle photography style, Instagram aesthetic, vibrant',
+    'facebook_post':     'social media post visual, engaging, community-focused, warm and approachable',
+    'twitter_post':      'social media graphic, clean minimal design, bold statement visual',
+    'linkedin_post':     'professional business visual, corporate aesthetic, clean and authoritative',
+    'youtube_video_ad':  'YouTube video thumbnail, bold text overlay, high contrast, cinematic',
+    'youtube_shorts':    'vertical video thumbnail, bold colors, dynamic composition, modern',
+    'banner_ad':         'professional digital banner advertisement, wide horizontal format, bold typography, clean modern design',
+    'print_ad':          'high-quality print advertisement, magazine-style layout, professional photography aesthetic',
+    'flyer_text':        'eye-catching promotional flyer, vibrant colors, clear hierarchy, modern graphic design',
+    'google_search_ad':  'clean minimal digital ad visual, professional, corporate style',
+    'email_campaign':    'email header graphic, professional, clean layout, business aesthetic',
+  };
+
+  const styleGuide = formatStyles[format?.toLowerCase()] || 'professional marketing visual, clean modern design';
+
+  // Extract first meaningful line from ad copy as key message
+  const copySnippet = adCopy
+    ? adCopy.replace(/[#*>\-]/g, '').split('\n').find(l => l.trim().length > 10)?.trim().slice(0, 80) || ''
+    : '';
+
+  const dallePrompt = `${styleGuide} for a marketing campaign called "${campaignName}". ` +
+    `Product/service: ${productDescription?.slice(0, 100) || campaignName}. ` +
+    `Target audience: ${targetAudience?.slice(0, 60) || 'general audience'}. ` +
+    (copySnippet ? `Key message: "${copySnippet}". ` : '') +
+    `Style: photorealistic, high quality, commercial advertising aesthetic. No text or typography in the image. Clean background. Professional lighting.`;
+
+  console.log(`   Prompt: ${dallePrompt.slice(0, 100)}...`);
+
+  const response = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENAI_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: 'dall-e-3',
+      prompt: dallePrompt,
+      n: 1,
+      size: '1024x1024',
+      quality: 'standard',
+      response_format: 'url'
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`DALL-E error: ${error.error?.message || 'Image generation failed'}`);
+  }
+
+  const data = await response.json();
+  console.log('✅ Visual generated successfully');
+
+  return {
+    imageUrl:      data.data[0].url,
+    revisedPrompt: data.data[0].revised_prompt,
+    format,
+    generatedAt:   new Date().toISOString()
+  };
+};
