@@ -1,5 +1,5 @@
-import express from 'express';
-import { authenticateToken } from '../middleware/auth.middleware.js';
+﻿import express from 'express';
+import { auth as authenticateToken } from '../middleware/auth.middleware.js';
 import {
   getCampaigns,
   getCampaignById,
@@ -23,6 +23,6 @@ router.put('/:id',        updateCampaign);
 router.delete('/:id',     deleteCampaign);
 router.post('/:id/generate',          generateIdeas);
 router.post('/:id/generate-strategy', generateMarketingStrategy);
-router.post('/:id/generate-visual',   generateVisual);   // ← NEW
+router.post('/:id/generate-visual',   generateVisual);   // â† NEW
 
 export default router;
