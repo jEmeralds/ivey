@@ -1,4 +1,4 @@
-// AI Service - Handles all AI provider integrations
+﻿// AI Service - Handles all AI provider integrations
 import fetch from 'node-fetch';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -392,7 +392,7 @@ export const generateContentIdeasAI = async (campaignData, mediaUrls = []) => {
   }
 
   const formatPrompts = {
-    'tiktok_script': `Create a viral 30-second TikTok script for **"${name}"**.
+    'TIKTOK': `Create a viral 30-second TikTok script for **"${name}"**.
 
 **Product:** ${product_description}
 **Target Audience:** ${target_audience}${mediaContext}
@@ -416,7 +416,7 @@ Structure your response as follows:
 - **Text overlays**
 - **Recommended hashtags**`,
 
-    'instagram_caption': `Write an engaging Instagram caption for **"${name}"**.
+    'INSTAGRAM_CAPTION': `Write an engaging Instagram caption for **"${name}"**.
 
 **Product:** ${product_description}
 **Target Audience:** ${target_audience}${mediaContext}
@@ -431,7 +431,7 @@ Structure your response as follows:
 - Best time to post
 - Suggested image/video style`,
 
-    'youtube_video_ad': `Create a 60-second YouTube video ad script for **"${name}"**.
+    'YOUTUBE_VIDEO_AD': `Create a 60-second YouTube video ad script for **"${name}"**.
 
 **Product:** ${product_description}
 **Target Audience:** ${target_audience}${mediaContext}
@@ -458,7 +458,7 @@ Structure your response as follows:
 ## Key Selling Points
 [List the main product benefits to highlight]`,
 
-    'facebook_post': `Write a Facebook post for **"${name}"**.
+    'FACEBOOK_POST': `Write a Facebook post for **"${name}"**.
 
 **Product:** ${product_description}
 **Target Audience:** ${target_audience}${mediaContext}
@@ -473,7 +473,7 @@ Structure your response as follows:
 - Suggested question to boost comments
 - Best time to post`,
 
-    'twitter_post': `Create 3 Twitter/X post variations for **"${name}"**.
+    'TWITTER_POST': `Create 3 Twitter/X post variations for **"${name}"**.
 
 **Product:** ${product_description}
 **Target Audience:** ${target_audience}${mediaContext}
@@ -491,7 +491,7 @@ Structure your response as follows:
 
 > Each tweet includes relevant hashtags (2-3) and a clear CTA.`,
 
-    'linkedin_post': `Write a professional LinkedIn post for **"${name}"**.
+    'LINKEDIN_POST': `Write a professional LinkedIn post for **"${name}"**.
 
 **Product:** ${product_description}
 **Target Audience:** ${target_audience}${mediaContext}
@@ -506,7 +506,7 @@ Structure your response as follows:
 - Best time to post on LinkedIn
 - Suggested follow-up comment to pin`,
 
-    'youtube_shorts': `Create a YouTube Shorts script (60 seconds) for **"${name}"**.
+    'YOUTUBE_SHORTS': `Create a YouTube Shorts script (60 seconds) for **"${name}"**.
 
 **Product:** ${product_description}
 **Target Audience:** ${target_audience}${mediaContext}
@@ -529,7 +529,7 @@ Structure your response as follows:
 - Text overlay suggestions
 - Music/sound recommendation`,
 
-    'banner_ad': `Design banner ad copy for **"${name}"**.
+    'BANNER_AD': `Design banner ad copy for **"${name}"**.
 
 **Product:** ${product_description}
 **Target Audience:** ${target_audience}${mediaContext}
@@ -557,7 +557,7 @@ Structure your response as follows:
 - 300x250 (Medium Rectangle)
 - 160x600 (Wide Skyscraper)`,
 
-    'google_search_ad': `Write Google Search Ad copy for **"${name}"**.
+    'GOOGLE_SEARCH_AD': `Write Google Search Ad copy for **"${name}"**.
 
 **Product:** ${product_description}
 **Target Audience:** ${target_audience}${mediaContext}
@@ -588,7 +588,7 @@ Structure your response as follows:
 ## Display URL Suggestions
 - [path1/path2 suggestions]`,
 
-    'flyer_text': `Create flyer content for **"${name}"**.
+    'FLYER_TEXT': `Create flyer content for **"${name}"**.
 
 **Product:** ${product_description}
 **Target Audience:** ${target_audience}${mediaContext}
@@ -617,7 +617,7 @@ Structure your response as follows:
 ## Layout Suggestions
 - [Design and placement recommendations]`,
 
-    'print_ad': `Write print advertisement copy for **"${name}"**.
+    'PRINT_AD': `Write print advertisement copy for **"${name}"**.
 
 **Product:** ${product_description}
 **Target Audience:** ${target_audience}${mediaContext}
@@ -641,7 +641,7 @@ Structure your response as follows:
 - **Layout:** [headline placement, image balance]
 - **Tone:** [visual style guidance]`,
 
-    'email_campaign': `Create an email marketing campaign for **"${name}"**.
+    'EMAIL_MARKETING': `Create an email marketing campaign for **"${name}"**.
 
 **Product:** ${product_description}
 **Target Audience:** ${target_audience}${mediaContext}
@@ -739,18 +739,35 @@ export const generateVisualAI = async ({ campaignName, productDescription, targe
   console.log(`\n🎨 Generating visual for: ${campaignName} — ${format}`);
 
   const formatStyles = {
-    'tiktok_script':     'vertical social media video thumbnail, bold colors, Gen-Z aesthetic, energetic and dynamic',
-    'instagram_caption': 'square social media post, lifestyle photography style, Instagram aesthetic, vibrant',
-    'facebook_post':     'social media post visual, engaging, community-focused, warm and approachable',
-    'twitter_post':      'social media graphic, clean minimal design, bold statement visual',
-    'linkedin_post':     'professional business visual, corporate aesthetic, clean and authoritative',
-    'youtube_video_ad':  'YouTube video thumbnail, bold text overlay, high contrast, cinematic',
-    'youtube_shorts':    'vertical video thumbnail, bold colors, dynamic composition, modern',
-    'banner_ad':         'professional digital banner advertisement, wide horizontal format, bold typography, clean modern design',
-    'print_ad':          'high-quality print advertisement, magazine-style layout, professional photography aesthetic',
-    'flyer_text':        'eye-catching promotional flyer, vibrant colors, clear hierarchy, modern graphic design',
-    'google_search_ad':  'clean minimal digital ad visual, professional, corporate style',
-    'email_campaign':    'email header graphic, professional, clean layout, business aesthetic',
+    'TIKTOK':     'vertical social media video thumbnail, bold colors, Gen-Z aesthetic, energetic and dynamic',
+    'INSTAGRAM_CAPTION': 'square social media post, lifestyle photography style, Instagram aesthetic, vibrant',
+    'FACEBOOK_POST':     'social media post visual, engaging, community-focused, warm and approachable',
+    'TWITTER_POST':      'social media graphic, clean minimal design, bold statement visual',
+    'LINKEDIN_POST':     'professional business visual, corporate aesthetic, clean and authoritative',
+    'YOUTUBE_VIDEO_AD':  'YouTube video thumbnail, bold text overlay, high contrast, cinematic',
+    'YOUTUBE_SHORTS':    'vertical video thumbnail, bold colors, dynamic composition, modern',
+    'BANNER_AD':         'professional digital banner advertisement, wide horizontal format, bold typography, clean modern design',
+    'PRINT_AD':          'high-quality print advertisement, magazine-style layout, professional photography aesthetic',
+    'FLYER_TEXT':        'eye-catching promotional flyer, vibrant colors, clear hierarchy, modern graphic design',
+    'GOOGLE_SEARCH_AD':  'clean minimal digital ad visual, professional, corporate style',
+    'EMAIL_MARKETING':    'email header graphic, professional, clean layout, business aesthetic',
+    'SMS_MESSAGE': `Write 3 SMS marketing message variations for **"${name}"**.
+
+**Product:** ${product_description}
+**Target Audience:** ${target_audience}${mediaContext}
+
+## Variation 1 — Direct Offer
+[Under 160 characters with CTA]
+
+## Variation 2 — Urgency
+[Under 160 characters with deadline]
+
+## Variation 3 — Curiosity
+[Under 160 characters with intrigue]
+
+---
+
+> Each SMS includes opt-out reminder placeholder: "Reply STOP to unsubscribe"`,
   };
 
   const styleGuide = formatStyles[format?.toLowerCase()] || 'professional marketing visual, clean modern design';
