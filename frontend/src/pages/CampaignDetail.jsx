@@ -562,7 +562,7 @@ const CampaignDetail = () => {
   };
 
   const handleGenerate = async () => {
-    try { setGenerating(true); setError(''); const data = await generateIdeas(id); setGeneratedContent(data.generatedContent || []); }
+   try { setGenerating(true); setError(''); console.log('Generating for id:', id); const data = await generateIdeas(id); console.log('Response:', data); setGeneratedContent(data.generatedContent || []); }
     catch (err) { setError(err.response?.data?.error || 'Failed to generate content'); }
     finally { setGenerating(false); }
   };
