@@ -411,7 +411,6 @@ const CampaignDetail = () => {
   const [selectedMediaId,     setSelectedMediaId]     = useState(null);
 
   const showToast = (message, type = 'success') => { setToast({ visible: true, message, type }); setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000); };
-  const [selectedMediaId, setSelectedMediaId] = useState(null);
 
   useEffect(() => { fetchCampaign(); fetchMedia(); fetchSaved(); }, [id]);
   useEffect(() => { if (strategy) setStrategySections(parseStrategy(strategy)); }, [strategy]);
