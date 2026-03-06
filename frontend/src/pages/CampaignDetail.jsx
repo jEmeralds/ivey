@@ -10,7 +10,7 @@ import ReactMarkdown from 'react-markdown';
 
 const VISUAL_FORMATS = ['BANNER_AD', 'PRINT_AD', 'FLYER_TEXT', 'GOOGLE_SEARCH_AD'];
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.vercel.app';
-const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-backend-production.up.railway.app';
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 const Toast = ({ message, type, visible }) => {
@@ -58,12 +58,25 @@ const ShareModal = ({ isOpen, onClose, onShare, isLoading, shareUrl }) => {
 };
 
 // ─── Visual Modal ─────────────────────────────────────────────────────────────
-const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onRegenerate }) => {
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://edfdzytusmcjuwhjxtwn.supabase.co';
+
+const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onGenerate, media }) => {
+  const [selectedRefId, setSelectedRefId] = useState(null);
+  const [step, setStep] = useState('pick'); // 'pick' | 'result'
+
+  useEffect(() => { if (isOpen && !imageUrl) setStep('pick'); }, [isOpen]);
+  useEffect(() => { if (imageUrl) setStep('result'); }, [imageUrl]);
+
   if (!isOpen) return null;
+
   const formatName = OUTPUT_FORMATS[format]?.name || format;
+  const imageMedia = media?.filter(m => m.file_type?.startsWith('image/')) || [];
+  const getMediaUrl = (fp) => `${SUPABASE_URL}/storage/v1/object/public/campaign-media/${fp}`;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
           <div>
@@ -73,8 +86,67 @@ const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onRe
           <button onClick={onClose} className="w-7 h-7 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 flex items-center justify-center text-sm transition-all">✕</button>
         </div>
 
-        {/* Body */}
         <div className="p-6">
+
+          {/* ── Step 1: Pick reference image ── */}
+          {step === 'pick' && !isLoading && (
+            <div className="space-y-5">
+              <div>
+                <p className="text-sm font-medium text-white mb-1">Choose a reference image <span className="text-gray-400 font-normal">(optional)</span></p>
+                <p className="text-xs text-gray-400">GPT-4o will analyze your photo and guide DALL-E to match your product's look</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 max-h-52 overflow-y-auto">
+                {/* AI only option */}
+                <div
+                  onClick={() => setSelectedRefId(null)}
+                  className={`aspect-square rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${selectedRefId === null ? 'border-emerald-400 bg-emerald-500/10' : 'border-gray-700 bg-gray-800 hover:border-gray-500'}`}
+                >
+                  <span className="text-2xl">✨</span>
+                  <span className="text-xs text-gray-400 text-center">AI only</span>
+                </div>
+
+                {imageMedia.map(item => (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelectedRefId(item.id)}
+                    className={`aspect-square rounded-xl overflow-hidden border-2 cursor-pointer transition-all relative ${selectedRefId === item.id ? 'border-amber-400 shadow-lg shadow-amber-500/20 scale-[1.03]' : 'border-gray-700 hover:border-gray-500'}`}
+                  >
+                    <img src={getMediaUrl(item.file_path)} alt={item.file_name} className="w-full h-full object-cover" />
+                    {selectedRefId === item.id && (
+                      <div className="absolute inset-0 bg-amber-400/20 flex items-center justify-center">
+                        <div className="w-7 h-7 bg-amber-400 rounded-full flex items-center justify-center shadow-lg">
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {imageMedia.length === 0 && (
+                <div className="text-center py-3 bg-gray-800/50 rounded-xl border border-gray-700">
+                  <p className="text-xs text-gray-400">No images uploaded yet — upload product photos in the Media Gallery to use as reference</p>
+                </div>
+              )}
+
+              {selectedRefId && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                  <span className="text-amber-400 text-sm">📎</span>
+                  <span className="text-xs text-amber-300">GPT-4o will describe this image first, then guide DALL-E</span>
+                </div>
+              )}
+
+              <button
+                onClick={() => { setStep('result'); onGenerate(selectedRefId); }}
+                className="w-full py-3 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-semibold hover:from-amber-500 hover:to-amber-700 transition-all shadow-lg text-sm"
+              >
+                {selectedRefId ? '🎨 Generate with Reference' : '✨ Generate with AI Only'}
+              </button>
+            </div>
+          )}
+
+          {/* ── Loading ── */}
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-16 gap-4">
               <div className="relative w-16 h-16">
@@ -82,42 +154,42 @@ const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onRe
                 <div className="absolute inset-0 rounded-full border-4 border-t-amber-400 animate-spin" />
               </div>
               <div className="text-center">
-                <p className="text-white font-medium">Generating your visual...</p>
-                <p className="text-gray-400 text-sm mt-1">DALL-E 3 is creating a unique image for your campaign</p>
+                <p className="text-white font-medium">{selectedRefId ? 'Analyzing reference → Generating...' : 'Generating your visual...'}</p>
+                <p className="text-gray-400 text-sm mt-1">{selectedRefId ? 'GPT-4o Vision → DALL-E 3 pipeline' : 'DALL-E 3 is creating a unique image'}</p>
               </div>
             </div>
           )}
 
-          {error && !isLoading && (
-            <div className="bg-red-900/20 border border-red-800 rounded-xl p-4 text-center">
-              <p className="text-red-400 text-sm">{error}</p>
-              <button onClick={onRegenerate} className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-all">Try Again</button>
+          {/* ── Error ── */}
+          {error && !isLoading && step === 'result' && (
+            <div className="space-y-4">
+              <div className="bg-red-900/20 border border-red-800 rounded-xl p-4 text-center">
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setStep('pick')} className="flex-1 px-4 py-2.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl text-sm hover:bg-gray-700 transition-all">← Change Reference</button>
+                <button onClick={() => onGenerate(selectedRefId)} className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm hover:bg-red-700 transition-all">🔄 Try Again</button>
+              </div>
             </div>
           )}
 
-          {imageUrl && !isLoading && (
+          {/* ── Result ── */}
+          {imageUrl && !isLoading && step === 'result' && (
             <div className="space-y-4">
               <div className="rounded-xl overflow-hidden border border-gray-700">
                 <img src={imageUrl} alt={`AI generated visual for ${formatName}`} className="w-full object-cover" />
               </div>
+              {selectedRefId && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                  <span className="text-emerald-400 text-sm">✅</span>
+                  <span className="text-xs text-emerald-300">Generated using your reference image</span>
+                </div>
+              )}
               <div className="flex gap-2">
-                <a
-                  href={imageUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-all"
-                >
-                  ⬇️ Download Image
-                </a>
-                <button
-                  onClick={onRegenerate}
-                  className="px-4 py-2.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl text-sm hover:bg-gray-700 transition-all"
-                >
-                  🔄 Regenerate
-                </button>
+                <a href={imageUrl} target="_blank" rel="noopener noreferrer" download className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-all">⬇️ Download</a>
+                <button onClick={() => setStep('pick')} className="px-4 py-2.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl text-sm hover:bg-gray-700 transition-all">🔄 Regenerate</button>
               </div>
-              <p className="text-xs text-gray-500 text-center">Image generated by DALL-E 3 · For marketing use</p>
+              <p className="text-xs text-gray-500 text-center">Generated by DALL-E 3 · For marketing use</p>
             </div>
           )}
         </div>
@@ -232,7 +304,7 @@ const StrategySection = ({ title, content, icon, defaultOpen, campaignName, onSa
 };
 
 // ─── Content Card ─────────────────────────────────────────────────────────────
-const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, campaignId, onSave, onShare, savedKeys }) => {
+const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, campaignId, onSave, onShare, savedKeys, media }) => {
   const [activeTab, setActiveTab]       = useState('copy');
   const [isExpanded, setIsExpanded]     = useState(defaultExpanded);
   const [copied, setCopied]             = useState(false);
@@ -262,7 +334,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
   const handleSave   = async (e) => { e.stopPropagation(); if (isSaved) return; setSaving(true); await onSave({ title: `${formatName} — ${campaignName}`, content: item.content, content_type: 'content', format: item.format, key }); setSaving(false); };
   const handleShare  = (e) => { e.stopPropagation(); onShare({ title: `${formatName} — ${campaignName}`, content: item.content }); };
 
-  const handleGenerateVisual = async () => {
+  const handleGenerateVisual = async (refId) => {
     setVisualModal(true);
     setImageUrl(null);
     setImageError(null);
@@ -272,7 +344,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
       const res = await fetch(`${API_URL}/campaigns/${campaignId}/generate-visual`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ format: item.format, adCopy: item.content, referenceMediaId: selectedMediaId })
+        body: JSON.stringify({ format: item.format, adCopy: item.content, referenceMediaId: refId || null })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to generate visual');
@@ -350,7 +422,8 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
         isLoading={imageLoading}
         format={item.format}
         error={imageError}
-        onRegenerate={handleGenerateVisual}
+        onGenerate={handleGenerateVisual}
+        media={media}
       />
     </>
   );
@@ -408,7 +481,6 @@ const CampaignDetail = () => {
   const [shareUrl,            setShareUrl]            = useState('');
   const [sharing,             setSharing]             = useState(false);
   const [toast,               setToast]               = useState({ visible: false, message: '', type: 'success' });
-  const [selectedMediaId,     setSelectedMediaId]     = useState(null);
 
   const showToast = (message, type = 'success') => { setToast({ visible: true, message, type }); setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000); };
 
@@ -533,8 +605,7 @@ const CampaignDetail = () => {
           </div>
         </div>
 
-        <MediaUpload campaignId={id} media={media} onUploadSuccess={fetchMedia} 
-  onSelectForVisual={setSelectedMediaId} selectedMediaId={selectedMediaId} />
+        <div className="mb-6"><MediaUpload campaignId={id} media={media} onUploadSuccess={fetchMedia} onSelectForVisual={() => {}} selectedMediaId={null} /></div>
 
         {/* Generate buttons */}
         {generatedContent.length === 0 && !strategy && (
@@ -610,6 +681,7 @@ const CampaignDetail = () => {
                       onSave={handleSave}
                       onShare={openShareModal}
                       savedKeys={savedKeys}
+                      media={media}
                     />
                   ))}
                 </div>
@@ -628,4 +700,3 @@ const CampaignDetail = () => {
 };
 
 export default CampaignDetail;
-
