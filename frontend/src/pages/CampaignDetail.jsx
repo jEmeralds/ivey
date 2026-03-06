@@ -272,7 +272,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
       const res = await fetch(`${API_URL}/campaigns/${campaignId}/generate-visual`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ format: item.format, adCopy: item.content })
+        body: JSON.stringify({ format: item.format, adCopy: item.content, referenceMediaId: selectedMediaId })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to generate visual');
@@ -408,8 +408,10 @@ const CampaignDetail = () => {
   const [shareUrl,            setShareUrl]            = useState('');
   const [sharing,             setSharing]             = useState(false);
   const [toast,               setToast]               = useState({ visible: false, message: '', type: 'success' });
+  const [selectedMediaId,     setSelectedMediaId]     = useState(null);
 
   const showToast = (message, type = 'success') => { setToast({ visible: true, message, type }); setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000); };
+  const [selectedMediaId, setSelectedMediaId] = useState(null);
 
   useEffect(() => { fetchCampaign(); fetchMedia(); fetchSaved(); }, [id]);
   useEffect(() => { if (strategy) setStrategySections(parseStrategy(strategy)); }, [strategy]);
@@ -532,7 +534,8 @@ const CampaignDetail = () => {
           </div>
         </div>
 
-        <div className="mb-6"><MediaUpload campaignId={id} media={media} onUploadSuccess={fetchMedia} /></div>
+        <MediaUpload campaignId={id} media={media} onUploadSuccess={fetchMedia} 
+  onSelectForVisual={setSelectedMediaId} selectedMediaId={selectedMediaId} />
 
         {/* Generate buttons */}
         {generatedContent.length === 0 && !strategy && (

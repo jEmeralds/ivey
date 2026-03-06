@@ -729,8 +729,11 @@ Structure your response as follows:
     throw error;
   }
 };
-// ─── DALL-E Visual Generation ─────────────────────────────────────────────────
-export const generateVisualAI = async ({ campaignName, productDescription, targetAudience, format, adCopy }) => {
+// ─── REPLACE the existing generateVisualAI function in ai.service.js ─────────
+// Find: "export const generateVisualAI = async"
+// Replace the entire function with this:
+
+export const generateVisualAI = async ({ campaignName, productDescription, targetAudience, format, adCopy, referenceImageUrl }) => {
   if (!OPENAI_API_KEY) throw new Error('OpenAI API key not configured. DALL-E requires an OpenAI key.');
 
   console.log(`\n🎨 Generating visual for: ${campaignName} — ${format}`);
@@ -752,19 +755,63 @@ export const generateVisualAI = async ({ campaignName, productDescription, targe
 
   const styleGuide = formatStyles[format?.toLowerCase()] || 'professional marketing visual, clean modern design';
 
-  // Extract first meaningful line from ad copy as key message
   const copySnippet = adCopy
     ? adCopy.replace(/[#*>\-]/g, '').split('\n').find(l => l.trim().length > 10)?.trim().slice(0, 80) || ''
     : '';
 
-  const dallePrompt = `${styleGuide} for a marketing campaign called "${campaignName}". ` +
-    `Product/service: ${productDescription?.slice(0, 100) || campaignName}. ` +
-    `Target audience: ${targetAudience?.slice(0, 60) || 'general audience'}. ` +
-    (copySnippet ? `Key message: "${copySnippet}". ` : '') +
-    `Style: photorealistic, high quality, commercial advertising aesthetic. No text or typography in the image. Clean background. Professional lighting.`;
+  // ── Step 1: If reference image provided, use GPT-4o Vision to describe it ──
+  let productVisualDescription = '';
+  if (referenceImageUrl) {
+    console.log('   🔍 Analyzing reference image with GPT-4o Vision...');
+    try {
+      const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          max_tokens: 300,
+          messages: [{
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: { url: referenceImageUrl, detail: 'low' }
+              },
+              {
+                type: 'text',
+                text: 'Describe this product/image in 2-3 sentences focusing on: colors, visual style, key elements, and aesthetic. Be specific and concise. This description will be used to generate a marketing visual that matches this product.'
+              }
+            ]
+          }]
+        })
+      });
+
+      if (visionResponse.ok) {
+        const visionData = await visionResponse.json();
+        productVisualDescription = visionData.choices?.[0]?.message?.content || '';
+        console.log(`   ✅ Vision description: ${productVisualDescription.slice(0, 80)}...`);
+      }
+    } catch (err) {
+      console.warn('   ⚠️ Vision analysis failed, proceeding without reference:', err.message);
+    }
+  }
+
+  // ── Step 2: Build DALL-E prompt ────────────────────────────────────────────
+  const dallePrompt = [
+    `${styleGuide} for a marketing campaign called "${campaignName}".`,
+    `Product/service: ${productDescription?.slice(0, 100) || campaignName}.`,
+    `Target audience: ${targetAudience?.slice(0, 60) || 'general audience'}.`,
+    copySnippet ? `Key message: "${copySnippet}".` : '',
+    productVisualDescription ? `Product visual reference: ${productVisualDescription}` : '',
+    'Style: photorealistic, high quality, commercial advertising aesthetic. No text or typography in the image. Professional lighting.'
+  ].filter(Boolean).join(' ');
 
   console.log(`   Prompt: ${dallePrompt.slice(0, 100)}...`);
 
+  // ── Step 3: Call DALL-E 3 ─────────────────────────────────────────────────
   const response = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: {
@@ -792,6 +839,7 @@ export const generateVisualAI = async ({ campaignName, productDescription, targe
   return {
     imageUrl:      data.data[0].url,
     revisedPrompt: data.data[0].revised_prompt,
+    usedReference: !!productVisualDescription,
     format,
     generatedAt:   new Date().toISOString()
   };

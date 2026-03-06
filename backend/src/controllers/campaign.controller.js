@@ -312,13 +312,13 @@ export const generateMarketingStrategy = async (req, res) => {
   }
 };
 // ─── ADD THIS FUNCTION TO THE BOTTOM OF campaign.controller.js ───────────────
+// ─── REPLACE the generateVisual function in campaign.controller.js ───────────
 
-// Generate a DALL-E visual for a specific content format
 export const generateVisual = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
-    const { format, adCopy } = req.body;
+    const { format, adCopy, referenceMediaId } = req.body;
 
     // Verify campaign ownership
     const { data: campaign, error: campaignError } = await supabaseAdmin
@@ -336,6 +336,21 @@ export const generateVisual = async (req, res) => {
       return res.status(400).json({ error: 'Format is required' });
     }
 
+    // If a reference media ID was provided, get its public URL
+    let referenceImageUrl = null;
+    if (referenceMediaId) {
+      const { data: mediaItem } = await supabaseAdmin
+        .from('campaign_media')
+        .select('file_path, file_type')
+        .eq('id', referenceMediaId)
+        .single();
+
+      if (mediaItem && mediaItem.file_type?.startsWith('image/')) {
+        referenceImageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/campaign-media/${mediaItem.file_path}`;
+        console.log('📎 Using reference image:', referenceImageUrl.slice(0, 60) + '...');
+      }
+    }
+
     const { generateVisualAI } = await import('../services/ai.service.js');
 
     const result = await generateVisualAI({
@@ -343,27 +358,30 @@ export const generateVisual = async (req, res) => {
       productDescription: campaign.product_description,
       targetAudience:     campaign.target_audience,
       format,
-      adCopy: adCopy || ''
+      adCopy:             adCopy || '',
+      referenceImageUrl,
     });
 
     res.json({
-      message: 'Visual generated successfully',
+      message:       'Visual generated successfully',
       imageUrl:      result.imageUrl,
       revisedPrompt: result.revisedPrompt,
+      usedReference: result.usedReference,
       format:        result.format,
       generatedAt:   result.generatedAt
     });
 
   } catch (error) {
     console.error('Generate visual error:', error);
-
     if (error.message.includes('API key not configured')) {
       return res.status(503).json({ error: 'OpenAI API key required for image generation.' });
     }
-    if (error.message.includes('content_policy_violation') || error.message.includes('safety')) {
+    if (error.message.includes('billing') || error.message.includes('quota')) {
+      return res.status(402).json({ error: 'OpenAI billing limit reached. Please top up your account at platform.openai.com.' });
+    }
+    if (error.message.includes('content_policy') || error.message.includes('safety')) {
       return res.status(422).json({ error: 'Image could not be generated due to content policy. Try rephrasing your campaign description.' });
     }
-
     res.status(500).json({ error: error.message || 'Failed to generate visual' });
   }
 };
