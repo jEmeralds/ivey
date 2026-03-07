@@ -1,6 +1,6 @@
-{
+﻿{
   "name": "ivey-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Viral Marketing AI - Generate viral campaigns with 15-80x ROI",
   "main": "src/server.js",
   "type": "module",
