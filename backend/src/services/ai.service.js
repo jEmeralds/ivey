@@ -685,7 +685,7 @@ Structure your response as follows:
     const generatedContent = [];
 
     for (const format of output_formats || []) {
-      const formatKey = format.toLowerCase();
+      const formatKey = format;
       const prompt = formatPrompts[formatKey];
 
       if (!prompt) {
