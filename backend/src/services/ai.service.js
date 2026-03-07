@@ -1,4 +1,4 @@
-// AI Service - Handles all AI provider integrations
+﻿// AI Service - Handles all AI provider integrations
 import fetch from 'node-fetch';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -751,23 +751,7 @@ export const generateVisualAI = async ({ campaignName, productDescription, targe
     'FLYER_TEXT':        'eye-catching promotional flyer, vibrant colors, clear hierarchy, modern graphic design',
     'GOOGLE_SEARCH_AD':  'clean minimal digital ad visual, professional, corporate style',
     'EMAIL_MARKETING':    'email header graphic, professional, clean layout, business aesthetic',
-    'SMS_MESSAGE': `Write 3 SMS marketing message variations for **"${name}"**.
-
-**Product:** ${product_description}
-**Target Audience:** ${target_audience}${mediaContext}
-
-## Variation 1 — Direct Offer
-[Under 160 characters with CTA]
-
-## Variation 2 — Urgency
-[Under 160 characters with deadline]
-
-## Variation 3 — Curiosity
-[Under 160 characters with intrigue]
-
----
-
-> Each SMS includes opt-out reminder placeholder: "Reply STOP to unsubscribe"`,
+    'SMS_MESSAGE':   'clean minimal promotional graphic, bold offer text, mobile-optimized design',
   };
 
   const styleGuide = formatStyles[format?.toLowerCase()] || 'professional marketing visual, clean modern design';
