@@ -1,4 +1,4 @@
-﻿// AI Service - Handles all AI provider integrations
+// AI Service - Handles all AI provider integrations
 import fetch from 'node-fetch';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
