@@ -12,6 +12,7 @@ import authRoutes from './routes/auth.routes.js';
 import campaignRoutes from './routes/campaigns.routes.js';
 import mediaRoutes from './routes/media.routes.js';
 import contactRoutes from './routes/contact.routes.js';
+import adminRoutes, { setAdminIO } from './routes/admin.routes.js';
 import chatRoutes, { setIO } from './routes/chat.routes.js';
 import {
   setupHelmet,
@@ -66,8 +67,9 @@ const io = new Server(httpServer, {
   transports: ['websocket', 'polling'],
 });
 
-// Pass io to chat routes so webhook can emit to users
+// Pass io to chat and admin routes
 setIO(io);
+setAdminIO(io);
 
 io.on('connection', (socket) => {
   console.log(`🔌 Socket connected: ${socket.id}`);
@@ -82,6 +84,12 @@ io.on('connection', (socket) => {
     socket.emit('chat_history', history);
   });
 
+  // Admin joins a special room to receive all new messages
+  socket.on('admin_join', () => {
+    socket.join('admin_room');
+    console.log(`👑 Admin joined support dashboard`);
+  });
+
   // User sends a message
   socket.on('user_message', async ({ sessionId, message }) => {
     if (!sessionId || !message?.trim()) return;
@@ -94,6 +102,13 @@ io.on('connection', (socket) => {
     // Echo back to user's socket
     socket.emit('user_message_saved', {
       sender: 'user',
+      message: message.trim(),
+      created_at: saved?.created_at || new Date().toISOString(),
+    });
+
+    // Broadcast to admin dashboard
+    io.to('admin_room').emit('new_user_message', {
+      sessionId,
       message: message.trim(),
       created_at: saved?.created_at || new Date().toISOString(),
     });
@@ -132,6 +147,7 @@ app.get('/health', (req, res) => {
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/contact', contactRoutes);
 app.use('/api/chat',    chatRoutes);
+app.use('/api/admin',   adminRoutes);
 app.use('/api/auth',      authRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/media',     mediaRoutes);

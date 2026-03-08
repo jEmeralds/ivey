@@ -14,6 +14,7 @@ import CampaignDetail from './pages/CampaignDetail';
 import Features from './pages/Features';
 import Pricing from './pages/Pricing';
 import ChatWidget from './components/ChatWidget';
+import Support from './pages/Support'; 
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Navbar />
           <main className="flex-1 bg-gray-50 dark:bg-gray-900">
             <Routes>
+              <Route path="/support" element={<Support />} />
               <Route path="/" element={<Home />} />
               <Route path="/features" element={<Features />} />
               <Route path="/pricing" element={<Pricing />} />
