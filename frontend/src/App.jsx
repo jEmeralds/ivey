@@ -13,6 +13,7 @@ import EditCampaign from './pages/EditCampaign';
 import CampaignDetail from './pages/CampaignDetail';
 import Features from './pages/Features';
 import Pricing from './pages/Pricing';
+import ChatWidget from './components/ChatWidget';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
         </div>
       </ThemeProvider>
     </AuthProvider>
+    
   );
 }
 
