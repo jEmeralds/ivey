@@ -2,7 +2,6 @@
 // Handles contact form submissions - delivers to Telegram + Email simultaneously
 
 import nodemailer from 'nodemailer';
-import fetch from 'node-fetch';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;  // From BotFather
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;      // Your personal chat ID
@@ -131,7 +130,7 @@ export const sendContactMessage = async (req, res) => {
     return res.status(400).json({ error: 'Message is too short.' });
   }
 
-  console.log(`📩 Contact form: ${name} <${email}>`);
+  console.log(`📩 Contact form body:`, JSON.stringify({ name, email, message }));
 
   // Send both simultaneously
   const [telegramResult, emailResult] = await Promise.allSettled([
