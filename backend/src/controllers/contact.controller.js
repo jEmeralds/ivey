@@ -132,28 +132,19 @@ export const sendContactMessage = async (req, res) => {
 
   console.log(`📩 Contact form body:`, JSON.stringify({ name, email, message }));
 
-  // Send both simultaneously
-  const [telegramResult, emailResult] = await Promise.allSettled([
-    sendTelegram(name.trim(), email.trim(), message.trim()),
-    sendEmail(name.trim(), email.trim(), message.trim()),
-  ]);
+  // Send via Telegram only (Railway blocks outbound SMTP)
+  const telegramResult = await sendTelegram(name.trim(), email.trim(), message.trim());
 
-  const telegramSent = telegramResult.status === 'fulfilled' && telegramResult.value?.success;
-  const emailSent = emailResult.status === 'fulfilled' && emailResult.value?.success;
-
-  if (!telegramSent && !emailSent) {
-    console.error('❌ Both delivery methods failed');
+  if (!telegramResult.success) {
+    console.error('❌ Telegram delivery failed');
     return res.status(500).json({
-      error: 'Failed to send your message. Please try again or contact us directly.',
+      error: 'Failed to send your message. Please try again.',
     });
   }
 
   return res.status(200).json({
     success: true,
     message: 'Your message has been sent! We\'ll get back to you soon.',
-    delivered: {
-      telegram: telegramSent,
-      email: emailSent,
-    },
+    delivered: { telegram: true, email: false },
   });
 };
