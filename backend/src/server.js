@@ -44,7 +44,6 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200
 };
-app.use('/api/contact', contactRoutes);
 
 app.use(cors(corsOptions));
 
@@ -62,6 +61,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(securityLogger);
 
 // ── 5. Rate limiting ──────────────────────────────────────────────────────────
+
 app.use('/api/', apiLimiter);
 app.use('/api/campaigns/:id/generate', aiLimiter);
 app.use('/api/campaigns/:id/generate-strategy', aiLimiter);
@@ -77,6 +77,7 @@ app.get('/health', (req, res) => {
 });
 
 // ── Routes ────────────────────────────────────────────────────────────────────
+app.use('/api/contact', contactRoutes);
 app.use('/api/auth',      authRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/media',     mediaRoutes);
