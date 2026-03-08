@@ -1,37 +1,44 @@
 // backend/src/controllers/contact.controller.js
-// Handles contact form submissions - delivers to WhatsApp + Email simultaneously
+// Handles contact form submissions - delivers to Telegram + Email simultaneously
 
 import nodemailer from 'nodemailer';
 import fetch from 'node-fetch';
 
-const WHATSAPP_NUMBER = process.env.WHATSAPP_NUMBER;         // 254793873450
-const CALLMEBOT_APIKEY = process.env.CALLMEBOT_APIKEY;       // Get from CallMeBot activation
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;  // From BotFather
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;      // Your personal chat ID
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL;             // pearlvb08@gmail.com
-const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;   // Gmail App Password (not your login password)
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;   // Gmail App Password
 
-// ── Send to WhatsApp via CallMeBot ────────────────────────────────────────────
-async function sendWhatsApp(name, email, message) {
-  if (!WHATSAPP_NUMBER || !CALLMEBOT_APIKEY) {
-    console.warn('⚠️  WhatsApp not configured - skipping');
+// ── Send to Telegram ──────────────────────────────────────────────────────────
+async function sendTelegram(name, email, message) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.warn('⚠️  Telegram not configured - skipping');
     return { success: false, reason: 'not_configured' };
   }
 
   const text = `🔔 *New IVey Support Message*\n\n👤 *Name:* ${name}\n📧 *Email:* ${email}\n\n💬 *Message:*\n${message}\n\n_Reply to them at: ${email}_`;
-  const encoded = encodeURIComponent(text);
-  const url = `https://api.callmebot.com/whatsapp.php?phone=${WHATSAPP_NUMBER}&text=${encoded}&apikey=${CALLMEBOT_APIKEY}`;
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
   try {
-    const res = await fetch(url);
-    const body = await res.text();
-    if (res.ok && !body.toLowerCase().includes('error')) {
-      console.log('✅ WhatsApp message sent');
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text,
+        parse_mode: 'Markdown',
+      }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      console.log('✅ Telegram message sent');
       return { success: true };
     } else {
-      console.error('❌ WhatsApp send failed:', body);
-      return { success: false, reason: body };
+      console.error('❌ Telegram send failed:', data.description);
+      return { success: false, reason: data.description };
     }
   } catch (err) {
-    console.error('❌ WhatsApp error:', err.message);
+    console.error('❌ Telegram error:', err.message);
     return { success: false, reason: err.message };
   }
 }
@@ -127,15 +134,15 @@ export const sendContactMessage = async (req, res) => {
   console.log(`📩 Contact form: ${name} <${email}>`);
 
   // Send both simultaneously
-  const [waResult, emailResult] = await Promise.allSettled([
-    sendWhatsApp(name.trim(), email.trim(), message.trim()),
+  const [telegramResult, emailResult] = await Promise.allSettled([
+    sendTelegram(name.trim(), email.trim(), message.trim()),
     sendEmail(name.trim(), email.trim(), message.trim()),
   ]);
 
-  const waSent = waResult.status === 'fulfilled' && waResult.value?.success;
+  const telegramSent = telegramResult.status === 'fulfilled' && telegramResult.value?.success;
   const emailSent = emailResult.status === 'fulfilled' && emailResult.value?.success;
 
-  if (!waSent && !emailSent) {
+  if (!telegramSent && !emailSent) {
     console.error('❌ Both delivery methods failed');
     return res.status(500).json({
       error: 'Failed to send your message. Please try again or contact us directly.',
@@ -146,7 +153,7 @@ export const sendContactMessage = async (req, res) => {
     success: true,
     message: 'Your message has been sent! We\'ll get back to you soon.',
     delivered: {
-      whatsapp: waSent,
+      telegram: telegramSent,
       email: emailSent,
     },
   });
