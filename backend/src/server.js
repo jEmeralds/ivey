@@ -6,6 +6,7 @@ import saveRoutes from './routes/save.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import campaignRoutes from './routes/campaigns.routes.js';
 import mediaRoutes from './routes/media.routes.js';
+import contactRoutes from './routes/contact.routes.js';
 import {
   setupHelmet,
   apiLimiter,
@@ -43,6 +44,7 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200
 };
+app.use('/api/contact', contactRoutes);
 
 app.use(cors(corsOptions));
 
