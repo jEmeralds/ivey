@@ -1,3 +1,4 @@
+// backend/src/controllers/auth.controller.js
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { supabaseAdmin } from '../config/supabase.js';
@@ -8,12 +9,10 @@ export const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Validate input
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
-    // Check if user already exists
     const { data: existingUser } = await supabaseAdmin
       .from('users')
       .select('*')
@@ -24,19 +23,11 @@ export const signup = async (req, res) => {
       return res.status(400).json({ error: 'User already exists' });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
     const { data: newUser, error } = await supabaseAdmin
       .from('users')
-      .insert([
-        {
-          name,
-          email,
-          password: hashedPassword,
-        },
-      ])
+      .insert([{ name, email, password: hashedPassword }])
       .select()
       .single();
 
@@ -45,12 +36,13 @@ export const signup = async (req, res) => {
       return res.status(500).json({ error: 'Failed to create user' });
     }
 
-    // Generate JWT token
-    const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, {
-      expiresIn: '7d',
-    });
+    // Include role in JWT
+    const token = jwt.sign(
+      { userId: newUser.id, role: newUser.role || 'user' },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-    // Return user data (without password)
     const { password: _, ...userWithoutPassword } = newUser;
 
     res.status(201).json({
@@ -68,12 +60,10 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Find user
     const { data: user, error } = await supabaseAdmin
       .from('users')
       .select('*')
@@ -84,19 +74,19 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT token
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
-      expiresIn: '7d',
-    });
+    // Include role in JWT
+    const token = jwt.sign(
+      { userId: user.id, role: user.role || 'user' },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-    // Return user data (without password)
     const { password: _, ...userWithoutPassword } = user;
 
     res.json({
