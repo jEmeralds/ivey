@@ -1,7 +1,7 @@
 // backend/src/routes/brand.routes.js
 
 import express from 'express';
-import { authenticateToken } from '../middleware/auth.middleware.js';
+import { auth } from '../middleware/auth.middleware.js';
 import { createClient } from '@supabase/supabase-js';
 
 const router = express.Router();
@@ -11,8 +11,8 @@ const supabase = createClient(
 );
 
 // ── GET /api/brand ─────────────────────────────────────────────────────────────
-router.get('/', authenticateToken, async (req, res) => {
-  const userId = req.user?.userId || req.user?.id;
+router.get('/', auth, async (req, res) => {
+  const userId = req.userId;
 
   const { data, error } = await supabase
     .from('brand_profiles')
@@ -29,8 +29,8 @@ router.get('/', authenticateToken, async (req, res) => {
 
 // ── POST /api/brand ────────────────────────────────────────────────────────────
 // Upsert — creates or updates brand profile
-router.post('/', authenticateToken, async (req, res) => {
-  const userId = req.user?.userId || req.user?.id;
+router.post('/', auth, async (req, res) => {
+  const userId = req.userId;
   const { brand_name, tagline, industry, brand_colors, target_personas } = req.body;
 
   const { data, error } = await supabase
