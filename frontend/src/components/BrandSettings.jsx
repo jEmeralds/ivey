@@ -18,7 +18,8 @@ const PRESET_COLORS = [
   '#1e293b', '#0f172a',
 ];
 
-export default function BrandSettings({ isDark = true }) {
+export default function BrandSettings() {
+  const isDark = document.documentElement.classList.contains('dark');
   const [form, setForm] = useState({
     brand_name: '',
     tagline: '',
