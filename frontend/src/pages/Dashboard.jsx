@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getCampaigns } from '../services/api';
+import BrandSettings from '../components/BrandSettings';
 
 const Dashboard = () => {
   const [campaigns, setCampaigns] = useState([]);
@@ -14,6 +15,8 @@ const Dashboard = () => {
   });
   
   const navigate = useNavigate();
+
+  <BrandSettings isDark={isDark} />
 
   useEffect(() => {
   const token = localStorage.getItem('token');

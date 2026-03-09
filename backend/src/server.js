@@ -14,6 +14,9 @@ import mediaRoutes from './routes/media.routes.js';
 import contactRoutes from './routes/contact.routes.js';
 import adminRoutes, { setAdminIO } from './routes/admin.routes.js';
 import chatRoutes, { setIO } from './routes/chat.routes.js';
+import brandRoutes from './routes/brand.routes.js';
+
+
 import {
   setupHelmet,
   apiLimiter,
@@ -152,6 +155,7 @@ app.use('/api/auth',      authRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/media',     mediaRoutes);
 app.use('/api',           saveRoutes);
+app.use('/api/brand', brandRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
