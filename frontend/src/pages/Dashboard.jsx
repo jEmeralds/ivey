@@ -16,25 +16,24 @@ const Dashboard = () => {
   
   const navigate = useNavigate();
 
-
   useEffect(() => {
-  const token = localStorage.getItem('token');
-  const userData = localStorage.getItem('user');
-  
-  if (!token || !userData || userData === 'undefined' || userData === 'null') {
-    navigate('/login');
-    return;
-  }
-  
-  try {
-    setUser(JSON.parse(userData));
-  } catch (e) {
-    navigate('/login');
-    return;
-  }
-  
-  fetchCampaigns();
-}, [navigate]);
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    
+    if (!token || !userData || userData === 'undefined' || userData === 'null') {
+      navigate('/login');
+      return;
+    }
+    
+    try {
+      setUser(JSON.parse(userData));
+    } catch (e) {
+      navigate('/login');
+      return;
+    }
+    
+    fetchCampaigns();
+  }, [navigate]);
 
   const fetchCampaigns = async () => {
     try {
@@ -85,7 +84,7 @@ const Dashboard = () => {
         <div className="flex items-center justify-center h-64">
           <div className="flex items-center gap-3">
             <svg className="w-6 h-6 animate-spin text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 01-15.357-2m15.357 2H15" />
             </svg>
             <span className="text-gray-700 dark:text-gray-300">Loading campaigns...</span>
           </div>
@@ -97,7 +96,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors pt-16 md:pt-20">
       
-      {/* Header Section — flat, no border, same bg as page */}
+      {/* Header Section */}
       <div className="bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-6 md:py-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -169,6 +168,9 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Brand Settings */}
+        <BrandSettings />
 
         {/* Error Message */}
         {error && (
