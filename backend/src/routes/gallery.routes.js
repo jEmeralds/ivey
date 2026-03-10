@@ -6,10 +6,15 @@ import { auth } from '../middleware/auth.middleware.js';
 import { requireAdmin } from '../middleware/admin.middleware.js';
 
 const router = express.Router();
+
+// Use service key to bypass RLS — we handle auth ourselves via JWT
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY
 );
+
+// earlier definitions removed – a single set of routes and a single default export
+// follow below, no duplicate exports allowed
 
 // ── URL parser ────────────────────────────────────────────────────────────────
 function parseUrl(url) {
