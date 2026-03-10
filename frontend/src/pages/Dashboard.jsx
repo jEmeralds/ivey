@@ -16,7 +16,6 @@ const Dashboard = () => {
   
   const navigate = useNavigate();
 
-  <BrandSettings isDark={isDark} />
 
   useEffect(() => {
   const token = localStorage.getItem('token');
