@@ -169,6 +169,9 @@ const Dashboard = () => {
           </div>
         </div>
 
+        import GallerySubmitButton from '../components/GallerySubmitButton';
+<GallerySubmitButton campaigns={campaigns} isDark={isDark} />
+
         {/* Brand Settings */}
         <BrandSettings />
 

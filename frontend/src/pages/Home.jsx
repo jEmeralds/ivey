@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
+import GallerySection from '../components/GallerySection';
 
 // ─── Demo Data ────────────────────────────────────────────────────────────────
 const DEMO_DATA = {
@@ -10,6 +11,7 @@ const DEMO_DATA = {
   formats:     ['TikTok Script', 'Instagram Caption', 'Email Campaign', 'YouTube Ad', 'Facebook Post'],
   provider:    'Claude (Anthropic)',
 };
+
 
 const TYPING_SPEED = 28; // ms per char
 
@@ -214,7 +216,10 @@ const CampaignDemoModal = ({ onClose }) => {
     }
   };
 
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+<GallerySection user={user} />
   const currentStep = STEPS[stepIdx];
+
   const isLastStep  = stepIdx === STEPS.length - 1;
 
   return (

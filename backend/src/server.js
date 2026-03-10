@@ -15,6 +15,7 @@ import contactRoutes from './routes/contact.routes.js';
 import adminRoutes, { setAdminIO } from './routes/admin.routes.js';
 import chatRoutes, { setIO } from './routes/chat.routes.js';
 import brandRoutes from './routes/brand.routes.js';
+import galleryRoutes from './routes/gallery.routes.js';
 
 
 import {
@@ -136,6 +137,7 @@ app.use('/api/', apiLimiter);
 app.use('/api/campaigns/:id/generate', aiLimiter);
 app.use('/api/campaigns/:id/generate-strategy', aiLimiter);
 app.use('/api/campaigns/:id/generate-visual', aiLimiter);
+app.use('/api/gallery', galleryRoutes);
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
