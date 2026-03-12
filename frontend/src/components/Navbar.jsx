@@ -158,7 +158,7 @@ const Navbar = () => {
               <NavLink to="/features">Features</NavLink>
               <NavLink to="/pricing">Pricing</NavLink>
               <a href="/#gallery" onClick={handleGalleryClick} className={`px-3 py-2 rounded-lg font-medium text-sm text-gray-700 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all`}>
-                🏆 Gallery
+                 Gallery
               </a>
               {isAuthenticated && <NavLink to="/dashboard">Dashboard</NavLink>}
             </div>
