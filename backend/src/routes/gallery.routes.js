@@ -12,7 +12,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY
 );
 
-// URL parser
 function parseUrl(url) {
   if (!url) return { platform: 'link', embedId: null };
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
@@ -33,7 +32,6 @@ function parseUrl(url) {
   return { platform: 'link', embedId: null };
 }
 
-// GET /api/gallery - public
 router.get('/', async (req, res) => {
   const { platform, limit = 12, offset = 0 } = req.query;
   let query = supabase
@@ -49,7 +47,6 @@ router.get('/', async (req, res) => {
   res.json({ items: data || [] });
 });
 
-// GET /api/gallery/mine
 router.get('/mine', auth, async (req, res) => {
   const { data, error } = await supabase
     .from('gallery_items')
@@ -60,7 +57,6 @@ router.get('/mine', auth, async (req, res) => {
   res.json({ items: data || [] });
 });
 
-// POST /api/gallery
 router.post('/', auth, async (req, res) => {
   const userId = req.userId;
 
@@ -108,7 +104,6 @@ router.post('/', auth, async (req, res) => {
   res.status(201).json({ item: data, message: 'Added to gallery!' });
 });
 
-// DELETE /api/gallery/:id - admin
 router.delete('/:id', auth, requireAdmin, async (req, res) => {
   const { error } = await supabase
     .from('gallery_items')
@@ -118,7 +113,6 @@ router.delete('/:id', auth, requireAdmin, async (req, res) => {
   res.json({ message: 'Item removed from gallery.' });
 });
 
-// DELETE /api/gallery/:id/mine - user removes own
 router.delete('/:id/mine', auth, async (req, res) => {
   const { error } = await supabase
     .from('gallery_items')

@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import GallerySection from '../components/GallerySection';
 
-// ─── Demo Data ────────────────────────────────────────────────────────────────
 const DEMO_DATA = {
   name:        'Summer Fitness Challenge',
   description: 'A 30-day fitness challenge targeting gym-goers and home workout enthusiasts. We want to drive sign-ups for our new app launch, highlight transformation stories, and create urgency with limited-time offers.',
@@ -12,8 +11,7 @@ const DEMO_DATA = {
   provider:    'Claude (Anthropic)',
 };
 
-
-const TYPING_SPEED = 28; // ms per char
+const TYPING_SPEED = 28;
 
 const TAG_COLORS = {
   'TikTok Script':     'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
@@ -30,8 +28,6 @@ const ALL_FORMAT_OPTIONS = [
 
 const PROVIDERS = ['Claude (Anthropic)', 'GPT-4 (OpenAI)', 'Gemini (Google)'];
 
-// ─── Step definitions ─────────────────────────────────────────────────────────
-// Each step has a label, field highlight, and how long it takes
 const STEPS = [
   { id: 'name',     label: 'Campaign Name',     icon: '📝' },
   { id: 'desc',     label: 'Description',        icon: '📄' },
@@ -42,7 +38,6 @@ const STEPS = [
   { id: 'done',     label: 'Campaign Created!',  icon: '🎉' },
 ];
 
-// ─── Typewriter hook ──────────────────────────────────────────────────────────
 const useTypewriter = () => {
   const timers = useRef([]);
   const clear  = () => { timers.current.forEach(clearTimeout); timers.current = []; };
@@ -66,7 +61,6 @@ const useTypewriter = () => {
   return { type, clear };
 };
 
-// ─── Campaign Demo Modal ──────────────────────────────────────────────────────
 const CampaignDemoModal = ({ onClose }) => {
   const [stepIdx,      setStepIdx]      = useState(0);
   const [paused,       setPaused]       = useState(false);
@@ -94,14 +88,12 @@ const CampaignDemoModal = ({ onClose }) => {
     clearType();
   };
 
-  // ── advance step ────────────────────────────────────────────────────────────
   const goStep = useCallback((idx) => {
     if (idx >= STEPS.length) return;
     stepRef.current = idx;
     setStepIdx(idx);
   }, []);
 
-  // ── run a step ──────────────────────────────────────────────────────────────
   const runStep = useCallback((idx) => {
     if (pausedRef.current) return;
     goStep(idx);
@@ -109,17 +101,11 @@ const CampaignDemoModal = ({ onClose }) => {
 
     if (step.id === 'name') {
       typeText(DEMO_DATA.name, setNameVal, TYPING_SPEED, () => runStep(idx + 1));
-    }
-
-    else if (step.id === 'desc') {
+    } else if (step.id === 'desc') {
       typeText(DEMO_DATA.description, setDescVal, 18, () => runStep(idx + 1));
-    }
-
-    else if (step.id === 'audience') {
+    } else if (step.id === 'audience') {
       typeText(DEMO_DATA.audience, setAudienceVal, TYPING_SPEED, () => runStep(idx + 1));
-    }
-
-    else if (step.id === 'formats') {
+    } else if (step.id === 'formats') {
       let delay = 400;
       DEMO_DATA.formats.forEach((fmt, i) => {
         const id = setTimeout(() => {
@@ -132,16 +118,12 @@ const CampaignDemoModal = ({ onClose }) => {
         mainTimers.current.push(id);
         delay += 400;
       });
-    }
-
-    else if (step.id === 'provider') {
+    } else if (step.id === 'provider') {
       sched(() => {
         setSelProvider(DEMO_DATA.provider);
         sched(() => runStep(idx + 1), 800);
       }, 400);
-    }
-
-    else if (step.id === 'submit') {
+    } else if (step.id === 'submit') {
       let pct = 0;
       const tick = () => {
         if (pausedRef.current) return;
@@ -156,31 +138,23 @@ const CampaignDemoModal = ({ onClose }) => {
         }
       };
       setTimeout(tick, 300);
-    }
-
-    else if (step.id === 'done') {
+    } else if (step.id === 'done') {
       setDone(true);
     }
   }, [goStep, sched, typeText]);
 
-  // Start on mount
   useEffect(() => { runStep(0); return () => clearAll(); }, []);
 
-  // ── pause / resume ───────────────────────────────────────────────────────────
   const togglePause = () => {
     if (!paused) {
-      // pause
       pausedRef.current = true;
       clearAll();
       setPaused(true);
     } else {
-      // resume — re-run from current step but preserve typed content
       pausedRef.current = false;
       setPaused(false);
       const cur = stepRef.current;
       const step = STEPS[cur];
-
-      // For typing steps resume from where we left off
       if (step.id === 'name') {
         typeText(DEMO_DATA.name, setNameVal, TYPING_SPEED, () => runStep(cur + 1));
       } else if (step.id === 'desc') {
@@ -193,22 +167,18 @@ const CampaignDemoModal = ({ onClose }) => {
     }
   };
 
-  // ── skip to next step ────────────────────────────────────────────────────────
   const skipStep = () => {
     clearAll();
     pausedRef.current = false;
     setPaused(false);
     const cur = stepRef.current;
     const step = STEPS[cur];
-
-    // Fill current step instantly
     if (step.id === 'name')     { setNameVal(DEMO_DATA.name); }
     if (step.id === 'desc')     { setDescVal(DEMO_DATA.description); }
     if (step.id === 'audience') { setAudienceVal(DEMO_DATA.audience); }
     if (step.id === 'formats')  { setSelFormats(DEMO_DATA.formats); }
     if (step.id === 'provider') { setSelProvider(DEMO_DATA.provider); }
     if (step.id === 'submit')   { setProgress(100); }
-
     const nextIdx = cur + 1;
     if (nextIdx < STEPS.length) {
       const id = setTimeout(() => runStep(nextIdx), 200);
@@ -216,10 +186,7 @@ const CampaignDemoModal = ({ onClose }) => {
     }
   };
 
-  const user = JSON.parse(localStorage.getItem('user') || 'null');
-<GallerySection user={user} />
   const currentStep = STEPS[stepIdx];
-
   const isLastStep  = stepIdx === STEPS.length - 1;
 
   return (
@@ -227,7 +194,6 @@ const CampaignDemoModal = ({ onClose }) => {
          onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700 flex flex-col">
 
-        {/* ── Modal Header ── */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-to-r from-amber-400 to-amber-600 rounded-lg flex items-center justify-center">
@@ -247,7 +213,6 @@ const CampaignDemoModal = ({ onClose }) => {
           </button>
         </div>
 
-        {/* ── Step Progress Bar ── */}
         <div className="px-6 pt-4">
           <div className="flex items-center gap-1 mb-1">
             {STEPS.slice(0, -1).map((s, i) => (
@@ -266,10 +231,7 @@ const CampaignDemoModal = ({ onClose }) => {
           </div>
         </div>
 
-        {/* ── Form Body ── */}
         <div className="px-6 py-4 flex-1 space-y-5">
-
-          {/* Campaign Name */}
           <div className={`transition-all duration-300 ${stepIdx >= 0 ? 'opacity-100' : 'opacity-30'}`}>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
               Campaign Name
@@ -285,7 +247,6 @@ const CampaignDemoModal = ({ onClose }) => {
             </div>
           </div>
 
-          {/* Description */}
           <div className={`transition-all duration-300 ${stepIdx >= 1 ? 'opacity-100' : 'opacity-30'}`}>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
               Campaign Description
@@ -301,7 +262,6 @@ const CampaignDemoModal = ({ onClose }) => {
             </div>
           </div>
 
-          {/* Target Audience */}
           <div className={`transition-all duration-300 ${stepIdx >= 2 ? 'opacity-100' : 'opacity-30'}`}>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
               Target Audience
@@ -317,7 +277,6 @@ const CampaignDemoModal = ({ onClose }) => {
             </div>
           </div>
 
-          {/* Output Formats */}
           <div className={`transition-all duration-300 ${stepIdx >= 3 ? 'opacity-100' : 'opacity-30'}`}>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
               Output Formats
@@ -346,7 +305,6 @@ const CampaignDemoModal = ({ onClose }) => {
             </div>
           </div>
 
-          {/* AI Provider */}
           <div className={`transition-all duration-300 ${stepIdx >= 4 ? 'opacity-100' : 'opacity-30'}`}>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
               AI Provider
@@ -370,7 +328,6 @@ const CampaignDemoModal = ({ onClose }) => {
             </div>
           </div>
 
-          {/* Submit / Progress */}
           {stepIdx >= 5 && (
             <div className="pt-2">
               {!done ? (
@@ -386,7 +343,7 @@ const CampaignDemoModal = ({ onClose }) => {
                   </div>
                   <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-emerald-500 via-amber-400 to-emerald-500 rounded-full transition-all duration-75 bg-[length:200%_100%] animate-shimmer"
+                      className="h-full bg-gradient-to-r from-emerald-500 via-amber-400 to-emerald-500 rounded-full transition-all duration-75"
                       style={{ width: `${progress}%` }}
                     />
                   </div>
@@ -411,10 +368,7 @@ const CampaignDemoModal = ({ onClose }) => {
                       </span>
                     ))}
                   </div>
-                  <button
-                    onClick={onClose}
-                    className="mt-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold text-sm hover:bg-emerald-700 transition-colors shadow-sm"
-                  >
+                  <button onClick={onClose} className="mt-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold text-sm hover:bg-emerald-700 transition-colors shadow-sm">
                     Try It Yourself →
                   </button>
                 </div>
@@ -423,48 +377,25 @@ const CampaignDemoModal = ({ onClose }) => {
           )}
         </div>
 
-        {/* ── Controls Footer ── */}
         {!done && (
           <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-b-2xl flex items-center justify-between gap-3 sticky bottom-0">
-            <button
-              onClick={togglePause}
-              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
+            <button onClick={togglePause} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
               {paused ? (
-                <>
-                  <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                  Resume
-                </>
+                <><svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>Resume</>
               ) : (
-                <>
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                  </svg>
-                  Pause
-                </>
+                <><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>Pause</>
               )}
             </button>
-
             <div className="flex items-center gap-2">
               {!isLastStep && (
-                <button
-                  onClick={skipStep}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
-                >
+                <button onClick={skipStep} className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
                   Skip Step
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
                   </svg>
                 </button>
               )}
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm transition-colors"
-              >
-                Close
-              </button>
+              <button onClick={onClose} className="px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm transition-colors">Close</button>
             </div>
           </div>
         )}
@@ -473,7 +404,6 @@ const CampaignDemoModal = ({ onClose }) => {
   );
 };
 
-// ─── Static Campaign Brief Card (homepage) ───────────────────────────────────
 const CampaignBriefCard = ({ onOpenDemo }) => (
   <div className="bg-white dark:bg-gray-800 rounded-lg md:rounded-xl shadow-lg p-4 md:p-6">
     <div className="flex items-center gap-3 mb-4">
@@ -490,18 +420,13 @@ const CampaignBriefCard = ({ onOpenDemo }) => (
       <div className="px-2 md:px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full text-xs">Instagram</div>
       <div className="px-2 md:px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-xs">Email</div>
     </div>
-
-    {/* Demo button */}
     <button
       onClick={onOpenDemo}
-      className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-lg text-sm font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-md shadow-emerald-500/25 hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+      className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-lg text-sm font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-md flex items-center justify-center gap-2"
     >
-      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M8 5v14l11-7z" />
-      </svg>
+      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
       Watch Campaign Demo
     </button>
-
     <div className="flex justify-center mt-4">
       <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600 dark:text-gray-400">
         <svg className="w-3 h-3 md:w-4 md:h-4 animate-spin text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -524,14 +449,11 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors pt-16 md:pt-20">
 
-      {/* Demo Modal */}
       {showDemo && <CampaignDemoModal onClose={() => setShowDemo(false)} />}
 
       {/* Hero */}
       <div className="px-4 md:px-6 lg:px-12 py-8 md:py-16 lg:py-20">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-
-          {/* Left */}
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full text-xs md:text-sm mb-4 md:mb-6">
               <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -539,46 +461,31 @@ const Home = () => {
               </svg>
               <span>AI-Powered Marketing</span>
             </div>
-
             <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-900 dark:text-white leading-tight mb-4 md:mb-6">
               Generate Viral Marketing Content
               <span className="text-emerald-600 dark:text-emerald-400"> in Seconds</span>
             </h1>
-
             <p className="text-base md:text-lg lg:text-xl text-gray-600 dark:text-gray-400 leading-relaxed mb-6 md:mb-8 max-w-lg">
               Create TikTok scripts, Instagram captions, email campaigns, and 13+ content formats using advanced AI. Built for marketing agencies and brands.
             </p>
-
             {isAuthenticated && (
               <div className="flex items-center gap-2 mb-5 px-4 py-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl w-fit">
-                <span className="text-amber-600 dark:text-amber-400 text-sm font-medium">
-                  👋 Welcome back, {displayName}!
-                </span>
+                <span className="text-amber-600 dark:text-amber-400 text-sm font-medium">👋 Welcome back, {displayName}!</span>
               </div>
             )}
-
             <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
               {isAuthenticated ? (
                 <>
-                  <button onClick={() => navigate('/dashboard')} className="px-6 md:px-8 py-3 md:py-4 bg-amber-500 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-amber-600 transition-colors text-center">
-                    🚀 Go to Dashboard
-                  </button>
-                  <button onClick={() => navigate('/new-campaign')} className="px-6 md:px-8 py-3 md:py-4 border-2 border-emerald-400 dark:border-emerald-600 text-emerald-700 dark:text-emerald-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors text-center">
-                    ✨ New Campaign
-                  </button>
+                  <button onClick={() => navigate('/dashboard')} className="px-6 md:px-8 py-3 md:py-4 bg-amber-500 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-amber-600 transition-colors text-center">🚀 Go to Dashboard</button>
+                  <button onClick={() => navigate('/new-campaign')} className="px-6 md:px-8 py-3 md:py-4 border-2 border-emerald-400 dark:border-emerald-600 text-emerald-700 dark:text-emerald-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors text-center">✨ New Campaign</button>
                 </>
               ) : (
                 <>
-                  <button onClick={() => navigate('/signup')} className="px-6 md:px-8 py-3 md:py-4 bg-emerald-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-emerald-700 transition-colors text-center">
-                    Start Free Trial
-                  </button>
-                  <button onClick={() => navigate('/login')} className="px-6 md:px-8 py-3 md:py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors text-center">
-                    Sign In
-                  </button>
+                  <button onClick={() => navigate('/signup')} className="px-6 md:px-8 py-3 md:py-4 bg-emerald-600 text-white rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:bg-emerald-700 transition-colors text-center">Start Free Trial</button>
+                  <button onClick={() => navigate('/login')} className="px-6 md:px-8 py-3 md:py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg md:rounded-xl font-semibold text-base md:text-lg hover:border-gray-400 dark:hover:border-gray-500 transition-colors text-center">Sign In</button>
                 </>
               )}
             </div>
-
             <div className="grid grid-cols-3 gap-4 md:flex md:items-center md:gap-8 mt-8 md:mt-12">
               <div className="text-center md:text-left">
                 <div className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">50K+</div>
@@ -595,7 +502,6 @@ const Home = () => {
             </div>
           </div>
 
-          {/* Right — Card with Demo Button */}
           <div className="relative mt-8 lg:mt-0">
             <div className="bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl md:rounded-2xl p-4 md:p-6 lg:p-8">
               <CampaignBriefCard onOpenDemo={() => setShowDemo(true)} />
@@ -604,16 +510,12 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Features Section */}
+      {/* Features */}
       <div className="px-4 md:px-6 lg:px-12 py-12 md:py-16 lg:py-20 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 md:mb-16">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Everything you need to create viral content
-            </h2>
-            <p className="text-base md:text-lg lg:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Stop spending hours writing content. Let AI do the heavy lifting while you focus on strategy.
-            </p>
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-4">Everything you need to create viral content</h2>
+            <p className="text-base md:text-lg lg:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">Stop spending hours writing content. Let AI do the heavy lifting while you focus on strategy.</p>
           </div>
           <div className="grid gap-6 md:gap-8 md:grid-cols-2 lg:grid-cols-3">
             {[
@@ -634,6 +536,9 @@ const Home = () => {
           </div>
         </div>
       </div>
+
+      {/* Gallery Section */}
+      <GallerySection user={user} />
 
       {/* Bottom CTA */}
       <div className="px-4 md:px-6 lg:px-12 py-12 md:py-16 lg:py-20">

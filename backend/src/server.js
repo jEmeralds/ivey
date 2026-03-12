@@ -1,5 +1,4 @@
 // backend/src/server.js
-// Full server with Socket.io for real-time support chat
 
 import express from 'express';
 import { createServer } from 'http';
@@ -17,7 +16,6 @@ import chatRoutes, { setIO } from './routes/chat.routes.js';
 import brandRoutes from './routes/brand.routes.js';
 import galleryRoutes from './routes/gallery.routes.js';
 
-
 import {
   setupHelmet,
   apiLimiter,
@@ -30,13 +28,12 @@ import { saveMessage, notifyTelegram, loadHistory } from './services/chat.servic
 dotenv.config();
 
 const app = express();
-const httpServer = createServer(app); // Wrap express in http server for Socket.io
+const httpServer = createServer(app);
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
 
 checkEnvironment();
 
-// ── CORS options ──────────────────────────────────────────────────────────────
 const allowedOrigins = [
   'https://ivey-steel.vercel.app',
   'https://ivey.vercel.app',
@@ -50,7 +47,7 @@ const corsOptions = {
     if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
       return callback(null, true);
     }
-    return callback(null, true); // Allow all for now
+    return callback(null, true);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
@@ -61,7 +58,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
-// ── Socket.io ─────────────────────────────────────────────────────────────────
 const io = new Server(httpServer, {
   cors: {
     origin: allowedOrigins,
@@ -71,53 +67,38 @@ const io = new Server(httpServer, {
   transports: ['websocket', 'polling'],
 });
 
-// Pass io to chat and admin routes
 setIO(io);
 setAdminIO(io);
 
 io.on('connection', (socket) => {
   console.log(`🔌 Socket connected: ${socket.id}`);
 
-  // User joins their session room
   socket.on('join_session', async (sessionId) => {
     socket.join(sessionId);
     console.log(`📥 Session joined: ${sessionId.slice(0, 8)}`);
-
-    // Send history
     const history = await loadHistory(sessionId);
     socket.emit('chat_history', history);
   });
 
-  // Admin joins a special room to receive all new messages
   socket.on('admin_join', () => {
     socket.join('admin_room');
     console.log(`👑 Admin joined support dashboard`);
   });
 
-  // User sends a message
   socket.on('user_message', async ({ sessionId, message }) => {
     if (!sessionId || !message?.trim()) return;
-
     console.log(`💬 User [${sessionId.slice(0, 8)}]: ${message}`);
-
-    // Save to Supabase
     const saved = await saveMessage(sessionId, 'user', message.trim());
-
-    // Echo back to user's socket
     socket.emit('user_message_saved', {
       sender: 'user',
       message: message.trim(),
       created_at: saved?.created_at || new Date().toISOString(),
     });
-
-    // Broadcast to admin dashboard
     io.to('admin_room').emit('new_user_message', {
       sessionId,
       message: message.trim(),
       created_at: saved?.created_at || new Date().toISOString(),
     });
-
-    // Notify you on Telegram
     await notifyTelegram(sessionId, message.trim());
   });
 
@@ -137,7 +118,6 @@ app.use('/api/', apiLimiter);
 app.use('/api/campaigns/:id/generate', aiLimiter);
 app.use('/api/campaigns/:id/generate-strategy', aiLimiter);
 app.use('/api/campaigns/:id/generate-visual', aiLimiter);
-app.use('/api/gallery', galleryRoutes);
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
@@ -150,14 +130,15 @@ app.get('/health', (req, res) => {
 });
 
 // ── Routes ────────────────────────────────────────────────────────────────────
-app.use('/api/contact', contactRoutes);
-app.use('/api/chat',    chatRoutes);
-app.use('/api/admin',   adminRoutes);
+app.use('/api/contact',   contactRoutes);
+app.use('/api/chat',      chatRoutes);
+app.use('/api/admin',     adminRoutes);
 app.use('/api/auth',      authRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/media',     mediaRoutes);
+app.use('/api/brand',     brandRoutes);
+app.use('/api/gallery',   galleryRoutes);
 app.use('/api',           saveRoutes);
-app.use('/api/brand', brandRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
@@ -174,7 +155,7 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
 
-// ── Start — use httpServer not app.listen ─────────────────────────────────────
+// ── Start ─────────────────────────────────────────────────────────────────────
 httpServer.listen(PORT, () => {
   console.log(`🚀 IVey Backend running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
