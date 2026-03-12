@@ -24,6 +24,22 @@ const Navbar = () => {
     toggleTheme();
   };
 
+  // Scrolls to #gallery — works on home page, navigates there from other pages
+  const handleGalleryClick = (e) => {
+    e.preventDefault();
+    setIsMobileMenuOpen(false);
+    if (location.pathname === '/') {
+      const el = document.getElementById('gallery');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      navigate('/#gallery');
+      setTimeout(() => {
+        const el = document.getElementById('gallery');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    }
+  };
+
   const NavLink = ({ to, children, className = "" }) => (
     <Link
       to={to}
@@ -37,6 +53,8 @@ const Navbar = () => {
       {children}
     </Link>
   );
+
+  const galleryLinkClass = `px-3 md:px-4 py-2 rounded-lg font-medium transition-all duration-200 text-sm md:text-base text-gray-700 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-100 dark:hover:bg-gray-700`;
 
   return (
     <nav className="bg-gray-50 dark:bg-gray-900 transition-colors sticky top-0 z-50">
@@ -57,6 +75,9 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-1 md:gap-2">
             <NavLink to="/features">Features</NavLink>
             <NavLink to="/pricing">Pricing</NavLink>
+            <a href="/#gallery" onClick={handleGalleryClick} className={galleryLinkClass}>
+              🏆 Gallery
+            </a>
             {isAuthenticated && <NavLink to="/dashboard">Dashboard</NavLink>}
           </div>
 
@@ -136,6 +157,9 @@ const Navbar = () => {
             <div className="flex flex-col space-y-2">
               <NavLink to="/features">Features</NavLink>
               <NavLink to="/pricing">Pricing</NavLink>
+              <a href="/#gallery" onClick={handleGalleryClick} className={`px-3 py-2 rounded-lg font-medium text-sm text-gray-700 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all`}>
+                🏆 Gallery
+              </a>
               {isAuthenticated && <NavLink to="/dashboard">Dashboard</NavLink>}
             </div>
 
