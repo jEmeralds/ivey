@@ -216,6 +216,8 @@ export default function GallerySubmitButton({ campaigns = [], isDark = true }) {
     }
   };
 
+  const [expanded, setExpanded] = useState(false);
+
   const surface = isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
   const textPrimary = isDark ? 'text-white' : 'text-gray-900';
   const textMuted = isDark ? 'text-gray-400' : 'text-gray-500';
@@ -225,8 +227,13 @@ export default function GallerySubmitButton({ campaigns = [], isDark = true }) {
   return (
     <>
       {/* Banner */}
-      <div className={`rounded-2xl border shadow-sm p-5 mb-6 ${surface}`}>
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className={`rounded-2xl border shadow-sm mb-6 ${surface}`}>
+
+        {/* Header row — always visible, click to expand/collapse */}
+        <div
+          className="flex items-center justify-between gap-4 flex-wrap p-5 cursor-pointer select-none"
+          onClick={() => setExpanded(e => !e)}
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>🏆</div>
             <div>
@@ -236,42 +243,49 @@ export default function GallerySubmitButton({ campaigns = [], isDark = true }) {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(16,185,129,0.25)' }}>
-            + Add to Gallery
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={e => { e.stopPropagation(); setShowModal(true); }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(16,185,129,0.25)' }}>
+              + Add to Gallery
+            </button>
+            {/* Chevron */}
+            <div style={{ color: isDark ? '#475569' : '#94a3b8', fontSize: 18, transition: 'transform 0.25s', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', lineHeight: 1 }}>
+              ▾
+            </div>
+          </div>
         </div>
 
-        {/* User's existing gallery items */}
-        {!loadingMine && myItems.length > 0 && (
-          <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <p className={`text-xs font-semibold mb-3 ${textMuted}`} style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>Your Gallery Items</p>
-            <div className="flex flex-col gap-2">
-              {myItems.map(item => (
-                <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-xl" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div className="flex items-center gap-3 min-w-0">
-                    {/* Platform badge */}
-                    <span style={{ flexShrink: 0, padding: '2px 7px', borderRadius: 20, fontSize: 9, fontWeight: 800, background: meta(item.platform).color + '18', color: meta(item.platform).color, border: `1px solid ${meta(item.platform).color}30` }}>
-                      {meta(item.platform).label}
-                    </span>
-                    {/* Caption */}
-                    <span className={`text-xs font-medium truncate ${textPrimary}`}>{item.caption}</span>
-                  </div>
-                  {/* Delete button */}
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    disabled={deleting === item.id}
-                    title="Remove from gallery"
-                    style={{ flexShrink: 0, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: deleting === item.id ? 'not-allowed' : 'pointer', opacity: deleting === item.id ? 0.5 : 1 }}>
-                    {deleting === item.id ? '...' : 'Remove'}
-                  </button>
+        {/* Expandable content */}
+        {expanded && !loadingMine && (
+          <div className="px-5 pb-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            {myItems.length === 0 ? (
+              <p className={`text-xs pt-4 ${textMuted}`}>You haven't added anything to the gallery yet.</p>
+            ) : (
+              <>
+                <p className={`text-xs font-semibold pt-4 mb-3 ${textMuted}`} style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>Your Gallery Items</p>
+                <div className="flex flex-col gap-2">
+                  {myItems.map(item => (
+                    <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-xl" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span style={{ flexShrink: 0, padding: '2px 7px', borderRadius: 20, fontSize: 9, fontWeight: 800, background: meta(item.platform).color + '18', color: meta(item.platform).color, border: `1px solid ${meta(item.platform).color}30` }}>
+                          {meta(item.platform).label}
+                        </span>
+                        <span className={`text-xs font-medium truncate ${textPrimary}`}>{item.caption}</span>
+                      </div>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        disabled={deleting === item.id}
+                        title="Remove from gallery"
+                        style={{ flexShrink: 0, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: deleting === item.id ? 'not-allowed' : 'pointer', opacity: deleting === item.id ? 0.5 : 1 }}>
+                        {deleting === item.id ? '...' : 'Remove'}
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            {deleteError && (
-              <p style={{ fontSize: 11, color: '#ef4444', marginTop: 8 }}>{deleteError}</p>
+                {deleteError && <p style={{ fontSize: 11, color: '#ef4444', marginTop: 8 }}>{deleteError}</p>}
+              </>
             )}
           </div>
         )}
