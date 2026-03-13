@@ -7,6 +7,7 @@ import {
 import { OUTPUT_FORMATS } from '../constants/outputFormats';
 import MediaUpload from '../components/MediaUpload';
 import ReactMarkdown from 'react-markdown';
+import DesignTemplates from '../components/DesignTemplates';
 
 const VISUAL_FORMATS = ['BANNER_AD', 'PRINT_AD', 'FLYER_TEXT', 'GOOGLE_SEARCH_AD'];
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.vercel.app';
@@ -62,7 +63,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://edfdzytusmcju
 
 const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onGenerate, media }) => {
   const [selectedRefId, setSelectedRefId] = useState(null);
-  const [step, setStep] = useState('pick'); // 'pick' | 'result'
+  const [step, setStep] = useState('pick');
 
   useEffect(() => { if (isOpen && !imageUrl) setStep('pick'); }, [isOpen]);
   useEffect(() => { if (imageUrl) setStep('result'); }, [imageUrl]);
@@ -76,8 +77,6 @@ const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onGe
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
           <div>
             <h2 className="text-base font-bold text-white">🎨 AI Generated Visual</h2>
@@ -85,33 +84,20 @@ const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onGe
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 flex items-center justify-center text-sm transition-all">✕</button>
         </div>
-
         <div className="p-6">
-
-          {/* ── Step 1: Pick reference image ── */}
           {step === 'pick' && !isLoading && (
             <div className="space-y-5">
               <div>
                 <p className="text-sm font-medium text-white mb-1">Choose a reference image <span className="text-gray-400 font-normal">(optional)</span></p>
                 <p className="text-xs text-gray-400">GPT-4o will analyze your photo and guide DALL-E to match your product's look</p>
               </div>
-
               <div className="grid grid-cols-3 gap-2 max-h-52 overflow-y-auto">
-                {/* AI only option */}
-                <div
-                  onClick={() => setSelectedRefId(null)}
-                  className={`aspect-square rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${selectedRefId === null ? 'border-emerald-400 bg-emerald-500/10' : 'border-gray-700 bg-gray-800 hover:border-gray-500'}`}
-                >
+                <div onClick={() => setSelectedRefId(null)} className={`aspect-square rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${selectedRefId === null ? 'border-emerald-400 bg-emerald-500/10' : 'border-gray-700 bg-gray-800 hover:border-gray-500'}`}>
                   <span className="text-2xl">✨</span>
                   <span className="text-xs text-gray-400 text-center">AI only</span>
                 </div>
-
                 {imageMedia.map(item => (
-                  <div
-                    key={item.id}
-                    onClick={() => setSelectedRefId(item.id)}
-                    className={`aspect-square rounded-xl overflow-hidden border-2 cursor-pointer transition-all relative ${selectedRefId === item.id ? 'border-amber-400 shadow-lg shadow-amber-500/20 scale-[1.03]' : 'border-gray-700 hover:border-gray-500'}`}
-                  >
+                  <div key={item.id} onClick={() => setSelectedRefId(item.id)} className={`aspect-square rounded-xl overflow-hidden border-2 cursor-pointer transition-all relative ${selectedRefId === item.id ? 'border-amber-400 shadow-lg shadow-amber-500/20 scale-[1.03]' : 'border-gray-700 hover:border-gray-500'}`}>
                     <img src={getMediaUrl(item.file_path)} alt={item.file_name} className="w-full h-full object-cover" />
                     {selectedRefId === item.id && (
                       <div className="absolute inset-0 bg-amber-400/20 flex items-center justify-center">
@@ -123,30 +109,22 @@ const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onGe
                   </div>
                 ))}
               </div>
-
               {imageMedia.length === 0 && (
                 <div className="text-center py-3 bg-gray-800/50 rounded-xl border border-gray-700">
                   <p className="text-xs text-gray-400">No images uploaded yet — upload product photos in the Media Gallery to use as reference</p>
                 </div>
               )}
-
               {selectedRefId && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                   <span className="text-amber-400 text-sm">📎</span>
                   <span className="text-xs text-amber-300">GPT-4o will describe this image first, then guide DALL-E</span>
                 </div>
               )}
-
-              <button
-                onClick={() => { setStep('result'); onGenerate(selectedRefId); }}
-                className="w-full py-3 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-semibold hover:from-amber-500 hover:to-amber-700 transition-all shadow-lg text-sm"
-              >
+              <button onClick={() => { setStep('result'); onGenerate(selectedRefId); }} className="w-full py-3 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-semibold hover:from-amber-500 hover:to-amber-700 transition-all shadow-lg text-sm">
                 {selectedRefId ? '🎨 Generate with Reference' : '✨ Generate with AI Only'}
               </button>
             </div>
           )}
-
-          {/* ── Loading ── */}
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-16 gap-4">
               <div className="relative w-16 h-16">
@@ -159,8 +137,6 @@ const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onGe
               </div>
             </div>
           )}
-
-          {/* ── Error ── */}
           {error && !isLoading && step === 'result' && (
             <div className="space-y-4">
               <div className="bg-red-900/20 border border-red-800 rounded-xl p-4 text-center">
@@ -172,8 +148,6 @@ const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onGe
               </div>
             </div>
           )}
-
-          {/* ── Result ── */}
           {imageUrl && !isLoading && step === 'result' && (
             <div className="space-y-4">
               <div className="rounded-xl overflow-hidden border border-gray-700">
@@ -365,14 +339,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
           </span>
           <div className="flex items-center gap-1.5">
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-              {/* Generate Visual button */}
-              <button
-                onClick={(e) => { e.stopPropagation(); handleGenerateVisual(); }}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 text-xs font-medium transition-all"
-                title="Generate AI visual"
-              >
-                🎨 Visual
-              </button>
+              <button onClick={(e) => { e.stopPropagation(); handleGenerateVisual(); }} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 text-xs font-medium transition-all" title="Generate AI visual">🎨 Visual</button>
               <button onClick={handleSave} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${isSaved ? 'bg-amber-500/20 text-amber-500' : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'}`} title={isSaved ? 'Saved!' : 'Save'}>{saving ? '⏳' : isSaved ? '✅' : '🔖'}</button>
               <button onClick={handleShare} className="w-7 h-7 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 flex items-center justify-center text-xs transition-all" title="Share">🔗</button>
               <button onClick={(e) => handleCopy(item.content, e)} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${copied ? 'bg-amber-500/20 text-amber-500' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Copy">{copied ? '✅' : '📋'}</button>
@@ -380,7 +347,6 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
             <span className={`text-gray-400 text-xs transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
           </div>
         </div>
-
         {isExpanded && (
           <>
             {isVisualFormat && design && (
@@ -394,8 +360,6 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
                 <ReactMarkdown>{activeTab === 'design' && design ? design : copy}</ReactMarkdown>
               </div>
             </div>
-
-            {/* Quick visual preview strip (shows after generation) */}
             {imageUrl && (
               <div className="px-5 pb-4">
                 <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 cursor-pointer" onClick={() => setVisualModal(true)}>
@@ -413,18 +377,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
           </>
         )}
       </div>
-
-      {/* Visual Modal */}
-      <VisualModal
-        isOpen={visualModal}
-        onClose={() => setVisualModal(false)}
-        imageUrl={imageUrl}
-        isLoading={imageLoading}
-        format={item.format}
-        error={imageError}
-        onGenerate={handleGenerateVisual}
-        media={media}
-      />
+      <VisualModal isOpen={visualModal} onClose={() => setVisualModal(false)} imageUrl={imageUrl} isLoading={imageLoading} format={item.format} error={imageError} onGenerate={handleGenerateVisual} media={media} />
     </>
   );
 };
@@ -481,6 +434,9 @@ const CampaignDetail = () => {
   const [shareUrl,            setShareUrl]            = useState('');
   const [sharing,             setSharing]             = useState(false);
   const [toast,               setToast]               = useState({ visible: false, message: '', type: 'success' });
+
+  // Track latest AI-generated image URL for design templates
+  const [latestImageUrl, setLatestImageUrl] = useState(null);
 
   const showToast = (message, type = 'success') => { setToast({ visible: true, message, type }); setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000); };
 
@@ -562,13 +518,13 @@ const CampaignDetail = () => {
   };
 
   const handleGenerate = async () => {
-   try { setGenerating(true); setError(''); console.log('Generating for id:', id); const data = await generateIdeas(id); console.log('Response:', data); setGeneratedContent(data.generatedContent || []); }
+    try { setGenerating(true); setError(''); const data = await generateIdeas(id); setGeneratedContent(data.generatedContent || []); }
     catch (err) { setError(err.response?.data?.error || 'Failed to generate content'); }
     finally { setGenerating(false); }
   };
 
-  const filteredContent  = selectedFormat === 'all' ? generatedContent : generatedContent.filter(i => i.format === selectedFormat);
-  const groupedContent   = filteredContent.reduce((acc, item) => { if (!acc[item.format]) acc[item.format] = []; acc[item.format].push(item); return acc; }, {});
+  const filteredContent = selectedFormat === 'all' ? generatedContent : generatedContent.filter(i => i.format === selectedFormat);
+  const groupedContent  = filteredContent.reduce((acc, item) => { if (!acc[item.format]) acc[item.format] = []; acc[item.format].push(item); return acc; }, {});
 
   if (loading) return <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center"><div className="text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto" /><p className="mt-4 text-gray-500 dark:text-gray-400">Loading campaign...</p></div></div>;
   if (!campaign) return <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center"><div className="text-center"><h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Campaign not found</h2><button onClick={() => navigate('/dashboard')} className="text-emerald-500 hover:text-emerald-400">← Back to Dashboard</button></div></div>;
@@ -671,23 +627,21 @@ const CampaignDetail = () => {
                 </h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   {items.map((item, idx) => (
-                    <ContentCard
-                      key={idx}
-                      item={item}
-                      isVisualFormat={VISUAL_FORMATS.includes(format)}
-                      defaultExpanded={expandAll}
-                      campaignName={campaign.name}
-                      campaignId={id}
-                      onSave={handleSave}
-                      onShare={openShareModal}
-                      savedKeys={savedKeys}
-                      media={media}
-                    />
+                    <ContentCard key={idx} item={item} isVisualFormat={VISUAL_FORMATS.includes(format)} defaultExpanded={expandAll} campaignName={campaign.name} campaignId={id} onSave={handleSave} onShare={openShareModal} savedKeys={savedKeys} media={media} />
                   ))}
                 </div>
               </div>
             ))}
           </div>
+        )}
+
+        {/* ── Design Templates ── */}
+        {generatedContent.length > 0 && (
+          <DesignTemplates
+            generatedContent={generatedContent}
+            campaignName={campaign.name}
+            imageUrl={latestImageUrl}
+          />
         )}
 
         <SavedLibrary savedItems={savedItems} onDelete={handleDeleteSaved} onShare={openShareModal} />
