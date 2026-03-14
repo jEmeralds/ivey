@@ -7,7 +7,7 @@ import {
 import { OUTPUT_FORMATS } from '../constants/outputFormats';
 import MediaUpload from '../components/MediaUpload';
 import ReactMarkdown from 'react-markdown';
-import DesignTemplates from '../components/DesignTemplates';
+import DesignEditor from '../components/DesignEditor';
 
 const VISUAL_FORMATS = ['BANNER_AD', 'PRINT_AD', 'FLYER_TEXT', 'GOOGLE_SEARCH_AD'];
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.vercel.app';
@@ -635,12 +635,11 @@ const CampaignDetail = () => {
           </div>
         )}
 
-        {/* ── Design Templates ── */}
+        {/* ── Design Editor ── */}
         {generatedContent.length > 0 && (
-          <DesignTemplates
+          <DesignEditor
             generatedContent={generatedContent}
             campaignName={campaign.name}
-            imageUrl={latestImageUrl}
           />
         )}
 
