@@ -111,7 +111,8 @@ function DragLayer({ id, x, y, onDrag, children, selected, onSelect }) {
 }
 
 // ── Canvas renderer ───────────────────────────────────────────────────────────
-function DesignCanvas({ template, palette: p, layers, selectedLayer, onDragLayer, onSelectLayer, canvasRef }) {
+function DesignCanvas({ template, palette: p, layers, selectedLayer, onDragLayer, onSelectLayer, canvasRef, photoBg, photoBgOpacity }) {
+  const bgPhotoSrc = layers.find(l => l.id === 'photo')?.src;
   return (
     <div
       ref={canvasRef}
@@ -125,14 +126,21 @@ function DesignCanvas({ template, palette: p, layers, selectedLayer, onDragLayer
       }}
       onClick={() => onSelectLayer(null)}
     >
-      {/* Static bg decorations */}
-      <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: '50%', background: p.accent, opacity: 0.08, pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: -40, left: -40, width: 140, height: 140, borderRadius: '50%', background: p.accent, opacity: 0.05, pointerEvents: 'none' }} />
+      {/* Full-bleed background photo */}
+      {photoBg && bgPhotoSrc && (
+        <>
+          <img src={bgPhotoSrc} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 0, background: p.bg, opacity: photoBgOpacity, pointerEvents: 'none' }} />
+        </>
+      )}
+      {!photoBg && <>
+        <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: '50%', background: p.accent, opacity: 0.08, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -40, left: -40, width: 140, height: 140, borderRadius: '50%', background: p.accent, opacity: 0.05, pointerEvents: 'none' }} />
+      </>}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${p.accent}, transparent)`, pointerEvents: 'none' }} />
-
-      {/* Draggable layers */}
       {layers.map(layer => {
         if (!layer.visible) return null;
+        if (photoBg && layer.id === 'photo') return null;
         return (
           <DragLayer key={layer.id} id={layer.id} x={layer.x} y={layer.y} onDrag={onDragLayer} selected={selectedLayer === layer.id} onSelect={onSelectLayer}>
             <LayerRenderer layer={layer} palette={p} />
@@ -304,9 +312,11 @@ function BusinessPanel({ business, onChange }) {
   );
 }
 
-function AssetsPanel({ layers, onLogoUpload, onPhotoUpload, onLayerToggle }) {
+function AssetsPanel({ layers, onLogoUpload, onPhotoUpload, onLayerToggle, onLayerDelete, onClearLogo, onClearPhoto, photoBg, onPhotoBgToggle, photoBgOpacity, onPhotoBgOpacity }) {
   const logoRef  = useRef();
   const photoRef = useRef();
+  const hasLogo  = !!layers.find(l => l.id === 'logo')?.src;
+  const hasPhoto = !!layers.find(l => l.id === 'photo')?.src;
 
   const handleFile = (e, cb) => {
     const file = e.target.files[0];
@@ -320,46 +330,83 @@ function AssetsPanel({ layers, onLogoUpload, onPhotoUpload, onLayerToggle }) {
     <div>
       <div style={sectionHead}>Assets</div>
 
-      {/* Logo upload */}
+      {/* Logo */}
       <div style={{ marginBottom: 14 }}>
         <label style={labelStyle}>Logo</label>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <div style={{ width: 44, height: 44, borderRadius: 8, background: '#1e293b', border: '1px solid #2d3f55', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {layers.find(l => l.id === 'logo')?.src
+            {hasLogo
               ? <img src={layers.find(l => l.id === 'logo').src} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               : <span style={{ fontSize: 18, opacity: 0.3 }}>🏷</span>}
           </div>
           <button onClick={() => logoRef.current.click()} style={{ flex: 1, padding: '8px 0', background: '#1e293b', border: '1px dashed #334155', borderRadius: 8, color: '#94a3b8', fontSize: 11, cursor: 'pointer' }}>
-            Upload Logo
+            {hasLogo ? 'Replace Logo' : 'Upload Logo'}
           </button>
+          {hasLogo && (
+            <button onClick={onClearLogo} title="Remove logo" style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 14, cursor: 'pointer', flexShrink: 0 }}>✕</button>
+          )}
         </div>
         <input ref={logoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e, onLogoUpload)} />
       </div>
 
-      {/* Product photo upload */}
-      <div style={{ marginBottom: 14 }}>
+      {/* Product Photo */}
+      <div style={{ marginBottom: 6 }}>
         <label style={labelStyle}>Product Photo</label>
-        <div style={{ width: '100%', height: 90, borderRadius: 8, background: '#1e293b', border: '1px dashed #334155', overflow: 'hidden', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {layers.find(l => l.id === 'photo')?.src
-            ? <img src={layers.find(l => l.id === 'photo').src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ width: '100%', height: 90, borderRadius: 8, background: '#1e293b', border: '1px dashed #334155', overflow: 'hidden', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+          {hasPhoto
+            ? <>
+                <img src={layers.find(l => l.id === 'photo').src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <button onClick={onClearPhoto} title="Remove photo" style={{ position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: 6, background: 'rgba(239,68,68,0.85)', border: 'none', color: '#fff', fontSize: 11, cursor: 'pointer', fontWeight: 700 }}>✕</button>
+              </>
             : <span style={{ fontSize: 28, opacity: 0.2 }}>📷</span>}
         </div>
-        <button onClick={() => photoRef.current.click()} style={{ width: '100%', padding: '8px 0', background: '#1e293b', border: '1px dashed #334155', borderRadius: 8, color: '#94a3b8', fontSize: 11, cursor: 'pointer' }}>
-          Upload Product Photo
+        <button onClick={() => photoRef.current.click()} style={{ width: '100%', padding: '8px 0', background: '#1e293b', border: '1px dashed #334155', borderRadius: 8, color: '#94a3b8', fontSize: 11, cursor: 'pointer', marginBottom: 8 }}>
+          {hasPhoto ? 'Replace Photo' : 'Upload Product Photo'}
         </button>
         <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e, onPhotoUpload)} />
+
+        {/* Use as background toggle */}
+        {hasPhoto && (
+          <div style={{ background: '#131c2a', borderRadius: 10, padding: '10px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: photoBg ? 10 : 0 }}>
+              <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>Use as full background</span>
+              <button onClick={onPhotoBgToggle}
+                style={{ width: 32, height: 18, borderRadius: 9, background: photoBg ? '#6366f1' : '#1e293b', border: photoBg ? 'none' : '1px solid #334155', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: photoBg ? 16 : 2, transition: 'left 0.2s' }} />
+              </button>
+            </div>
+            {photoBg && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontSize: 10, color: '#64748b' }}>Overlay opacity</span>
+                  <span style={{ fontSize: 10, color: '#6366f1', fontWeight: 700 }}>{Math.round(photoBgOpacity * 100)}%</span>
+                </div>
+                <input type="range" min="0" max="1" step="0.05" value={photoBgOpacity} onChange={e => onPhotoBgOpacity(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#6366f1', cursor: 'pointer' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+                  <span style={{ fontSize: 9, color: '#334155' }}>Photo only</span>
+                  <span style={{ fontSize: 9, color: '#334155' }}>Full overlay</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Layer visibility toggles */}
-      <div style={sectionHead}>Layer Visibility</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      {/* Layer visibility + delete */}
+      <div style={sectionHead}>Layers</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {layers.map(layer => (
-          <div key={layer.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 8px', borderRadius: 7, background: '#131c2a' }}>
-            <span style={{ fontSize: 11, color: layer.visible ? '#94a3b8' : '#334155', textTransform: 'capitalize' }}>{layer.id}</span>
+          <div key={layer.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', borderRadius: 7, background: '#131c2a' }}>
+            <span style={{ flex: 1, fontSize: 11, color: layer.visible ? '#94a3b8' : '#334155', textTransform: 'capitalize' }}>{layer.id}</span>
+            {/* toggle */}
             <button onClick={() => onLayerToggle(layer.id)}
-              style={{ width: 28, height: 16, borderRadius: 8, background: layer.visible ? '#10b981' : '#1e293b', border: layer.visible ? 'none' : '1px solid #334155', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
+              style={{ width: 28, height: 16, borderRadius: 8, background: layer.visible ? '#10b981' : '#1e293b', border: layer.visible ? 'none' : '1px solid #334155', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
               <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: layer.visible ? 14 : 2, transition: 'left 0.2s' }} />
             </button>
+            {/* delete */}
+            <button onClick={() => onLayerDelete(layer.id)} title="Delete layer"
+              style={{ width: 22, height: 22, borderRadius: 5, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', color: '#ef4444', fontSize: 10, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
           </div>
         ))}
       </div>
@@ -399,6 +446,8 @@ export default function DesignEditor({ generatedContent, campaignName, onClose }
   const [business,    setBusiness]    = useState({ name: campaignName || '', tagline: '', category: '', website: '', email: '', phone: '', address: '', instagram: '', twitter: '', tiktok: '', cta: 'Learn More' });
   const [exporting,   setExporting]   = useState(false);
   const [exported,    setExported]    = useState(false);
+  const [photoBg,     setPhotoBg]     = useState(false);
+  const [photoBgOpacity, setPhotoBgOpacity] = useState(0.45);
   const canvasRef = useRef(null);
 
   const initLayers = (tmpl) => {
@@ -416,7 +465,10 @@ export default function DesignEditor({ generatedContent, campaignName, onClose }
     setLayers(prev => prev.map(l => l.id === id ? { ...l, x, y } : l));
   }, []);
 
-  const toggleLayer = (id) => setLayers(prev => prev.map(l => l.id === id ? { ...l, visible: !l.visible } : l));
+  const toggleLayer  = (id) => setLayers(prev => prev.map(l => l.id === id ? { ...l, visible: !l.visible } : l));
+  const deleteLayer  = (id) => setLayers(prev => prev.filter(l => l.id !== id));
+  const clearLogo    = () => setLayers(prev => prev.map(l => l.id === 'logo'  ? { ...l, src: null } : l));
+  const clearPhoto   = () => { setLayers(prev => prev.map(l => l.id === 'photo' ? { ...l, src: null } : l)); setPhotoBg(false); };
 
   const setLayerContent = (id, val) => setLayers(prev => prev.map(l => l.id === id ? { ...l, content: val } : l));
 
@@ -539,6 +591,8 @@ export default function DesignEditor({ generatedContent, campaignName, onClose }
               onDragLayer={dragLayer}
               onSelectLayer={setSelectedLayer}
               canvasRef={canvasRef}
+              photoBg={photoBg}
+              photoBgOpacity={photoBgOpacity}
             />
           </div>
 
@@ -562,7 +616,7 @@ export default function DesignEditor({ generatedContent, campaignName, onClose }
           {/* Tab content */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 20px' }}>
             {activeTab === 'content'  && <ContentPanel  layers={layers} onLayerContent={setLayerContent} />}
-            {activeTab === 'assets'   && <AssetsPanel   layers={layers} onLogoUpload={setLogo} onPhotoUpload={setPhoto} onLayerToggle={toggleLayer} />}
+            {activeTab === 'assets'   && <AssetsPanel   layers={layers} onLogoUpload={setLogo} onPhotoUpload={setPhoto} onLayerToggle={toggleLayer} onLayerDelete={deleteLayer} onClearLogo={clearLogo} onClearPhoto={clearPhoto} photoBg={photoBg} onPhotoBgToggle={() => setPhotoBg(v => !v)} photoBgOpacity={photoBgOpacity} onPhotoBgOpacity={setPhotoBgOpacity} />}
             {activeTab === 'palette'  && <PalettePanel  palette={palette} onChange={setPalette} />}
             {activeTab === 'business' && <BusinessPanel business={business} onChange={setBusiness} />}
           </div>
