@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getCampaigns } from '../services/api';
 import BrandSettings from '../components/BrandSettings';
 import GallerySubmitButton from '../components/GallerySubmitButton';
+import SocialConnect from '../components/SocialConnect';
 
 const Dashboard = () => {
   const [campaigns, setCampaigns] = useState([]);
@@ -174,6 +175,7 @@ const Dashboard = () => {
         <BrandSettings />
 
         {/* Gallery Submit */}
+        <SocialConnect />
         <GallerySubmitButton campaigns={campaigns} />
 
         {/* Error Message */}

@@ -15,6 +15,7 @@ import adminRoutes, { setAdminIO } from './routes/admin.routes.js';
 import chatRoutes, { setIO } from './routes/chat.routes.js';
 import brandRoutes from './routes/brand.routes.js';
 import galleryRoutes from './routes/gallery.routes.js';
+import socialRoutes  from './routes/social.routes.js';
 
 import {
   setupHelmet,
@@ -138,6 +139,7 @@ app.use('/api/campaigns', campaignRoutes);
 app.use('/api/media',     mediaRoutes);
 app.use('/api/brand',     brandRoutes);
 app.use('/api/gallery',   galleryRoutes);
+app.use('/api/social',    socialRoutes);
 app.use('/api',           saveRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
