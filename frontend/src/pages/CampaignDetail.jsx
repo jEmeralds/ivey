@@ -8,6 +8,7 @@ import { OUTPUT_FORMATS } from '../constants/outputFormats';
 import MediaUpload from '../components/MediaUpload';
 import ReactMarkdown from 'react-markdown';
 import DesignEditor from '../components/DesignEditor';
+import { usePostToSocial } from '../components/SocialConnect';
 
 const VISUAL_FORMATS = ['BANNER_AD', 'PRINT_AD', 'FLYER_TEXT', 'GOOGLE_SEARCH_AD'];
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.vercel.app';
@@ -278,7 +279,7 @@ const StrategySection = ({ title, content, icon, defaultOpen, campaignName, onSa
 };
 
 // ─── Content Card ─────────────────────────────────────────────────────────────
-const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, campaignId, onSave, onShare, savedKeys, media }) => {
+const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, campaignId, onSave, onShare, savedKeys, media, onPostToSocial }) => {
   const [activeTab, setActiveTab]       = useState('copy');
   const [isExpanded, setIsExpanded]     = useState(defaultExpanded);
   const [copied, setCopied]             = useState(false);
@@ -340,6 +341,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
           <div className="flex items-center gap-1.5">
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
               <button onClick={(e) => { e.stopPropagation(); handleGenerateVisual(); }} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 text-xs font-medium transition-all" title="Generate AI visual">🎨 Visual</button>
+              {onPostToSocial && <button onClick={(e) => { e.stopPropagation(); onPostToSocial(item.content); }} className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all" style={{background:'rgba(0,0,0,0.15)',color:'#94a3b8'}} title="Post to Twitter">𝕏 Post</button>}
               <button onClick={handleSave} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${isSaved ? 'bg-amber-500/20 text-amber-500' : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'}`} title={isSaved ? 'Saved!' : 'Save'}>{saving ? '⏳' : isSaved ? '✅' : '🔖'}</button>
               <button onClick={handleShare} className="w-7 h-7 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 flex items-center justify-center text-xs transition-all" title="Share">🔗</button>
               <button onClick={(e) => handleCopy(item.content, e)} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${copied ? 'bg-amber-500/20 text-amber-500' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Copy">{copied ? '✅' : '📋'}</button>
@@ -437,6 +439,7 @@ const CampaignDetail = () => {
 
   // Track latest AI-generated image URL for design templates
   const [latestImageUrl, setLatestImageUrl] = useState(null);
+  const { open: openPostModal, ModalSlot: PostModalSlot } = usePostToSocial();
 
   const showToast = (message, type = 'success') => { setToast({ visible: true, message, type }); setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000); };
 
@@ -627,7 +630,7 @@ const CampaignDetail = () => {
                 </h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   {items.map((item, idx) => (
-                    <ContentCard key={idx} item={item} isVisualFormat={VISUAL_FORMATS.includes(format)} defaultExpanded={expandAll} campaignName={campaign.name} campaignId={id} onSave={handleSave} onShare={openShareModal} savedKeys={savedKeys} media={media} />
+                    <ContentCard key={idx} item={item} isVisualFormat={VISUAL_FORMATS.includes(format)} defaultExpanded={expandAll} campaignName={campaign.name} campaignId={id} onSave={handleSave} onShare={openShareModal} savedKeys={savedKeys} media={media} onPostToSocial={(text) => openPostModal({ platform: 'twitter', text, campaignId: id })} />
                   ))}
                 </div>
               </div>
@@ -646,6 +649,7 @@ const CampaignDetail = () => {
         <SavedLibrary savedItems={savedItems} onDelete={handleDeleteSaved} onShare={openShareModal} />
       </div>
 
+      {PostModalSlot}
       <ShareModal isOpen={shareModal.open} onClose={() => setShareModal(s => ({ ...s, open: false }))} onShare={handleCreateShare} isLoading={sharing} shareUrl={shareUrl} />
       <Toast message={toast.message} type={toast.type} visible={toast.visible} />
     </div>
