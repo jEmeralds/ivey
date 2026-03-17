@@ -208,7 +208,7 @@ function PostItem({ post, pm, card, border, textPri, textMut, onRetry, onDelete 
             {retrying ? '...' : '↺ Retry'}
           </button>
         )}
-        <button onClick={() => { if (!window.confirm('Delete this post?' + (post.status === 'published' ? ' This will also delete it from Twitter.' : ''))) return; setDeleting(true); onDelete(post.id).finally(() => setDeleting(false)); }} disabled={deleting}
+        <button onClick={() => onDelete(post.id)} disabled={deleting}
           title="Delete post"
           style={{ padding: '3px 9px', borderRadius: 6, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 10, fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.5 : 1 }}>
           {deleting ? '...' : '✕'}
@@ -234,6 +234,34 @@ export function AnalyticsPanel({ isDark }) {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
+
+  const handleRetry = async (postId) => {
+    try {
+      const res = await fetch(`${API_BASE}/social/posts/${postId}/retry`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: 'published', platform_url: data.url } : p));
+      setStats(prev => prev ? { ...prev, published: (prev.published || 0) + 1, failed: Math.max(0, (prev.failed || 0) - 1) } : prev);
+    } catch (err) { alert('Retry failed: ' + err.message); }
+  };
+
+  const handleDelete = async (postId) => {
+    const post = posts.find(p => p.id === postId);
+    if (!window.confirm('Delete this post?' + (post?.status === 'published' ? ' This will also delete it from Twitter.' : ''))) return;
+    try {
+      const res = await fetch(`${API_BASE}/social/posts/${postId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPosts(prev => prev.filter(p => p.id !== postId));
+      setStats(prev => prev ? { ...prev, total: Math.max(0, (prev.total || 0) - 1) } : prev);
+    } catch (err) { alert('Delete failed: ' + err.message); }
+  };
 
   const filtered = filter === 'all' ? posts : posts.filter(p => p.platform === filter);
   const bg = isDark ? '#080e1a' : '#f8fafc';
