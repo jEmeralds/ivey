@@ -159,27 +159,54 @@ router.post('/twitter/post', auth, async (req, res) => {
 });
 
 // ── POST /api/social/twitter/upload — tweet with media ───────────────────────
+// Uses OAuth 1.0a for media upload (Twitter v1 requirement) + v2 for posting
 router.post('/twitter/upload', auth, upload.array('media', 4), async (req, res) => {
   const { caption, campaignId } = req.body;
   const files = req.files || [];
   let status = 'failed'; let platformPostId = null; let platformUrl = null; let errorMessage = null;
   try {
-    const client = await getTwitterClient(req.userId);
-    if (!client) return res.status(404).json({ error: 'Twitter not connected' });
-    const mediaIds = [];
-    for (const file of files) {
-      const mediaId = await client.v1.uploadMedia(file.buffer, { mimeType: file.mimetype });
-      mediaIds.push(mediaId);
+    const { TwitterApi } = await import('twitter-api-v2');
+
+    // For media upload we need OAuth 1.0a — requires TWITTER_API_KEY env vars
+    const hasV1Creds = process.env.TWITTER_API_KEY && process.env.TWITTER_API_SECRET &&
+                       process.env.TWITTER_ACCESS_TOKEN && process.env.TWITTER_ACCESS_SECRET;
+
+    if (files.length > 0 && !hasV1Creds) {
+      return res.status(400).json({
+        error: 'Media upload requires Twitter API v1 credentials. Please add TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET to your environment variables.'
+      });
     }
+
+    const mediaIds = [];
+    if (files.length > 0 && hasV1Creds) {
+      // v1 client for media upload
+      const v1Client = new TwitterApi({
+        appKey:    process.env.TWITTER_API_KEY,
+        appSecret: process.env.TWITTER_API_SECRET,
+        accessToken:  process.env.TWITTER_ACCESS_TOKEN,
+        accessSecret: process.env.TWITTER_ACCESS_SECRET,
+      });
+      for (const file of files) {
+        const mediaId = await v1Client.v1.uploadMedia(file.buffer, { mimeType: file.mimetype });
+        mediaIds.push(mediaId);
+      }
+    }
+
+    // v2 OAuth 2.0 client for posting the tweet
+    const v2Client = await getTwitterClient(req.userId);
+    if (!v2Client) return res.status(404).json({ error: 'Twitter not connected' });
+
     const tweetPayload = { text: (caption || '').slice(0, 280) };
     if (mediaIds.length) tweetPayload.media = { media_ids: mediaIds };
-    const tweet = await client.v2.tweet(tweetPayload);
+
+    const tweet = await v2Client.v2.tweet(tweetPayload);
     platformPostId = tweet.data.id;
     platformUrl = `https://twitter.com/i/web/status/${tweet.data.id}`;
     status = 'published';
     res.json({ success: true, tweet_id: tweet.data.id, url: platformUrl });
   } catch (err) {
     errorMessage = err.message;
+    console.error('Twitter upload error:', err);
     res.status(500).json({ error: err.message || 'Failed to upload' });
   } finally {
     await logPost({ userId: req.userId, campaignId, platform: 'twitter', contentText: caption, postType: files.length ? 'image' : 'text', source: 'upload', status, platformPostId, platformUrl, errorMessage });
@@ -313,6 +340,90 @@ router.get('/posts/stats', auth, async (req, res) => {
     failed: posts.filter(p => p.status === 'failed').length,
     byPlatform,
     byDay: Object.entries(byDay).sort((a, b) => a[0].localeCompare(b[0])).slice(-30),
+  });
+});
+
+
+// ── POST /api/social/posts/:id/retry ─────────────────────────────────────────
+router.post('/posts/:id/retry', auth, async (req, res) => {
+  const { data: post, error } = await supabase
+    .from('social_posts')
+    .select('*')
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .single();
+  if (error || !post) return res.status(404).json({ error: 'Post not found' });
+  if (post.status === 'published') return res.status(400).json({ error: 'Post already published' });
+
+  let status = 'failed'; let platformPostId = null; let platformUrl = null; let errorMessage = null;
+  try {
+    if (post.platform === 'twitter') {
+      const client = await getTwitterClient(req.userId);
+      if (!client) return res.status(404).json({ error: 'Twitter not connected' });
+      const text = (post.content_text || post.caption || '').slice(0, 280);
+      if (!text) return res.status(400).json({ error: 'No content to retry' });
+      const tweet = await client.v2.tweet(text);
+      platformPostId = tweet.data.id;
+      platformUrl = `https://twitter.com/i/web/status/${tweet.data.id}`;
+      status = 'published';
+    } else {
+      return res.status(400).json({ error: `Retry not yet supported for ${post.platform}` });
+    }
+
+    // Update the existing post record
+    await supabase.from('social_posts').update({
+      status,
+      platform_post_id: platformPostId,
+      platform_url: platformUrl,
+      error_message: null,
+      posted_at: new Date().toISOString(),
+    }).eq('id', req.params.id);
+
+    res.json({ success: true, url: platformUrl });
+  } catch (err) {
+    errorMessage = err.message;
+    await supabase.from('social_posts').update({ error_message: errorMessage }).eq('id', req.params.id);
+    res.status(500).json({ error: err.message || 'Retry failed' });
+  }
+});
+
+// ── DELETE /api/social/posts/:id ──────────────────────────────────────────────
+router.delete('/posts/:id', auth, async (req, res) => {
+  const { data: post, error } = await supabase
+    .from('social_posts')
+    .select('*')
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .single();
+  if (error || !post) return res.status(404).json({ error: 'Post not found' });
+
+  let platformDeleted = false;
+
+  // Attempt to delete from social platform
+  try {
+    if (post.platform === 'twitter' && post.platform_post_id && post.status === 'published') {
+      const client = await getTwitterClient(req.userId);
+      if (client) {
+        await client.v2.deleteTweet(post.platform_post_id);
+        platformDeleted = true;
+      }
+    }
+  } catch (err) {
+    console.error('Platform delete error:', err.message);
+    // Continue to delete from our DB even if platform delete fails
+  }
+
+  // Delete from IVey database
+  await supabase.from('social_posts').delete().eq('id', req.params.id);
+
+  res.json({
+    success: true,
+    platformDeleted,
+    message: platformDeleted
+      ? 'Deleted from IVey and Twitter'
+      : post.status === 'published'
+        ? 'Deleted from IVey (platform deletion failed — may need manual removal)'
+        : 'Deleted from IVey',
   });
 });
 

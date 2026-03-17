@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getCampaigns } from '../services/api';
 import BrandSettings from '../components/BrandSettings';
 import GallerySubmitButton from '../components/GallerySubmitButton';
-import SocialConnect from '../components/SocialConnect';
+import SocialConnect, { AnalyticsPanel } from '../components/SocialConnect';
 
 // ── Nav items ─────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
@@ -64,25 +64,7 @@ const StatusBadge = ({ campaign }) => {
   return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">Draft</span>;
 };
 
-// ── Analytics coming soon panel ───────────────────────────────────────────────
-const AnalyticsPanel = ({ onNavigate }) => (
-  <div className="flex flex-col items-center justify-center py-24 text-center">
-    <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
-      <svg className="w-8 h-8 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
-      </svg>
-    </div>
-    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Analytics Dashboard</h3>
-    <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs mb-4">
-      Track your social post performance, campaign reach, and content engagement.
-    </p>
-    <button onClick={() => onNavigate('social')}
-      className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
-      View Social Activity →
-    </button>
-  </div>
-);
+
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 const Dashboard = () => {
@@ -437,7 +419,15 @@ const Dashboard = () => {
               <GallerySubmitButton campaigns={campaigns} />
             </div>
           )}
-          {activeSection === 'analytics' && <AnalyticsPanel onNavigate={navigate_section} />}
+          {activeSection === 'analytics' && (
+            <div className="space-y-4">
+              <div>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Analytics</h1>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Your social post activity and performance</p>
+              </div>
+              <AnalyticsPanel isDark={true} />
+            </div>
+          )}
         </main>
       </div>
     </div>

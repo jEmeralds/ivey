@@ -183,7 +183,42 @@ function PostModal({ platform, prefillText, campaignId, onClose, onPosted }) {
 }
 
 // ── Analytics panel ───────────────────────────────────────────────────────────
-function AnalyticsPanel({ isDark }) {
+function PostItem({ post, pm, card, border, textPri, textMut, onRetry, onDelete }) {
+  const [retrying, setRetrying] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  return (
+    <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <div style={{ width: 28, height: 28, borderRadius: 7, background: pm.color || '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#fff', fontWeight: 900, flexShrink: 0 }}>{pm.icon || '?'}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, color: textPri, lineHeight: 1.4, marginBottom: 3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+          {post.content_text || post.caption || '(media only)'}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 9, color: post.status === 'published' ? '#10b981' : '#ef4444', fontWeight: 700, textTransform: 'uppercase' }}>{post.status}</span>
+          <span style={{ fontSize: 9, color: textMut }}>{post.source}</span>
+          <span style={{ fontSize: 9, color: textMut }}>{new Date(post.posted_at).toLocaleDateString()}</span>
+          {post.platform_url && <a href={post.platform_url} target="_blank" rel="noreferrer" style={{ fontSize: 9, color: pm.color, textDecoration: 'none' }}>View →</a>}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 5, flexShrink: 0, alignItems: 'center' }}>
+        {post.status === 'failed' && (
+          <button onClick={() => { setRetrying(true); onRetry(post.id).finally(() => setRetrying(false)); }} disabled={retrying}
+            title="Retry post"
+            style={{ padding: '3px 9px', borderRadius: 6, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', color: '#6366f1', fontSize: 10, fontWeight: 700, cursor: retrying ? 'not-allowed' : 'pointer', opacity: retrying ? 0.5 : 1 }}>
+            {retrying ? '...' : '↺ Retry'}
+          </button>
+        )}
+        <button onClick={() => { if (!window.confirm('Delete this post?' + (post.status === 'published' ? ' This will also delete it from Twitter.' : ''))) return; setDeleting(true); onDelete(post.id).finally(() => setDeleting(false)); }} disabled={deleting}
+          title="Delete post"
+          style={{ padding: '3px 9px', borderRadius: 6, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 10, fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.5 : 1 }}>
+          {deleting ? '...' : '✕'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function AnalyticsPanel({ isDark }) {
   const [stats,  setStats]  = useState(null);
   const [posts,  setPosts]  = useState([]);
   const [filter, setFilter] = useState('all');
@@ -251,20 +286,7 @@ function AnalyticsPanel({ isDark }) {
           : filtered.map(post => {
             const pm = PLATFORM_META[post.platform] || {};
             return (
-              <div key={post.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 7, background: pm.color || '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#fff', fontWeight: 900, flexShrink: 0 }}>{pm.icon || '?'}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, color: textPri, lineHeight: 1.4, marginBottom: 3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                    {post.content_text || post.caption || '(media only)'}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 9, color: post.status === 'published' ? '#10b981' : '#ef4444', fontWeight: 700, textTransform: 'uppercase' }}>{post.status}</span>
-                    <span style={{ fontSize: 9, color: textMut }}>{post.source}</span>
-                    <span style={{ fontSize: 9, color: textMut }}>{new Date(post.posted_at).toLocaleDateString()}</span>
-                    {post.platform_url && <a href={post.platform_url} target="_blank" rel="noreferrer" style={{ fontSize: 9, color: pm.color, textDecoration: 'none' }}>View →</a>}
-                  </div>
-                </div>
-              </div>
+              <PostItem key={post.id} post={post} pm={pm} card={card} border={border} textPri={textPri} textMut={textMut} onRetry={handleRetry} onDelete={handleDelete} />
             );
           })
         }
