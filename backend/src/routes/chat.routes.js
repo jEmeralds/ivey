@@ -23,20 +23,17 @@ router.post('/webhook', async (req, res) => {
   const text = update?.message?.text;
   if (!text) return;
 
-  console.log('📨 Telegram webhook received:', text);
+  console.log('📨 Telegram webhook received');
 
   const parsed = parseReplyCommand(text);
-  if (!parsed) {
-    console.log('ℹ️ Not a /reply command, ignoring');
-    return;
-  }
+  if (!parsed) return;
 
   const { sessionPrefix, replyText } = parsed;
 
   // Find the full session ID
   const sessionId = await findSessionByPrefix(sessionPrefix);
   if (!sessionId) {
-    console.warn(`⚠️ No session found for prefix: ${sessionPrefix}`);
+    console.warn('⚠️ No session found for prefix');
     return;
   }
 
@@ -50,7 +47,7 @@ router.post('/webhook', async (req, res) => {
       message: replyText,
       created_at: new Date().toISOString(),
     });
-    console.log(`✅ Reply pushed to session: ${sessionId.slice(0, 8)}`);
+    console.log('✅ Reply delivered to session');
   }
 });
 
