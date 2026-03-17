@@ -15,6 +15,7 @@ const TELEGRAM_CHAT_ID   = process.env.TELEGRAM_CHAT_ID;
 // ── Send message to Telegram ──────────────────────────────────────────────────
 export async function notifyTelegram(sessionId, message) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  // Message content goes to Telegram only — never to Railway logs
 
   const text =
     `💬 *New Support Message*\n` +
@@ -35,6 +36,8 @@ export async function notifyTelegram(sessionId, message) {
 
 // ── Save message to Supabase ──────────────────────────────────────────────────
 export async function saveMessage(sessionId, sender, message) {
+  // NOTE: message content is NEVER logged — only metadata
+  console.log(`💾 Message saved [sender: ${sender}, session: ${sessionId.slice(0,6)}***]`);
   // Upsert conversation
   await supabase
     .from('support_conversations')

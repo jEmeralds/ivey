@@ -72,11 +72,11 @@ setIO(io);
 setAdminIO(io);
 
 io.on('connection', (socket) => {
-  console.log(`🔌 Socket connected: ${socket.id}`);
+  console.log(`🔌 Socket connected: [${socket.id.slice(0,6)}]`);
 
   socket.on('join_session', async (sessionId) => {
     socket.join(sessionId);
-    console.log(`📥 Session joined: ${sessionId.slice(0, 8)}`);
+    console.log(`📥 Session joined`);
     const history = await loadHistory(sessionId);
     socket.emit('chat_history', history);
   });
@@ -88,7 +88,7 @@ io.on('connection', (socket) => {
 
   socket.on('user_message', async ({ sessionId, message }) => {
     if (!sessionId || !message?.trim()) return;
-    console.log(`💬 User [${sessionId.slice(0, 8)}]: ${message}`);
+    console.log(`💬 Message received [session: ${sessionId.slice(0, 6)}***]`);
     const saved = await saveMessage(sessionId, 'user', message.trim());
     socket.emit('user_message_saved', {
       sender: 'user',
@@ -104,7 +104,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log(`🔌 Socket disconnected: ${socket.id}`);
+    console.log(`🔌 Socket disconnected`);
   });
 });
 
@@ -149,7 +149,7 @@ app.use((req, res) => {
 
 // ── Global error handler ──────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('Error:', err.status || 500, err.message || 'Internal server error');
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE')  return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
     if (err.code === 'LIMIT_FILE_COUNT') return res.status(400).json({ error: 'Too many files. Maximum is 5 files per upload.' });
