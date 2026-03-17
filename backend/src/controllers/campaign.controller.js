@@ -1,11 +1,35 @@
 import { supabaseAdmin } from '../config/supabase.js';
 
+// ── Helper: fetch brand profile for a campaign ────────────────────────────────
+// Tries campaign's linked brand first, falls back to user's default brand
+const getBrandForCampaign = async (campaign, userId) => {
+  // 1. Campaign has a specific brand linked
+  if (campaign.brand_profile_id) {
+    const { data } = await supabaseAdmin
+      .from('brand_profiles')
+      .select('*')
+      .eq('id', campaign.brand_profile_id)
+      .eq('user_id', userId)
+      .single();
+    if (data) return data;
+  }
+
+  // 2. Fall back to user's default brand
+  const { data } = await supabaseAdmin
+    .from('brand_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_default', true)
+    .single();
+
+  return data || null;
+};
+
 // Get all campaigns for a user
 export const getCampaigns = async (req, res) => {
   try {
     const userId = req.userId;
 
-    // Filter campaigns by user_id
     const { data: campaigns, error } = await supabaseAdmin
       .from('campaigns')
       .select('*')
@@ -17,23 +41,22 @@ export const getCampaigns = async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch campaigns' });
     }
 
-    // Map database columns to expected frontend format
     const formattedCampaigns = (campaigns || []).map(campaign => ({
       id: campaign.id,
       name: campaign.name || '',
-      description: typeof campaign.product_description === 'string' 
-        ? campaign.product_description 
+      description: typeof campaign.product_description === 'string'
+        ? campaign.product_description
         : String(campaign.product_description || ''),
       target_audience: campaign.target_audience || '',
-      ai_provider: campaign.ai_provider || 'claude',
+      ai_provider: campaign.ai_provider || 'gemini',
       output_formats: Array.isArray(campaign.output_formats) ? campaign.output_formats : [],
       status: campaign.status || '',
       created_at: campaign.created_at,
-      updated_at: campaign.updated_at
+      updated_at: campaign.updated_at,
+      brand_profile_id: campaign.brand_profile_id || null,
     }));
 
     console.log('Returning campaigns for user:', userId, 'count:', formattedCampaigns.length);
-
     res.json({ campaigns: formattedCampaigns });
   } catch (error) {
     console.error('Get campaigns error:', error);
@@ -49,10 +72,7 @@ export const getCampaignById = async (req, res) => {
 
     const { data: campaign, error } = await supabaseAdmin
       .from('campaigns')
-      .select(`
-        *,
-        generated_ideas (*)
-      `)
+      .select(`*, generated_ideas (*)`)
       .eq('id', id)
       .eq('user_id', userId)
       .single();
@@ -62,7 +82,6 @@ export const getCampaignById = async (req, res) => {
       return res.status(404).json({ error: 'Campaign not found' });
     }
 
-    // Format the response
     const formattedCampaign = {
       id: campaign.id,
       name: campaign.name,
@@ -73,6 +92,7 @@ export const getCampaignById = async (req, res) => {
       status: campaign.status,
       created_at: campaign.created_at,
       updated_at: campaign.updated_at,
+      brand_profile_id: campaign.brand_profile_id || null,
       generated_content: campaign.generated_ideas || []
     };
 
@@ -83,28 +103,19 @@ export const getCampaignById = async (req, res) => {
   }
 };
 
-// Create a new campaign// ─── REPLACE only the createCampaign function in campaign.controller.js ───────
-// Everything else stays the same.
-
+// Create a new campaign
 export const createCampaign = async (req, res) => {
   try {
     const userId = req.userId;
     const {
-      name,
-      description,
-      targetAudience,
-      aiProvider,
-      outputFormats,
-      brandName,
-      websiteUrl,
-      brandProfileId,   // ← NEW
+      name, description, targetAudience, aiProvider,
+      outputFormats, brandName, websiteUrl, brandProfileId,
     } = req.body;
 
     if (!name || !description || !targetAudience || !outputFormats || outputFormats.length === 0) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
-    // If brandProfileId provided, fetch it to get the real brand name
     let resolvedBrandName = brandName || name;
     if (brandProfileId) {
       const { data: bp } = await supabaseAdmin
@@ -127,7 +138,7 @@ export const createCampaign = async (req, res) => {
         target_audience:     targetAudience,
         ai_provider:         aiProvider || 'gemini',
         output_formats:      outputFormats,
-        brand_profile_id:    brandProfileId || null,   // ← NEW column (see migration below)
+        brand_profile_id:    brandProfileId || null,
       }])
       .select()
       .single();
@@ -172,22 +183,19 @@ export const updateCampaign = async (req, res) => {
       return res.status(500).json({ error: 'Failed to update campaign' });
     }
 
-    // Format the response
-    const formattedCampaign = {
-      id: campaign.id,
-      name: campaign.name,
-      description: campaign.product_description,
-      target_audience: campaign.target_audience,
-      ai_provider: campaign.ai_provider,
-      output_formats: campaign.output_formats,
-      status: campaign.status,
-      created_at: campaign.created_at,
-      updated_at: campaign.updated_at
-    };
-
-    res.json({ 
+    res.json({
       message: 'Campaign updated successfully',
-      campaign: formattedCampaign 
+      campaign: {
+        id: campaign.id,
+        name: campaign.name,
+        description: campaign.product_description,
+        target_audience: campaign.target_audience,
+        ai_provider: campaign.ai_provider,
+        output_formats: campaign.output_formats,
+        status: campaign.status,
+        created_at: campaign.created_at,
+        updated_at: campaign.updated_at,
+      }
     });
   } catch (error) {
     console.error('Update campaign error:', error);
@@ -225,7 +233,6 @@ export const generateIdeas = async (req, res) => {
     const { id } = req.params;
     const userId = req.userId;
 
-    // Get campaign details and verify ownership
     const { data: campaign, error: campaignError } = await supabaseAdmin
       .from('campaigns')
       .select('*')
@@ -237,44 +244,41 @@ export const generateIdeas = async (req, res) => {
       return res.status(404).json({ error: 'Campaign not found' });
     }
 
-    // Get uploaded media for this campaign
-    const { data: media, error: mediaError } = await supabaseAdmin
+    // ── Fetch brand profile ──────────────────────────────────────────────────
+    const brand = await getBrandForCampaign(campaign, userId);
+    if (brand) {
+      console.log(`🎨 Using brand: ${brand.brand_name} (${brand.is_default ? 'default' : 'linked'})`);
+    } else {
+      console.log('⚠️  No brand profile found — generating without brand context');
+    }
+
+    const { data: media } = await supabaseAdmin
       .from('campaign_media')
       .select('*')
       .eq('campaign_id', id);
 
-    // Build media URLs
     const mediaUrls = media?.map(m => ({
       type: m.file_type,
       url: `${process.env.SUPABASE_URL}/storage/v1/object/public/campaign-media/${m.file_path}`
     })) || [];
 
-    // Import AI service
     const { generateContentIdeasAI } = await import('../services/ai.service.js');
 
-    // Generate content using AI
     const generatedContent = await generateContentIdeasAI({
-      name: campaign.name,
+      name:                campaign.name,
       product_description: campaign.product_description,
-      target_audience: campaign.target_audience,
-      output_formats: campaign.output_formats,
-      ai_provider: campaign.ai_provider || 'gemini'
+      target_audience:     campaign.target_audience,
+      output_formats:      campaign.output_formats,
+      ai_provider:         campaign.ai_provider || 'gemini',
+      brand,               // ← INJECTED
     }, mediaUrls);
 
-    res.json({ 
-      message: 'Content generated successfully',
-      generatedContent: generatedContent
-    });
+    res.json({ message: 'Content generated successfully', generatedContent });
   } catch (error) {
     console.error('Generate ideas error:', error);
-    
-    // Return user-friendly error messages
     if (error.message.includes('API key not configured')) {
-      return res.status(503).json({ 
-        error: 'AI service not configured. Please contact administrator or add your own API key.' 
-      });
+      return res.status(503).json({ error: 'AI service not configured.' });
     }
-    
     res.status(500).json({ error: error.message || 'Failed to generate content' });
   }
 };
@@ -285,7 +289,6 @@ export const generateMarketingStrategy = async (req, res) => {
     const { id } = req.params;
     const userId = req.userId;
 
-    // Get campaign details and verify ownership
     const { data: campaign, error: campaignError } = await supabaseAdmin
       .from('campaigns')
       .select('*')
@@ -297,45 +300,40 @@ export const generateMarketingStrategy = async (req, res) => {
       return res.status(404).json({ error: 'Campaign not found' });
     }
 
-    // Import AI service
+    // ── Fetch brand profile ──────────────────────────────────────────────────
+    const brand = await getBrandForCampaign(campaign, userId);
+    if (brand) {
+      console.log(`🎨 Using brand: ${brand.brand_name} for strategy`);
+    }
+
     const { generateMarketingStrategyAI } = await import('../services/ai.service.js');
 
-    // Generate strategy using AI
     const strategy = await generateMarketingStrategyAI({
-      name: campaign.name,
+      name:                campaign.name,
       product_description: campaign.product_description,
-      target_audience: campaign.target_audience,
-      output_formats: campaign.output_formats,
-      ai_provider: campaign.ai_provider || 'gemini'
+      target_audience:     campaign.target_audience,
+      output_formats:      campaign.output_formats,
+      ai_provider:         campaign.ai_provider || 'gemini',
+      brand,               // ← INJECTED
     });
 
-    res.json({
-      message: 'Strategy generated successfully',
-      strategy: strategy
-    });
+    res.json({ message: 'Strategy generated successfully', strategy });
   } catch (error) {
     console.error('Generate strategy error:', error);
-    
-    // Return user-friendly error messages
     if (error.message.includes('API key not configured')) {
-      return res.status(503).json({ 
-        error: 'AI service not configured. Please contact administrator or add your own API key.' 
-      });
+      return res.status(503).json({ error: 'AI service not configured.' });
     }
-    
     res.status(500).json({ error: error.message || 'Failed to generate strategy' });
   }
 };
-// ─── ADD THIS FUNCTION TO THE BOTTOM OF campaign.controller.js ───────────────
-// ─── REPLACE the generateVisual function in campaign.controller.js ───────────
 
+// Generate visual
 export const generateVisual = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
     const { format, adCopy, referenceMediaId } = req.body;
 
-    // Verify campaign ownership
     const { data: campaign, error: campaignError } = await supabaseAdmin
       .from('campaigns')
       .select('*')
@@ -351,7 +349,6 @@ export const generateVisual = async (req, res) => {
       return res.status(400).json({ error: 'Format is required' });
     }
 
-    // If a reference media ID was provided, get its public URL
     let referenceImageUrl = null;
     if (referenceMediaId) {
       const { data: mediaItem } = await supabaseAdmin
@@ -360,9 +357,8 @@ export const generateVisual = async (req, res) => {
         .eq('id', referenceMediaId)
         .single();
 
-      if (mediaItem && mediaItem.file_type?.startsWith('image/')) {
+      if (mediaItem?.file_type?.startsWith('image/')) {
         referenceImageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/campaign-media/${mediaItem.file_path}`;
-        console.log('📎 Using reference image:', referenceImageUrl.slice(0, 60) + '...');
       }
     }
 
@@ -383,19 +379,18 @@ export const generateVisual = async (req, res) => {
       revisedPrompt: result.revisedPrompt,
       usedReference: result.usedReference,
       format:        result.format,
-      generatedAt:   result.generatedAt
+      generatedAt:   result.generatedAt,
     });
-
   } catch (error) {
     console.error('Generate visual error:', error);
     if (error.message.includes('API key not configured')) {
       return res.status(503).json({ error: 'OpenAI API key required for image generation.' });
     }
     if (error.message.includes('billing') || error.message.includes('quota')) {
-      return res.status(402).json({ error: 'OpenAI billing limit reached. Please top up your account at platform.openai.com.' });
+      return res.status(402).json({ error: 'OpenAI billing limit reached.' });
     }
     if (error.message.includes('content_policy') || error.message.includes('safety')) {
-      return res.status(422).json({ error: 'Image could not be generated due to content policy. Try rephrasing your campaign description.' });
+      return res.status(422).json({ error: 'Image blocked by content policy. Try rephrasing your campaign description.' });
     }
     res.status(500).json({ error: error.message || 'Failed to generate visual' });
   }
