@@ -83,34 +83,52 @@ export const getCampaignById = async (req, res) => {
   }
 };
 
-// Create a new campaign
+// Create a new campaign// ─── REPLACE only the createCampaign function in campaign.controller.js ───────
+// Everything else stays the same.
+
 export const createCampaign = async (req, res) => {
   try {
     const userId = req.userId;
-    const { name, description, targetAudience, aiProvider, outputFormats, brandName, websiteUrl } = req.body;
+    const {
+      name,
+      description,
+      targetAudience,
+      aiProvider,
+      outputFormats,
+      brandName,
+      websiteUrl,
+      brandProfileId,   // ← NEW
+    } = req.body;
 
-    console.log('Creating campaign for user:', userId);
-
-    // Validate input
     if (!name || !description || !targetAudience || !outputFormats || outputFormats.length === 0) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
-    // Create campaign with user_id
+    // If brandProfileId provided, fetch it to get the real brand name
+    let resolvedBrandName = brandName || name;
+    if (brandProfileId) {
+      const { data: bp } = await supabaseAdmin
+        .from('brand_profiles')
+        .select('brand_name')
+        .eq('id', brandProfileId)
+        .eq('user_id', userId)
+        .single();
+      if (bp?.brand_name) resolvedBrandName = bp.brand_name;
+    }
+
     const { data: campaign, error } = await supabaseAdmin
       .from('campaigns')
-      .insert([
-        {
-          user_id: userId,
-          name: name,
-          brand_name: brandName || name,
-          website_url: websiteUrl || null,
-          product_description: description,
-          target_audience: targetAudience,
-          ai_provider: aiProvider || 'gemini',
-          output_formats: outputFormats
-        }
-      ])
+      .insert([{
+        user_id:             userId,
+        name,
+        brand_name:          resolvedBrandName,
+        website_url:         websiteUrl || null,
+        product_description: description,
+        target_audience:     targetAudience,
+        ai_provider:         aiProvider || 'gemini',
+        output_formats:      outputFormats,
+        brand_profile_id:    brandProfileId || null,   // ← NEW column (see migration below)
+      }])
       .select()
       .single();
 
@@ -119,10 +137,7 @@ export const createCampaign = async (req, res) => {
       return res.status(500).json({ error: 'Failed to create campaign' });
     }
 
-    res.status(201).json({ 
-      message: 'Campaign created successfully',
-      campaign 
-    });
+    res.status(201).json({ message: 'Campaign created successfully', campaign });
   } catch (error) {
     console.error('Create campaign error:', error);
     res.status(500).json({ error: 'Server error' });
