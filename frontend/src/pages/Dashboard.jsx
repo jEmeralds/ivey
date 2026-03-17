@@ -25,7 +25,8 @@ const NAV_ITEMS = [
   )},
   { id: 'social',     label: 'Social',     icon: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/>
+      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
     </svg>
   )},
   { id: 'gallery',    label: 'Gallery',    icon: (
@@ -34,7 +35,7 @@ const NAV_ITEMS = [
       <polyline points="21 15 16 10 5 21"/>
     </svg>
   )},
-  { id: 'analytics',  label: 'Analytics',  icon: (
+  { id: 'analytics',  label: 'Social Analysis',  icon: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
       <line x1="6" y1="20" x2="6" y2="14"/>
@@ -267,7 +268,7 @@ const Dashboard = () => {
         {[
           { label: 'New Campaign', icon: '🚀', action: () => navigate('/new-campaign'), color: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
           { label: 'Manage Brands', icon: '🎨', action: () => navigate_section('brands'), color: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
-          { label: 'Social Accounts', icon: '🔗', action: () => navigate_section('social'), color: 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800' },
+          { label: 'Social', icon: '🔗', action: () => navigate_section('social'), color: 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800' },
           { label: 'Gallery', icon: '🏆', action: () => navigate_section('gallery'), color: 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800' },
         ].map(q => (
           <button key={q.label} onClick={q.action}
@@ -422,7 +423,7 @@ const Dashboard = () => {
           {activeSection === 'analytics' && (
             <div className="space-y-4">
               <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Analytics</h1>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Social Analysis</h1>
                 <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Your social post activity and performance</p>
               </div>
               <AnalyticsPanel isDark={true} />

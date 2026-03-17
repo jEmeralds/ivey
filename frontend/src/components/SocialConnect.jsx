@@ -330,8 +330,6 @@ export default function SocialConnect({ isDark = true }) {
   const [connecting,     setConnecting]     = useState(null);
   const [disconnecting,  setDisconnecting]  = useState(null);
   const [postModal,      setPostModal]      = useState(null); // { platform, prefillText?, campaignId? }
-  const [showAnalytics,  setShowAnalytics]  = useState(false);
-  const [analyticsKey,   setAnalyticsKey]   = useState(0);
   const [toast,          setToast]          = useState(null);
   const location = useLocation();
 
@@ -406,10 +404,7 @@ export default function SocialConnect({ isDark = true }) {
             <div style={{ fontSize: 14, fontWeight: 800, color: textPri }}>Social Accounts</div>
             <div style={{ fontSize: 11, color: textMut, marginTop: 1 }}>Connect accounts · Post content · Track activity</div>
           </div>
-          <button onClick={() => setShowAnalytics(v => !v)}
-            style={{ padding: '6px 14px', borderRadius: 8, background: showAnalytics ? 'rgba(99,102,241,0.15)' : 'transparent', border: `1px solid ${showAnalytics ? '#6366f1' : border}`, color: showAnalytics ? '#6366f1' : textMut, fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
-            {showAnalytics ? '✕ Hide' : '📊 Analytics'}
-          </button>
+
         </div>
 
         {/* Platform rows */}
@@ -463,12 +458,7 @@ export default function SocialConnect({ isDark = true }) {
           })}
         </div>
 
-        {/* Analytics panel */}
-        {showAnalytics && (
-          <div style={{ borderTop: `1px solid ${border}`, padding: '0 14px 14px' }}>
-            <AnalyticsPanel key={analyticsKey} isDark={isDark} />
-          </div>
-        )}
+
       </div>
 
       {/* Post/Upload modal */}
@@ -478,7 +468,7 @@ export default function SocialConnect({ isDark = true }) {
           prefillText={postModal.prefillText}
           campaignId={postModal.campaignId}
           onClose={() => setPostModal(null)}
-          onPosted={() => { setAnalyticsKey(k => k + 1); showToast('✅ Posted and logged!'); }}
+          onPosted={() => { showToast('✅ Posted and logged!'); }}
         />
       )}
 
