@@ -1,8 +1,7 @@
 // frontend/src/components/SocialConnect.jsx
-// Social accounts — connect, post, upload, analytics
-
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useDarkMode } from '../hooks/useDarkMode';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
 
@@ -19,8 +18,8 @@ function getToken() {
   return localStorage.getItem('token') || sessionStorage.getItem('token');
 }
 
-// ── Sparkline bar chart ───────────────────────────────────────────────────────
-function Sparkline({ data, color = '#6366f1' }) {
+// ── Sparkline ─────────────────────────────────────────────────────────────────
+function Sparkline({ data, color = '#6366f1', isDark }) {
   if (!data?.length) return null;
   const max = Math.max(...data.map(d => d[1]), 1);
   return (
@@ -29,7 +28,7 @@ function Sparkline({ data, color = '#6366f1' }) {
         <div key={i} title={`${day}: ${count}`} style={{
           flex: 1, borderRadius: 2,
           height: `${Math.max(4, (count / max) * 100)}%`,
-          background: count > 0 ? color : 'rgba(255,255,255,0.05)',
+          background: count > 0 ? color : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'),
           transition: 'height 0.3s',
         }} />
       ))}
@@ -37,9 +36,9 @@ function Sparkline({ data, color = '#6366f1' }) {
   );
 }
 
-// ── Post/Upload Modal ─────────────────────────────────────────────────────────
+// ── Post/Upload Modal (always dark — it's a modal overlay, intentional) ───────
 function PostModal({ platform, prefillText, campaignId, onClose, onPosted }) {
-  const [tab,      setTab]      = useState(prefillText ? 'post' : 'post');
+  const [tab,      setTab]      = useState('post');
   const [text,     setText]     = useState(prefillText || '');
   const [caption,  setCaption]  = useState('');
   const [files,    setFiles]    = useState([]);
@@ -99,8 +98,6 @@ function PostModal({ platform, prefillText, campaignId, onClose, onPosted }) {
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{ background: '#0c1420', border: '1px solid #1e293b', borderRadius: 18, width: '100%', maxWidth: 500, margin: '0 16px', overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6)' }}>
-
-        {/* Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 30, height: 30, borderRadius: 8, background: p.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: '#fff' }}>{p.icon}</div>
@@ -108,8 +105,6 @@ function PostModal({ platform, prefillText, campaignId, onClose, onPosted }) {
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#475569', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
         </div>
-
-        {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '1px solid #1e293b' }}>
           {[{ id: 'post', label: '✏️ Write Post' }, { id: 'upload', label: '📎 Upload Media' }].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
@@ -118,7 +113,6 @@ function PostModal({ platform, prefillText, campaignId, onClose, onPosted }) {
             </button>
           ))}
         </div>
-
         <div style={{ padding: 20 }}>
           {success ? (
             <div style={{ textAlign: 'center', padding: '24px 0' }}>
@@ -130,7 +124,7 @@ function PostModal({ platform, prefillText, campaignId, onClose, onPosted }) {
             </div>
           ) : tab === 'post' ? (
             <>
-              <textarea value={text} onChange={e => setText(e.target.value)} placeholder={`What's on your mind?`} maxLength={charLimit} rows={5}
+              <textarea value={text} onChange={e => setText(e.target.value)} placeholder="What's on your mind?" maxLength={charLimit} rows={5}
                 style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#f1f5f9', resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.6 }} />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
                 <span style={{ fontSize: 11, color: remaining < 20 ? '#ef4444' : '#475569' }}>{remaining} remaining</span>
@@ -143,14 +137,13 @@ function PostModal({ platform, prefillText, campaignId, onClose, onPosted }) {
             </>
           ) : (
             <>
-              {/* Media picker */}
-              <div onClick={() => fileRef.current.click()} style={{ width: '100%', minHeight: 100, borderRadius: 10, background: '#1e293b', border: '2px dashed #334155', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, overflow: 'hidden', position: 'relative' }}>
+              <div onClick={() => fileRef.current.click()} style={{ width: '100%', minHeight: 100, borderRadius: 10, background: '#1e293b', border: '2px dashed #334155', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, overflow: 'hidden' }}>
                 {previews.length ? (
                   <div style={{ display: 'grid', gridTemplateColumns: previews.length > 1 ? '1fr 1fr' : '1fr', gap: 4, width: '100%', padding: 4 }}>
-                    {previews.map((p, i) => (
-                      p.type.startsWith('video')
-                        ? <video key={i} src={p.url} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 6 }} />
-                        : <img key={i} src={p.url} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 6 }} />
+                    {previews.map((pv, i) => (
+                      pv.type.startsWith('video')
+                        ? <video key={i} src={pv.url} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 6 }} />
+                        : <img key={i} src={pv.url} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 6 }} />
                     ))}
                   </div>
                 ) : (
@@ -161,11 +154,8 @@ function PostModal({ platform, prefillText, campaignId, onClose, onPosted }) {
                 )}
               </div>
               <input ref={fileRef} type="file" accept="image/*,video/*" multiple style={{ display: 'none' }} onChange={handleFiles} />
-
-              {/* Caption */}
               <textarea value={caption} onChange={e => setCaption(e.target.value)} placeholder="Write a caption..." maxLength={charLimit} rows={3}
                 style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: '#f1f5f9', resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', marginBottom: 10 }} />
-
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 11, color: remaining < 20 ? '#ef4444' : '#475569' }}>{remaining} remaining</span>
                 {error && <span style={{ fontSize: 11, color: '#ef4444' }}>{error}</span>}
@@ -182,7 +172,7 @@ function PostModal({ platform, prefillText, campaignId, onClose, onPosted }) {
   );
 }
 
-// ── Analytics panel ───────────────────────────────────────────────────────────
+// ── Post item ─────────────────────────────────────────────────────────────────
 function PostItem({ post, pm, card, border, textPri, textMut, onRetry, onDelete }) {
   const [retrying, setRetrying] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -203,13 +193,11 @@ function PostItem({ post, pm, card, border, textPri, textMut, onRetry, onDelete 
       <div style={{ display: 'flex', gap: 5, flexShrink: 0, alignItems: 'center' }}>
         {post.status === 'failed' && (
           <button onClick={() => { setRetrying(true); onRetry(post.id).finally(() => setRetrying(false)); }} disabled={retrying}
-            title="Retry post"
             style={{ padding: '3px 9px', borderRadius: 6, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', color: '#6366f1', fontSize: 10, fontWeight: 700, cursor: retrying ? 'not-allowed' : 'pointer', opacity: retrying ? 0.5 : 1 }}>
             {retrying ? '...' : '↺ Retry'}
           </button>
         )}
         <button onClick={() => onDelete(post.id)} disabled={deleting}
-          title="Delete post"
           style={{ padding: '3px 9px', borderRadius: 6, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 10, fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.5 : 1 }}>
           {deleting ? '...' : '✕'}
         </button>
@@ -218,16 +206,18 @@ function PostItem({ post, pm, card, border, textPri, textMut, onRetry, onDelete 
   );
 }
 
-export function AnalyticsPanel({ isDark }) {
-  const [stats,  setStats]  = useState(null);
-  const [posts,  setPosts]  = useState([]);
-  const [filter, setFilter] = useState('all');
+// ── Analytics Panel ───────────────────────────────────────────────────────────
+export function AnalyticsPanel() {
+  const isDark = useDarkMode(); // ← reactive
+  const [stats,   setStats]   = useState(null);
+  const [posts,   setPosts]   = useState([]);
+  const [filter,  setFilter]  = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       fetch(`${API_BASE}/social/posts/stats`, { headers: { Authorization: `Bearer ${getToken()}` } }).then(r => r.json()),
-      fetch(`${API_BASE}/social/posts?limit=20`, { headers: { Authorization: `Bearer ${getToken()}` } }).then(r => r.json()),
+      fetch(`${API_BASE}/social/posts?limit=20`,  { headers: { Authorization: `Bearer ${getToken()}` } }).then(r => r.json()),
     ]).then(([s, p]) => {
       setStats(s);
       setPosts(p.posts || []);
@@ -238,8 +228,7 @@ export function AnalyticsPanel({ isDark }) {
   const handleRetry = async (postId) => {
     try {
       const res = await fetch(`${API_BASE}/social/posts/${postId}/retry`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}` },
+        method: 'POST', headers: { Authorization: `Bearer ${getToken()}` },
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -253,8 +242,7 @@ export function AnalyticsPanel({ isDark }) {
     if (!window.confirm('Delete this post?' + (post?.status === 'published' ? ' This will also delete it from Twitter.' : ''))) return;
     try {
       const res = await fetch(`${API_BASE}/social/posts/${postId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}` },
+        method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` },
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -264,26 +252,27 @@ export function AnalyticsPanel({ isDark }) {
   };
 
   const filtered = filter === 'all' ? posts : posts.filter(p => p.platform === filter);
-  const bg = isDark ? '#080e1a' : '#f8fafc';
-  const card = isDark ? '#0f172a' : '#ffffff';
-  const border = isDark ? '#1e293b' : '#e2e8f0';
+
+  // ← Reactive theme tokens
+  const bg      = isDark ? '#080e1a' : '#f8fafc';
+  const card    = isDark ? '#0f172a' : '#ffffff';
+  const border  = isDark ? '#1e293b' : '#e2e8f0';
   const textPri = isDark ? '#f1f5f9' : '#0f172a';
   const textMut = isDark ? '#475569' : '#64748b';
 
   if (loading) return <div style={{ padding: 20, color: textMut, fontSize: 12 }}>Loading analytics...</div>;
 
   return (
-    <div style={{ background: bg, borderRadius: 14, padding: 20 }}>
-
+    <div style={{ background: bg, borderRadius: 14, padding: 20, transition: 'background 0.2s, color 0.2s' }}>
       {/* Stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
-          { label: 'Total Posts',  value: stats?.total || 0,     color: '#6366f1' },
-          { label: 'Published',    value: stats?.published || 0, color: '#10b981' },
-          { label: 'Failed',       value: stats?.failed || 0,    color: '#ef4444' },
+          { label: 'Total Posts', value: stats?.total || 0,     color: '#6366f1' },
+          { label: 'Published',   value: stats?.published || 0, color: '#10b981' },
+          { label: 'Failed',      value: stats?.failed || 0,    color: '#ef4444' },
           ...Object.entries(stats?.byPlatform || {}).map(([p, c]) => ({ label: PLATFORM_META[p]?.name || p, value: c, color: PLATFORM_META[p]?.color || '#475569' })),
         ].map((s, i) => (
-          <div key={i} style={{ background: card, border: `1px solid ${border}`, borderRadius: 10, padding: '12px 14px' }}>
+          <div key={i} style={{ background: card, border: `1px solid ${border}`, borderRadius: 10, padding: '12px 14px', transition: 'background 0.2s' }}>
             <div style={{ fontSize: 20, fontWeight: 900, color: s.color }}>{s.value}</div>
             <div style={{ fontSize: 10, color: textMut, marginTop: 2 }}>{s.label}</div>
           </div>
@@ -292,54 +281,54 @@ export function AnalyticsPanel({ isDark }) {
 
       {/* Sparkline */}
       {stats?.byDay?.length > 0 && (
-        <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
+        <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 10, padding: '14px 16px', marginBottom: 16, transition: 'background 0.2s' }}>
           <div style={{ fontSize: 10, color: textMut, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Posts — last 14 days</div>
-          <Sparkline data={stats.byDay} color="#6366f1" />
+          <Sparkline data={stats.byDay} color="#6366f1" isDark={isDark} />
         </div>
       )}
 
-      {/* Post history */}
+      {/* Filters */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         {['all', ...Object.keys(stats?.byPlatform || {})].map(p => (
           <button key={p} onClick={() => setFilter(p)}
-            style={{ padding: '4px 12px', borderRadius: 20, border: `1px solid ${filter === p ? (PLATFORM_META[p]?.color || '#6366f1') : border}`, background: filter === p ? ((PLATFORM_META[p]?.color || '#6366f1') + '18') : 'transparent', color: filter === p ? (PLATFORM_META[p]?.color || '#6366f1') : textMut, fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize' }}>
+            style={{ padding: '4px 12px', borderRadius: 20, border: `1px solid ${filter === p ? (PLATFORM_META[p]?.color || '#6366f1') : border}`, background: filter === p ? ((PLATFORM_META[p]?.color || '#6366f1') + '18') : 'transparent', color: filter === p ? (PLATFORM_META[p]?.color || '#6366f1') : textMut, fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize', transition: 'all 0.2s' }}>
             {p === 'all' ? `All (${posts.length})` : `${PLATFORM_META[p]?.name || p} (${stats.byPlatform[p]})`}
           </button>
         ))}
       </div>
 
+      {/* Post list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
         {filtered.length === 0
           ? <div style={{ fontSize: 12, color: textMut, textAlign: 'center', padding: 20 }}>No posts yet</div>
           : filtered.map(post => {
-            const pm = PLATFORM_META[post.platform] || {};
-            return (
-              <PostItem key={post.id} post={post} pm={pm} card={card} border={border} textPri={textPri} textMut={textMut} onRetry={handleRetry} onDelete={handleDelete} />
-            );
-          })
+              const pm = PLATFORM_META[post.platform] || {};
+              return <PostItem key={post.id} post={post} pm={pm} card={card} border={border} textPri={textPri} textMut={textMut} onRetry={handleRetry} onDelete={handleDelete} />;
+            })
         }
       </div>
     </div>
   );
 }
 
-// ── Main SocialConnect component ──────────────────────────────────────────────
-export default function SocialConnect({ isDark = true }) {
-  const [connections,    setConnections]    = useState([]);
-  const [loading,        setLoading]        = useState(true);
-  const [connecting,     setConnecting]     = useState(null);
-  const [disconnecting,  setDisconnecting]  = useState(null);
-  const [postModal,      setPostModal]      = useState(null); // { platform, prefillText?, campaignId? }
-  const [toast,          setToast]          = useState(null);
+// ── Main SocialConnect ────────────────────────────────────────────────────────
+export default function SocialConnect() {
+  const isDark = useDarkMode(); // ← reactive, no more prop
+  const [connections,   setConnections]   = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [connecting,    setConnecting]    = useState(null);
+  const [disconnecting, setDisconnecting] = useState(null);
+  const [postModal,     setPostModal]     = useState(null);
+  const [toast,         setToast]         = useState(null);
   const location = useLocation();
 
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const oauthStatus = params.get('oauth');
+    const oauthStatus   = params.get('oauth');
     const oauthPlatform = params.get('platform');
-    const oauthUser = params.get('username');
+    const oauthUser     = params.get('username');
     if (oauthStatus === 'success') {
       showToast(`✅ Connected to ${oauthPlatform}${oauthUser ? ` as @${oauthUser}` : ''}!`);
       fetchConnections();
@@ -365,14 +354,11 @@ export default function SocialConnect({ isDark = true }) {
   const handleConnect = async (platformId) => {
     setConnecting(platformId);
     try {
-      const res = await fetch(`${API_BASE}/social/${platformId}/connect`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const res  = await fetch(`${API_BASE}/social/${platformId}/connect`, { headers: { Authorization: `Bearer ${getToken()}` } });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
       else throw new Error(data.error || 'No OAuth URL');
-    } catch (err) {
-      showToast(`❌ ${err.message}`, 'error');
-      setConnecting(null);
-    }
+    } catch (err) { showToast(`❌ ${err.message}`, 'error'); setConnecting(null); }
   };
 
   const handleDisconnect = async (platformId) => {
@@ -388,23 +374,23 @@ export default function SocialConnect({ isDark = true }) {
 
   const getConn = (pid) => connections.find(c => c.platform === pid);
 
+  // ← Reactive theme tokens
   const surface = isDark ? '#0f172a' : '#ffffff';
+  const rowBg   = isDark ? '#080e1a' : '#f8fafc';
   const border  = isDark ? '#1e293b' : '#e2e8f0';
   const textPri = isDark ? '#f1f5f9' : '#0f172a';
   const textMut = isDark ? '#475569' : '#64748b';
 
   return (
     <>
-      <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}>
-
-        {/* Platform rows */}
+      <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 24, transition: 'background 0.2s, border-color 0.2s' }}>
         <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {PLATFORMS.map(platform => {
             const conn   = getConn(platform.id);
             const isConn = !!conn;
             const isBusy = connecting === platform.id || disconnecting === platform.id;
             return (
-              <div key={platform.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', borderRadius: 11, border: `1px solid ${isConn ? platform.color + '33' : border}`, background: isConn ? platform.color + '08' : (isDark ? '#080e1a' : '#f8fafc'), transition: 'all 0.2s' }}>
+              <div key={platform.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', borderRadius: 11, border: `1px solid ${isConn ? platform.color + '33' : border}`, background: isConn ? platform.color + '08' : rowBg, transition: 'all 0.2s' }}>
                 <div style={{ width: 36, height: 36, borderRadius: 9, background: platform.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: '#fff', flexShrink: 0, boxShadow: isConn ? `0 0 0 3px ${platform.color}33` : 'none' }}>
                   {platform.icon}
                 </div>
@@ -447,19 +433,10 @@ export default function SocialConnect({ isDark = true }) {
             );
           })}
         </div>
-
-
       </div>
 
-      {/* Post/Upload modal */}
       {postModal && (
-        <PostModal
-          platform={postModal.platform}
-          prefillText={postModal.prefillText}
-          campaignId={postModal.campaignId}
-          onClose={() => setPostModal(null)}
-          onPosted={() => { showToast('✅ Posted and logged!'); }}
-        />
+        <PostModal platform={postModal.platform} prefillText={postModal.prefillText} campaignId={postModal.campaignId} onClose={() => setPostModal(null)} onPosted={() => showToast('✅ Posted and logged!')} />
       )}
 
       {toast && (
@@ -471,10 +448,10 @@ export default function SocialConnect({ isDark = true }) {
   );
 }
 
-// ── Exported helper: use in CampaignDetail content cards ─────────────────────
+// ── usePostToSocial hook ──────────────────────────────────────────────────────
 export function usePostToSocial() {
   const [modal, setModal] = useState(null);
-  const open = ({ platform, text, campaignId }) => setModal({ platform, prefillText: text, campaignId });
+  const open  = ({ platform, text, campaignId }) => setModal({ platform, prefillText: text, campaignId });
   const close = () => setModal(null);
   const ModalSlot = modal ? (
     <PostModal platform={modal.platform} prefillText={modal.prefillText} campaignId={modal.campaignId} onClose={close} />
