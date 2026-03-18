@@ -422,13 +422,18 @@ export default function DesignEditor({ generatedContent, campaignName, onClose }
   const [photoBgOpacity, setPhotoBgOpacity] = useState(0.45);
   const canvasRef = useRef(null);
 
-  // ── FIX: initLayers takes business explicitly to avoid stale closure ────────
-  const initLayers = useCallback((tmpl, biz) => {
-    const snippet = extractSnippet(generatedContent, tmpl.id);
+  // Keep a ref to generatedContent so initLayers always has the latest value
+  // without needing to be recreated on every render
+  const generatedContentRef = useRef(generatedContent);
+  useEffect(() => { generatedContentRef.current = generatedContent; }, [generatedContent]);
+
+  // initLayers: no useCallback — always reads fresh state via refs/args
+  const initLayers = (tmpl, biz) => {
+    const snippet = extractSnippet(generatedContentRef.current, tmpl.id);
     setLayers(buildLayers(tmpl, snippet, biz));
     setSelectedLayer(null);
     setPhotoBg(false);
-  }, [generatedContent]);
+  };
 
   const pickTemplate = (tmpl) => {
     setTemplate(tmpl);
@@ -436,8 +441,15 @@ export default function DesignEditor({ generatedContent, campaignName, onClose }
     setStep('edit');
   };
 
+  // handleReset uses templateRef so it always has the current template
+  const templateRef = useRef(template);
+  useEffect(() => { templateRef.current = template; }, [template]);
+
+  const businessRef = useRef(business);
+  useEffect(() => { businessRef.current = business; }, [business]);
+
   const handleReset = () => {
-    if (template) initLayers(template, business);
+    if (templateRef.current) initLayers(templateRef.current, businessRef.current);
   };
 
   const dragLayer = useCallback((id, x, y) => {
