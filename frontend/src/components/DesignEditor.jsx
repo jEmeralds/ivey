@@ -44,11 +44,11 @@ function extractSnippet(generatedContent, templateId) {
   const map = {
     instagram_post:  ['INSTAGRAM_CAPTION', 'SOCIAL_POST'],
     instagram_story: ['INSTAGRAM_STORY', 'INSTAGRAM_CAPTION'],
-    youtube_thumb:   ['YOUTUBE_TITLE', 'VIDEO_SCRIPT'],
+    youtube_thumb:   ['YOUTUBE_TITLE', 'VIDEO_SCRIPT', 'YOUTUBE_VIDEO_AD', 'YOUTUBE_SHORTS'],
     twitter_post:    ['TWITTER_POST', 'SOCIAL_POST'],
     banner_ad:       ['BANNER_AD', 'GOOGLE_SEARCH_AD'],
     flyer:           ['FLYER_TEXT', 'PRINT_AD'],
-    facebook_cover:  ['SOCIAL_POST', 'INSTAGRAM_CAPTION'],
+    facebook_cover:  ['FACEBOOK_POST', 'SOCIAL_POST', 'INSTAGRAM_CAPTION'],
     linkedin_post:   ['LINKEDIN_POST', 'SOCIAL_POST'],
   };
   const order = map[templateId] || [];
@@ -126,7 +126,6 @@ function DesignCanvas({ template, palette: p, layers, selectedLayer, onDragLayer
       }}
       onClick={() => onSelectLayer(null)}
     >
-      {/* Full-bleed background photo */}
       {photoBg && bgPhotoSrc && (
         <>
           <img src={bgPhotoSrc} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />
@@ -219,31 +218,21 @@ function buildLayers(template, snippet, business) {
   const isTall = h > w * 1.2;
 
   return [
-    // Product image (background-ish)
-    { id: 'photo', type: 'image', label: 'Product Photo', x: isWide ? w - 160 : w - 130, y: isWide ? 0 : 40, w: isWide ? 160 : 120, h: isWide ? h : 120, fit: 'cover', radius: 0, src: null, visible: true },
-    // Logo
-    { id: 'logo', type: 'logo', x: 14, y: 12, w: 32, h: 32, radius: 8, fallback: (business.name || 'I').charAt(0).toUpperCase(), src: null, visible: true },
-    // Brand name
-    { id: 'brand', type: 'text', x: 54, y: 18, content: business.name || 'Brand Name', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', uppercase: true, placeholder: 'Brand Name', visible: true },
-    // Badge/category
-    { id: 'badge', type: 'badge', x: 14, y: isWide ? h - 100 : h - 140, content: business.category || 'Marketing', fontSize: 9, visible: true },
-    // Headline
-    { id: 'headline', type: 'text', x: 14, y: isWide ? h - 82 : h - 118, content: snippet.headline, fontSize: isWide ? 16 : isTall ? 20 : 19, fontWeight: 900, maxWidth: isWide ? w - 180 : w - 28, wrap: true, placeholder: 'Your headline', visible: true },
-    // Body
-    { id: 'body', type: 'text', x: 14, y: isWide ? h - 46 : h - 64, content: snippet.body, fontSize: isWide ? 10 : 11, fontWeight: 400, maxWidth: isWide ? w - 180 : w - 28, wrap: true, lineHeight: 1.5, placeholder: 'Supporting text...', visible: !isWide },
-    // Divider
-    { id: 'divider', type: 'divider', x: 14, y: h - 22, w: isWide ? 80 : 100, visible: true },
-    // Website CTA
-    { id: 'website', type: 'text', x: isWide ? 24 : 14, y: h - 18, content: business.website || 'ivey.app', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', uppercase: true, placeholder: 'yoursite.com', visible: true },
-    // Contact block
-    { id: 'contact', type: 'contact', x: isWide ? w - 155 : 14, y: isWide ? h - 38 : -200, fontSize: 8, visible: isWide,
+    { id: 'photo',    type: 'image',   label: 'Product Photo', x: isWide ? w - 160 : w - 130, y: isWide ? 0 : 40, w: isWide ? 160 : 120, h: isWide ? h : 120, fit: 'cover', radius: 0, src: null, visible: true },
+    { id: 'logo',     type: 'logo',    x: 14, y: 12, w: 32, h: 32, radius: 8, fallback: (business.name || 'I').charAt(0).toUpperCase(), src: null, visible: true },
+    { id: 'brand',    type: 'text',    x: 54, y: 18, content: business.name || 'Brand Name', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', uppercase: true, placeholder: 'Brand Name', visible: true },
+    { id: 'badge',    type: 'badge',   x: 14, y: isWide ? h - 100 : h - 140, content: business.category || 'Marketing', fontSize: 9, visible: true },
+    { id: 'headline', type: 'text',    x: 14, y: isWide ? h - 82 : h - 118, content: snippet.headline, fontSize: isWide ? 16 : isTall ? 20 : 19, fontWeight: 900, maxWidth: isWide ? w - 180 : w - 28, wrap: true, placeholder: 'Your headline', visible: true },
+    { id: 'body',     type: 'text',    x: 14, y: isWide ? h - 46 : h - 64, content: snippet.body, fontSize: isWide ? 10 : 11, fontWeight: 400, maxWidth: isWide ? w - 180 : w - 28, wrap: true, lineHeight: 1.5, placeholder: 'Supporting text...', visible: !isWide },
+    { id: 'divider',  type: 'divider', x: 14, y: h - 22, w: isWide ? 80 : 100, visible: true },
+    { id: 'website',  type: 'text',    x: isWide ? 24 : 14, y: h - 18, content: business.website || 'ivey.app', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', uppercase: true, placeholder: 'yoursite.com', visible: true },
+    { id: 'contact',  type: 'contact', x: isWide ? w - 155 : 14, y: isWide ? h - 38 : -200, fontSize: 8, visible: isWide,
       items: [
         { icon: '📞', value: business.phone || '' },
-        { icon: '✉', value: business.email || '' },
+        { icon: '✉',  value: business.email || '' },
       ]
     },
-    // CTA button (optional)
-    { id: 'cta', type: 'cta', x: w - 100, y: h - 36, content: business.cta || 'Learn More', fontSize: 10, visible: !isWide },
+    { id: 'cta',      type: 'cta',     x: w - 100, y: h - 36, content: business.cta || 'Learn More', fontSize: 10, visible: !isWide },
   ];
 }
 
@@ -265,7 +254,6 @@ function PalettePanel({ palette, onChange }) {
           </button>
         ))}
       </div>
-
       <div style={sectionHead}>Custom Colors</div>
       {[
         { key: 'bg',     label: 'Background' },
@@ -286,17 +274,17 @@ function PalettePanel({ palette, onChange }) {
 
 function BusinessPanel({ business, onChange }) {
   const fields = [
-    { key: 'name',     label: 'Business Name',  placeholder: 'Acme Co.' },
-    { key: 'tagline',  label: 'Tagline',         placeholder: 'Just do it.' },
-    { key: 'category', label: 'Category / Niche',placeholder: 'Health & Wellness' },
-    { key: 'website',  label: 'Website',         placeholder: 'acme.co' },
-    { key: 'email',    label: 'Email',           placeholder: 'hello@acme.co' },
-    { key: 'phone',    label: 'Phone',           placeholder: '+254 700 000 000' },
-    { key: 'address',  label: 'Address',         placeholder: 'Nairobi, Kenya' },
-    { key: 'instagram',label: 'Instagram',       placeholder: '@acmeco' },
-    { key: 'twitter',  label: 'Twitter / X',     placeholder: '@acmeco' },
-    { key: 'tiktok',   label: 'TikTok',          placeholder: '@acmeco' },
-    { key: 'cta',      label: 'CTA Button Text', placeholder: 'Shop Now' },
+    { key: 'name',      label: 'Business Name',   placeholder: 'Acme Co.' },
+    { key: 'tagline',   label: 'Tagline',          placeholder: 'Just do it.' },
+    { key: 'category',  label: 'Category / Niche', placeholder: 'Health & Wellness' },
+    { key: 'website',   label: 'Website',          placeholder: 'acme.co' },
+    { key: 'email',     label: 'Email',            placeholder: 'hello@acme.co' },
+    { key: 'phone',     label: 'Phone',            placeholder: '+254 700 000 000' },
+    { key: 'address',   label: 'Address',          placeholder: 'Nairobi, Kenya' },
+    { key: 'instagram', label: 'Instagram',        placeholder: '@acmeco' },
+    { key: 'twitter',   label: 'Twitter / X',      placeholder: '@acmeco' },
+    { key: 'tiktok',    label: 'TikTok',           placeholder: '@acmeco' },
+    { key: 'cta',       label: 'CTA Button Text',  placeholder: 'Shop Now' },
   ];
   return (
     <div>
@@ -329,49 +317,36 @@ function AssetsPanel({ layers, onLogoUpload, onPhotoUpload, onLayerToggle, onLay
   return (
     <div>
       <div style={sectionHead}>Assets</div>
-
-      {/* Logo */}
       <div style={{ marginBottom: 14 }}>
         <label style={labelStyle}>Logo</label>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <div style={{ width: 44, height: 44, borderRadius: 8, background: '#1e293b', border: '1px solid #2d3f55', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {hasLogo
-              ? <img src={layers.find(l => l.id === 'logo').src} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              : <span style={{ fontSize: 18, opacity: 0.3 }}>🏷</span>}
+            {hasLogo ? <img src={layers.find(l => l.id === 'logo').src} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 18, opacity: 0.3 }}>🏷</span>}
           </div>
           <button onClick={() => logoRef.current.click()} style={{ flex: 1, padding: '8px 0', background: '#1e293b', border: '1px dashed #334155', borderRadius: 8, color: '#94a3b8', fontSize: 11, cursor: 'pointer' }}>
             {hasLogo ? 'Replace Logo' : 'Upload Logo'}
           </button>
-          {hasLogo && (
-            <button onClick={onClearLogo} title="Remove logo" style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 14, cursor: 'pointer', flexShrink: 0 }}>✕</button>
-          )}
+          {hasLogo && <button onClick={onClearLogo} title="Remove logo" style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 14, cursor: 'pointer', flexShrink: 0 }}>✕</button>}
         </div>
         <input ref={logoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e, onLogoUpload)} />
       </div>
 
-      {/* Product Photo */}
       <div style={{ marginBottom: 6 }}>
         <label style={labelStyle}>Product Photo</label>
         <div style={{ width: '100%', height: 90, borderRadius: 8, background: '#1e293b', border: '1px dashed #334155', overflow: 'hidden', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
           {hasPhoto
-            ? <>
-                <img src={layers.find(l => l.id === 'photo').src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <button onClick={onClearPhoto} title="Remove photo" style={{ position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: 6, background: 'rgba(239,68,68,0.85)', border: 'none', color: '#fff', fontSize: 11, cursor: 'pointer', fontWeight: 700 }}>✕</button>
-              </>
+            ? <><img src={layers.find(l => l.id === 'photo').src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /><button onClick={onClearPhoto} title="Remove photo" style={{ position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: 6, background: 'rgba(239,68,68,0.85)', border: 'none', color: '#fff', fontSize: 11, cursor: 'pointer', fontWeight: 700 }}>✕</button></>
             : <span style={{ fontSize: 28, opacity: 0.2 }}>📷</span>}
         </div>
         <button onClick={() => photoRef.current.click()} style={{ width: '100%', padding: '8px 0', background: '#1e293b', border: '1px dashed #334155', borderRadius: 8, color: '#94a3b8', fontSize: 11, cursor: 'pointer', marginBottom: 8 }}>
           {hasPhoto ? 'Replace Photo' : 'Upload Product Photo'}
         </button>
         <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e, onPhotoUpload)} />
-
-        {/* Use as background toggle */}
         {hasPhoto && (
           <div style={{ background: '#131c2a', borderRadius: 10, padding: '10px 12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: photoBg ? 10 : 0 }}>
               <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>Use as full background</span>
-              <button onClick={onPhotoBgToggle}
-                style={{ width: 32, height: 18, borderRadius: 9, background: photoBg ? '#6366f1' : '#1e293b', border: photoBg ? 'none' : '1px solid #334155', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+              <button onClick={onPhotoBgToggle} style={{ width: 32, height: 18, borderRadius: 9, background: photoBg ? '#6366f1' : '#1e293b', border: photoBg ? 'none' : '1px solid #334155', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
                 <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: photoBg ? 16 : 2, transition: 'left 0.2s' }} />
               </button>
             </div>
@@ -381,8 +356,7 @@ function AssetsPanel({ layers, onLogoUpload, onPhotoUpload, onLayerToggle, onLay
                   <span style={{ fontSize: 10, color: '#64748b' }}>Overlay opacity</span>
                   <span style={{ fontSize: 10, color: '#6366f1', fontWeight: 700 }}>{Math.round(photoBgOpacity * 100)}%</span>
                 </div>
-                <input type="range" min="0" max="1" step="0.05" value={photoBgOpacity} onChange={e => onPhotoBgOpacity(parseFloat(e.target.value))}
-                  style={{ width: '100%', accentColor: '#6366f1', cursor: 'pointer' }} />
+                <input type="range" min="0" max="1" step="0.05" value={photoBgOpacity} onChange={e => onPhotoBgOpacity(parseFloat(e.target.value))} style={{ width: '100%', accentColor: '#6366f1', cursor: 'pointer' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
                   <span style={{ fontSize: 9, color: '#334155' }}>Photo only</span>
                   <span style={{ fontSize: 9, color: '#334155' }}>Full overlay</span>
@@ -393,20 +367,15 @@ function AssetsPanel({ layers, onLogoUpload, onPhotoUpload, onLayerToggle, onLay
         )}
       </div>
 
-      {/* Layer visibility + delete */}
       <div style={sectionHead}>Layers</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {layers.map(layer => (
           <div key={layer.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', borderRadius: 7, background: '#131c2a' }}>
             <span style={{ flex: 1, fontSize: 11, color: layer.visible ? '#94a3b8' : '#334155', textTransform: 'capitalize' }}>{layer.id}</span>
-            {/* toggle */}
-            <button onClick={() => onLayerToggle(layer.id)}
-              style={{ width: 28, height: 16, borderRadius: 8, background: layer.visible ? '#10b981' : '#1e293b', border: layer.visible ? 'none' : '1px solid #334155', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+            <button onClick={() => onLayerToggle(layer.id)} style={{ width: 28, height: 16, borderRadius: 8, background: layer.visible ? '#10b981' : '#1e293b', border: layer.visible ? 'none' : '1px solid #334155', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
               <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#fff', position: 'absolute', top: 2, left: layer.visible ? 14 : 2, transition: 'left 0.2s' }} />
             </button>
-            {/* delete */}
-            <button onClick={() => onLayerDelete(layer.id)} title="Delete layer"
-              style={{ width: 22, height: 22, borderRadius: 5, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', color: '#ef4444', fontSize: 10, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            <button onClick={() => onLayerDelete(layer.id)} title="Delete layer" style={{ width: 22, height: 22, borderRadius: 5, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', color: '#ef4444', fontSize: 10, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
           </div>
         ))}
       </div>
@@ -437,46 +406,55 @@ function ContentPanel({ layers, onLayerContent }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function DesignEditor({ generatedContent, campaignName, onClose }) {
-  const [step,        setStep]        = useState('pick'); // 'pick' | 'edit'
-  const [template,    setTemplate]    = useState(null);
-  const [palette,     setPalette]     = useState(PALETTES[0]);
-  const [layers,      setLayers]      = useState([]);
-  const [selectedLayer, setSelectedLayer] = useState(null);
-  const [activeTab,   setActiveTab]   = useState('content'); // content | assets | palette | business
-  const [business,    setBusiness]    = useState({ name: campaignName || '', tagline: '', category: '', website: '', email: '', phone: '', address: '', instagram: '', twitter: '', tiktok: '', cta: 'Learn More' });
-  const [exporting,   setExporting]   = useState(false);
-  const [exported,    setExported]    = useState(false);
-  const [photoBg,     setPhotoBg]     = useState(false);
+  const [step,           setStep]           = useState('pick');
+  const [template,       setTemplate]       = useState(null);
+  const [palette,        setPalette]        = useState(PALETTES[0]);
+  const [layers,         setLayers]         = useState([]);
+  const [selectedLayer,  setSelectedLayer]  = useState(null);
+  const [activeTab,      setActiveTab]      = useState('content');
+  const [business,       setBusiness]       = useState({
+    name: campaignName || '', tagline: '', category: '', website: '',
+    email: '', phone: '', address: '', instagram: '', twitter: '', tiktok: '', cta: 'Learn More'
+  });
+  const [exporting,      setExporting]      = useState(false);
+  const [exported,       setExported]       = useState(false);
+  const [photoBg,        setPhotoBg]        = useState(false);
   const [photoBgOpacity, setPhotoBgOpacity] = useState(0.45);
   const canvasRef = useRef(null);
 
-  const initLayers = (tmpl) => {
+  // ── FIX: initLayers takes business explicitly to avoid stale closure ────────
+  const initLayers = useCallback((tmpl, biz) => {
     const snippet = extractSnippet(generatedContent, tmpl.id);
-    setLayers(buildLayers(tmpl, snippet, business));
-  };
+    setLayers(buildLayers(tmpl, snippet, biz));
+    setSelectedLayer(null);
+    setPhotoBg(false);
+  }, [generatedContent]);
 
   const pickTemplate = (tmpl) => {
     setTemplate(tmpl);
-    initLayers(tmpl);
+    initLayers(tmpl, business);
     setStep('edit');
+  };
+
+  const handleReset = () => {
+    if (template) initLayers(template, business);
   };
 
   const dragLayer = useCallback((id, x, y) => {
     setLayers(prev => prev.map(l => l.id === id ? { ...l, x, y } : l));
   }, []);
 
-  const toggleLayer  = (id) => setLayers(prev => prev.map(l => l.id === id ? { ...l, visible: !l.visible } : l));
-  const deleteLayer  = (id) => setLayers(prev => prev.filter(l => l.id !== id));
-  const clearLogo    = () => setLayers(prev => prev.map(l => l.id === 'logo'  ? { ...l, src: null } : l));
-  const clearPhoto   = () => { setLayers(prev => prev.map(l => l.id === 'photo' ? { ...l, src: null } : l)); setPhotoBg(false); };
-
+  const toggleLayer     = (id) => setLayers(prev => prev.map(l => l.id === id ? { ...l, visible: !l.visible } : l));
+  const deleteLayer     = (id) => setLayers(prev => prev.filter(l => l.id !== id));
+  const clearLogo       = () => setLayers(prev => prev.map(l => l.id === 'logo'  ? { ...l, src: null } : l));
+  const clearPhoto      = () => { setLayers(prev => prev.map(l => l.id === 'photo' ? { ...l, src: null } : l)); setPhotoBg(false); };
   const setLayerContent = (id, val) => setLayers(prev => prev.map(l => l.id === id ? { ...l, content: val } : l));
+  const setLogo         = (src) => setLayers(prev => prev.map(l => l.id === 'logo'  ? { ...l, src } : l));
+  const setPhoto        = (src) => setLayers(prev => prev.map(l => l.id === 'photo' ? { ...l, src } : l));
 
-  const setLogo  = (src) => setLayers(prev => prev.map(l => l.id === 'logo'  ? { ...l, src } : l));
-  const setPhoto = (src) => setLayers(prev => prev.map(l => l.id === 'photo' ? { ...l, src } : l));
-
-  // Sync business name → brand layer + logo fallback
+  // ── FIX: Only sync business-specific layers — NEVER touch headline or body ──
   useEffect(() => {
+    if (layers.length === 0) return; // don't run on empty init
     setLayers(prev => prev.map(l => {
       if (l.id === 'brand')   return { ...l, content: business.name || 'Brand Name' };
       if (l.id === 'logo')    return { ...l, fallback: (business.name || 'I').charAt(0).toUpperCase() };
@@ -484,15 +462,16 @@ export default function DesignEditor({ generatedContent, campaignName, onClose }
       if (l.id === 'website') return { ...l, content: business.website || 'ivey.app' };
       if (l.id === 'cta')     return { ...l, content: business.cta || 'Learn More' };
       if (l.id === 'contact') return { ...l, items: [{ icon: '📞', value: business.phone || '' }, { icon: '✉', value: business.email || '' }, { icon: '📍', value: business.address || '' }].filter(i => i.value) };
+      // headline and body are intentionally NOT touched here
       return l;
     }));
-  }, [business]);
+  }, [business]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleExport = async () => {
     if (!canvasRef.current) return;
     setExporting(true);
-    setSelectedLayer(null); // hide selection outlines
-    await new Promise(r => setTimeout(r, 80)); // let outline disappear
+    setSelectedLayer(null);
+    await new Promise(r => setTimeout(r, 80));
     try {
       const canvas = await html2canvas(canvasRef.current, { scale: 2, useCORS: true, backgroundColor: palette.bg, logging: false });
       const link = document.createElement('a');
@@ -528,7 +507,6 @@ export default function DesignEditor({ generatedContent, campaignName, onClose }
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.background = '#111827'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.background = '#0f172a'; }}
           >
-            {/* Mini aspect ratio preview */}
             <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
               <div style={{ width: Math.min(60, 60 * t.w / Math.max(t.w, t.h)), height: Math.min(60, 60 * t.h / Math.max(t.w, t.h)), background: 'linear-gradient(135deg,#1e293b,#334155)', borderRadius: 4, border: '1px solid #334155' }} />
             </div>
@@ -551,8 +529,6 @@ export default function DesignEditor({ generatedContent, campaignName, onClose }
 
   return (
     <div style={{ background: '#080e1a', border: '1px solid #1e293b', borderRadius: 16, overflow: 'hidden', marginTop: 24 }}>
-
-      {/* Top bar */}
       <div style={{ padding: '10px 16px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button onClick={() => setStep('pick')} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 7, padding: '5px 12px', color: '#94a3b8', fontSize: 11, cursor: 'pointer' }}>← Templates</button>
@@ -560,7 +536,8 @@ export default function DesignEditor({ generatedContent, campaignName, onClose }
           <span style={{ fontSize: 10, color: '#334155' }}>{template.w}×{template.h} · Drag elements to reposition</span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => initLayers(template)} style={{ padding: '7px 14px', borderRadius: 8, background: '#1e293b', border: '1px solid #334155', color: '#94a3b8', fontSize: 11, cursor: 'pointer' }}>↺ Reset</button>
+          {/* ── FIX: Reset now calls handleReset which passes fresh business ── */}
+          <button onClick={handleReset} style={{ padding: '7px 14px', borderRadius: 8, background: '#1e293b', border: '1px solid #334155', color: '#94a3b8', fontSize: 11, cursor: 'pointer' }}>↺ Reset</button>
           <button onClick={handleExport} disabled={exporting}
             style={{ padding: '7px 18px', borderRadius: 8, border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: exporting ? 'not-allowed' : 'pointer', background: exported ? '#10b981' : 'linear-gradient(135deg,#6366f1,#8b5cf6)', opacity: exporting ? 0.7 : 1, transition: 'all 0.2s' }}>
             {exporting ? '⏳ Exporting...' : exported ? '✅ Saved!' : '⬇ Export PNG'}
@@ -569,10 +546,7 @@ export default function DesignEditor({ generatedContent, campaignName, onClose }
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', minHeight: 480 }}>
-
-        {/* Canvas area */}
         <div style={{ padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#04080f', gap: 14, borderRight: '1px solid #1e293b' }}>
-          {/* Palette quick-select dots */}
           <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', justifyContent: 'center' }}>
             {PALETTES.slice(0, 9).map(p => (
               <button key={p.id} onClick={() => setPalette(p)} title={p.name}
@@ -581,7 +555,6 @@ export default function DesignEditor({ generatedContent, campaignName, onClose }
             <button onClick={() => setActiveTab('palette')} title="More palettes"
               style={{ width: 20, height: 20, borderRadius: '50%', background: '#1e293b', border: '1px solid #334155', cursor: 'pointer', fontSize: 9, color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
           </div>
-
           <div style={{ boxShadow: '0 24px 64px rgba(0,0,0,0.7)', borderRadius: 6 }}>
             <DesignCanvas
               template={template}
@@ -595,14 +568,10 @@ export default function DesignEditor({ generatedContent, campaignName, onClose }
               photoBgOpacity={photoBgOpacity}
             />
           </div>
-
           <p style={{ fontSize: 10, color: '#1e293b', textAlign: 'center' }}>Click an element to select · Drag to reposition · Export at 2×</p>
         </div>
 
-        {/* Sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-          {/* Tab bar */}
           <div style={{ display: 'flex', borderBottom: '1px solid #1e293b' }}>
             {TABS.map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
@@ -612,8 +581,6 @@ export default function DesignEditor({ generatedContent, campaignName, onClose }
               </button>
             ))}
           </div>
-
-          {/* Tab content */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 20px' }}>
             {activeTab === 'content'  && <ContentPanel  layers={layers} onLayerContent={setLayerContent} />}
             {activeTab === 'assets'   && <AssetsPanel   layers={layers} onLogoUpload={setLogo} onPhotoUpload={setPhoto} onLayerToggle={toggleLayer} onLayerDelete={deleteLayer} onClearLogo={clearLogo} onClearPhoto={clearPhoto} photoBg={photoBg} onPhotoBgToggle={() => setPhotoBg(v => !v)} photoBgOpacity={photoBgOpacity} onPhotoBgOpacity={setPhotoBgOpacity} />}
