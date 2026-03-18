@@ -11,8 +11,10 @@ import DesignEditor from '../components/DesignEditor';
 import { usePostToSocial } from '../components/SocialConnect';
 
 const VISUAL_FORMATS = ['BANNER_AD', 'PRINT_AD', 'FLYER_TEXT', 'GOOGLE_SEARCH_AD'];
+const VIDEO_FORMATS  = ['YOUTUBE_VIDEO_AD', 'YOUTUBE_SHORTS'];
+
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.vercel.app';
-const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-backend-production.up.railway.app';
+const API_URL      = import.meta.env.VITE_API_URL      || 'https://ivey-backend-production.up.railway.app';
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 const Toast = ({ message, type, visible }) => {
@@ -279,7 +281,7 @@ const StrategySection = ({ title, content, icon, defaultOpen, campaignName, onSa
 };
 
 // ─── Content Card ─────────────────────────────────────────────────────────────
-const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, campaignId, onSave, onShare, savedKeys, media, onPostToSocial }) => {
+const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, campaignId, onSave, onShare, savedKeys, media, onPostToSocial, showToast }) => {
   const [activeTab, setActiveTab]       = useState('copy');
   const [isExpanded, setIsExpanded]     = useState(defaultExpanded);
   const [copied, setCopied]             = useState(false);
@@ -292,6 +294,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
   const formatName = OUTPUT_FORMATS[item.format]?.name || item.format;
   const key        = `content_${item.format}`;
   const isSaved    = savedKeys.has(key);
+  const isVideo    = VIDEO_FORMATS.includes(item.format);
 
   const parseVisualContent = (content) => {
     if (!content) return { copy: content, design: '' };
@@ -308,6 +311,22 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
   const handleCopy   = (text, e) => { e?.stopPropagation(); navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const handleSave   = async (e) => { e.stopPropagation(); if (isSaved) return; setSaving(true); await onSave({ title: `${formatName} — ${campaignName}`, content: item.content, content_type: 'content', format: item.format, key }); setSaving(false); };
   const handleShare  = (e) => { e.stopPropagation(); onShare({ title: `${formatName} — ${campaignName}`, content: item.content }); };
+
+  // ── HeyGen video handler ──────────────────────────────────────────────────
+  const handleGenerateVideo = (e) => {
+    e.stopPropagation();
+    // Strip markdown for a clean script
+    const cleanScript = item.content
+      .replace(/#{1,6}\s*/g, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/>\s*/g, '')
+      .replace(/---/g, '')
+      .trim();
+    navigator.clipboard.writeText(cleanScript).catch(() => {});
+    window.open('https://app.heygen.com/create', '_blank');
+    showToast('🎬 Script copied! Paste it in HeyGen to generate your video.', 'info');
+  };
 
   const handleGenerateVisual = async (refId) => {
     setVisualModal(true);
@@ -340,6 +359,19 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
           </span>
           <div className="flex items-center gap-1.5">
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+
+              {/* 🎬 Video button — only on video formats */}
+              {isVideo && (
+                <button
+                  onClick={handleGenerateVideo}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all"
+                  style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}
+                  title="Copy script & open HeyGen to generate video"
+                >
+                  🎬 Video
+                </button>
+              )}
+
               <button onClick={(e) => { e.stopPropagation(); handleGenerateVisual(); }} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 text-xs font-medium transition-all" title="Generate AI visual">🎨 Visual</button>
               {onPostToSocial && <button onClick={(e) => { e.stopPropagation(); onPostToSocial(item.content); }} className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all" style={{background:'rgba(0,0,0,0.15)',color:'#94a3b8'}} title="Post to Twitter">𝕏 Post</button>}
               <button onClick={handleSave} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${isSaved ? 'bg-amber-500/20 text-amber-500' : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'}`} title={isSaved ? 'Saved!' : 'Save'}>{saving ? '⏳' : isSaved ? '✅' : '🔖'}</button>
@@ -437,11 +469,12 @@ const CampaignDetail = () => {
   const [sharing,             setSharing]             = useState(false);
   const [toast,               setToast]               = useState({ visible: false, message: '', type: 'success' });
 
-  // Track latest AI-generated image URL for design templates
-  const [latestImageUrl, setLatestImageUrl] = useState(null);
   const { open: openPostModal, ModalSlot: PostModalSlot } = usePostToSocial();
 
-  const showToast = (message, type = 'success') => { setToast({ visible: true, message, type }); setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000); };
+  const showToast = useCallback((message, type = 'success') => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => setToast(t => ({ ...t, visible: false })), 3500);
+  }, []);
 
   useEffect(() => { fetchCampaign(); fetchMedia(); fetchSaved(); }, [id]);
   useEffect(() => { if (strategy) setStrategySections(parseStrategy(strategy)); }, [strategy]);
@@ -486,7 +519,7 @@ const CampaignDetail = () => {
       setSavedKeys(prev => new Set([...prev, key]));
       showToast(`🔖 "${title}" saved!`);
     } catch { showToast('Failed to save content', 'error'); }
-  }, [id]);
+  }, [id, showToast]);
 
   const handleDeleteSaved = async (savedId) => {
     try { await deleteSavedContent(savedId); setSavedItems(prev => prev.filter(s => s.id !== savedId)); showToast('Removed from library'); }
@@ -609,7 +642,11 @@ const CampaignDetail = () => {
             <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
               <div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">🎨 Generated Content</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Hover any card to reveal the <span className="text-amber-400 font-medium">🎨 Visual</span> button — generate an AI image for any format</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Hover any card to reveal actions —
+                  <span className="text-amber-400 font-medium"> 🎨 Visual</span> for images,
+                  <span className="text-red-400 font-medium"> 🎬 Video</span> for YouTube formats
+                </p>
               </div>
               <div className="flex gap-2">
                 <button onClick={() => setExpandAll(!expandAll)} className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">{expandAll ? '📖 Collapse All' : '📖 Expand All'}</button>
@@ -626,11 +663,12 @@ const CampaignDetail = () => {
               <div key={format} className="mb-7">
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                   {OUTPUT_FORMATS[format]?.name || format}
+                  {VIDEO_FORMATS.includes(format) && <span className="text-xs font-normal text-red-400 bg-red-400/10 border border-red-400/20 px-2 py-0.5 rounded-full">🎬 HeyGen ready</span>}
                   <span className="text-xs text-gray-400 font-normal">({items.length} {items.length === 1 ? 'variation' : 'variations'})</span>
                 </h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   {items.map((item, idx) => (
-                    <ContentCard key={idx} item={item} isVisualFormat={VISUAL_FORMATS.includes(format)} defaultExpanded={expandAll} campaignName={campaign.name} campaignId={id} onSave={handleSave} onShare={openShareModal} savedKeys={savedKeys} media={media} onPostToSocial={(text) => openPostModal({ platform: 'twitter', text, campaignId: id })} />
+                    <ContentCard key={idx} item={item} isVisualFormat={VISUAL_FORMATS.includes(format)} defaultExpanded={expandAll} campaignName={campaign.name} campaignId={id} onSave={handleSave} onShare={openShareModal} savedKeys={savedKeys} media={media} showToast={showToast} onPostToSocial={(text) => openPostModal({ platform: 'twitter', text, campaignId: id })} />
                   ))}
                 </div>
               </div>
@@ -638,12 +676,9 @@ const CampaignDetail = () => {
           </div>
         )}
 
-        {/* ── Design Editor ── */}
+        {/* Design Editor */}
         {generatedContent.length > 0 && (
-          <DesignEditor
-            generatedContent={generatedContent}
-            campaignName={campaign.name}
-          />
+          <DesignEditor generatedContent={generatedContent} campaignName={campaign.name} />
         )}
 
         <SavedLibrary savedItems={savedItems} onDelete={handleDeleteSaved} onShare={openShareModal} />
