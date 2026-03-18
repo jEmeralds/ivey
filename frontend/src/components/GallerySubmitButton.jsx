@@ -1,7 +1,6 @@
 // frontend/src/components/GallerySubmitButton.jsx
-// Dashboard only — submit + manage (delete) your own gallery items
-
 import { useState, useEffect } from 'react';
+import { useDarkMode } from '../hooks/useDarkMode';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
 
@@ -15,7 +14,7 @@ const PLATFORM_META = {
 
 function detectPlatform(url) {
   if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
-  if (url.includes('tiktok.com')) return 'tiktok';
+  if (url.includes('tiktok.com'))   return 'tiktok';
   if (url.includes('instagram.com')) return 'instagram';
   if (url.includes('facebook.com')) return 'facebook';
   return 'link';
@@ -26,27 +25,28 @@ function getToken() {
 }
 
 // ── Submit Modal ──────────────────────────────────────────────────────────────
-function SubmitModal({ onClose, onAdded, campaigns, isDark }) {
-  const [url, setUrl]           = useState('');
-  const [caption, setCaption]   = useState('');
-  const [brandName, setBrandName] = useState('');
-  const [format, setFormat]     = useState('');
+function SubmitModal({ onClose, onAdded, campaigns }) {
+  const isDark = useDarkMode();
+  const [url,        setUrl]        = useState('');
+  const [caption,    setCaption]    = useState('');
+  const [brandName,  setBrandName]  = useState('');
+  const [format,     setFormat]     = useState('');
   const [campaignId, setCampaignId] = useState('');
-  const [views, setViews]       = useState('');
-  const [likes, setLikes]       = useState('');
-  const [agreed, setAgreed]     = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
-  const [success, setSuccess]   = useState(false);
+  const [views,      setViews]      = useState('');
+  const [likes,      setLikes]      = useState('');
+  const [agreed,     setAgreed]     = useState(false);
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState('');
+  const [success,    setSuccess]    = useState(false);
 
   const detectedPlatform = url.length > 10 ? detectPlatform(url) : null;
   const canSubmit = url && caption && brandName && agreed && !loading;
 
-  const surface = isDark ? '#1e293b' : '#ffffff';
-  const border  = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
-  const text    = isDark ? '#f1f5f9' : '#0f172a';
-  const muted   = isDark ? '#64748b' : '#94a3b8';
-  const inputBg = isDark ? '#0f172a' : '#f8fafc';
+  const surface  = isDark ? '#1e293b' : '#ffffff';
+  const border   = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+  const text     = isDark ? '#f1f5f9' : '#0f172a';
+  const muted    = isDark ? '#64748b' : '#94a3b8';
+  const inputBg  = isDark ? '#0f172a' : '#f8fafc';
 
   const inputStyle = {
     width: '100%', padding: '10px 13px', borderRadius: 9,
@@ -57,8 +57,7 @@ function SubmitModal({ onClose, onAdded, campaigns, isDark }) {
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
       const res = await fetch(`${API_BASE}/gallery`, {
         method: 'POST',
@@ -70,17 +69,13 @@ function SubmitModal({ onClose, onAdded, campaigns, isDark }) {
       setSuccess(true);
       onAdded(data.item);
       setTimeout(() => { setSuccess(false); onClose(); }, 1800);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   };
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 460, background: surface, border: `1px solid ${border}`, borderRadius: 18, padding: 28, boxShadow: '0 24px 64px rgba(0,0,0,0.4)', maxHeight: '90vh', overflowY: 'auto' }}>
-
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 460, background: surface, border: `1px solid ${border}`, borderRadius: 18, padding: 28, boxShadow: '0 24px 64px rgba(0,0,0,0.4)', maxHeight: '90vh', overflowY: 'auto', transition: 'background 0.2s' }}>
         {success ? (
           <div style={{ textAlign: 'center', padding: '32px 0' }}>
             <div style={{ fontSize: 44, marginBottom: 14 }}>🎉</div>
@@ -164,7 +159,8 @@ function SubmitModal({ onClose, onAdded, campaigns, isDark }) {
                 <div style={{ padding: '9px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)', fontSize: 12, color: '#ef4444' }}>{error}</div>
               )}
 
-              <button onClick={handleSubmit} disabled={!canSubmit} style={{ padding: '12px 0', borderRadius: 10, border: 'none', fontFamily: 'inherit', fontSize: 13, fontWeight: 800, cursor: canSubmit ? 'pointer' : 'not-allowed', background: canSubmit ? 'linear-gradient(135deg, #10b981, #059669)' : isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)', color: canSubmit ? '#fff' : muted, transition: 'all 0.2s' }}>
+              <button onClick={handleSubmit} disabled={!canSubmit}
+                style={{ padding: '12px 0', borderRadius: 10, border: 'none', fontFamily: 'inherit', fontSize: 13, fontWeight: 800, cursor: canSubmit ? 'pointer' : 'not-allowed', background: canSubmit ? 'linear-gradient(135deg, #10b981, #059669)' : (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'), color: canSubmit ? '#fff' : muted, transition: 'all 0.2s' }}>
                 {loading ? 'Adding...' : 'Add to Gallery ⚡'}
               </button>
             </div>
@@ -176,18 +172,17 @@ function SubmitModal({ onClose, onAdded, campaigns, isDark }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function GallerySubmitButton({ campaigns = [], isDark = true }) {
-  const [showModal, setShowModal]   = useState(false);
-  const [myItems, setMyItems]       = useState([]);
-  const [loadingMine, setLoadingMine] = useState(true);
-  const [deleting, setDeleting]     = useState(null);
-  const [deleteError, setDeleteError] = useState('');
+export default function GallerySubmitButton({ campaigns = [] }) {
+  const isDark = useDarkMode(); // ← reactive, no more prop
+  const [showModal,    setShowModal]    = useState(false);
+  const [myItems,      setMyItems]      = useState([]);
+  const [loadingMine,  setLoadingMine]  = useState(true);
+  const [deleting,     setDeleting]     = useState(null);
+  const [deleteError,  setDeleteError]  = useState('');
+  const [expanded,     setExpanded]     = useState(false);
 
-  // Fetch user's own submissions
   useEffect(() => {
-    fetch(`${API_BASE}/gallery/mine`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    })
+    fetch(`${API_BASE}/gallery/mine`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then(r => r.json())
       .then(data => { setMyItems(data.items || []); setLoadingMine(false); })
       .catch(() => setLoadingMine(false));
@@ -197,87 +192,73 @@ export default function GallerySubmitButton({ campaigns = [], isDark = true }) {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Remove this item from the gallery?')) return;
-    setDeleting(id);
-    setDeleteError('');
+    setDeleting(id); setDeleteError('');
     try {
       const res = await fetch(`${API_BASE}/gallery/${id}/mine`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${getToken()}` },
+        method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` },
       });
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.error || 'Failed to delete');
-      }
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to delete'); }
       setMyItems(prev => prev.filter(i => i.id !== id));
-    } catch (err) {
-      setDeleteError(err.message);
-    } finally {
-      setDeleting(null);
-    }
+    } catch (err) { setDeleteError(err.message); }
+    finally { setDeleting(null); }
   };
-
-  const [expanded, setExpanded] = useState(false);
-
-  const surface = isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
-  const textPrimary = isDark ? 'text-white' : 'text-gray-900';
-  const textMuted = isDark ? 'text-gray-400' : 'text-gray-500';
 
   const meta = (platform) => PLATFORM_META[platform] || PLATFORM_META.link;
 
+  // ← Reactive theme tokens — pure inline styles, no Tailwind with hardcoded colors
+  const surface     = isDark ? '#1e293b' : '#ffffff';
+  const border      = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+  const text        = isDark ? '#f1f5f9' : '#0f172a';
+  const muted       = isDark ? '#64748b' : '#94a3b8';
+  const itemBg      = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
+  const itemBorder  = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)';
+  const dividerColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
   return (
     <>
-      {/* Banner */}
-      <div className={`rounded-2xl border shadow-sm mb-6 ${surface}`}>
+      <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 16, marginBottom: 24, transition: 'background 0.2s, border-color 0.2s', overflow: 'hidden' }}>
 
-        {/* Header row — always visible, click to expand/collapse */}
-        <div
-          className="flex items-center justify-between gap-4 flex-wrap p-5 cursor-pointer select-none"
-          onClick={() => setExpanded(e => !e)}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>🏆</div>
+        {/* Header row */}
+        <div onClick={() => setExpanded(e => !e)}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', padding: 20, cursor: 'pointer', userSelect: 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, background: 'linear-gradient(135deg, #10b981, #059669)' }}>🏆</div>
             <div>
-              <h3 className={`font-semibold text-sm ${textPrimary}`}>Gallery</h3>
-              <p className={`text-xs mt-0.5 ${textMuted}`}>
-                {loadingMine ? 'Loading...' : myItems.length > 0 ? `You have ${myItems.length} item${myItems.length > 1 ? 's' : ''} in the gallery` : 'Share your results in the public gallery'}
+              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: text }}>Gallery</h3>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: muted }}>
+                {loadingMine ? 'Loading...' : myItems.length > 0
+                  ? `You have ${myItems.length} item${myItems.length > 1 ? 's' : ''} in the gallery`
+                  : 'Share your results in the public gallery'}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={e => { e.stopPropagation(); setShowModal(true); }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(16,185,129,0.25)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button onClick={e => { e.stopPropagation(); setShowModal(true); }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 12, fontSize: 13, fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(16,185,129,0.25)', flexShrink: 0 }}>
               + Add to Gallery
             </button>
-            {/* Chevron */}
-            <div style={{ color: isDark ? '#475569' : '#94a3b8', fontSize: 18, transition: 'transform 0.25s', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', lineHeight: 1 }}>
-              ▾
-            </div>
+            <div style={{ color: muted, fontSize: 16, transition: 'transform 0.25s', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', lineHeight: 1 }}>▾</div>
           </div>
         </div>
 
-        {/* Expandable content */}
+        {/* Expandable list */}
         {expanded && !loadingMine && (
-          <div className="px-5 pb-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ padding: '0 20px 20px', borderTop: `1px solid ${dividerColor}` }}>
             {myItems.length === 0 ? (
-              <p className={`text-xs pt-4 ${textMuted}`}>You haven't added anything to the gallery yet.</p>
+              <p style={{ fontSize: 12, color: muted, paddingTop: 16, margin: 0 }}>You haven't added anything to the gallery yet.</p>
             ) : (
               <>
-                <p className={`text-xs font-semibold pt-4 mb-3 ${textMuted}`} style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>Your Gallery Items</p>
-                <div className="flex flex-col gap-2">
+                <p style={{ fontSize: 10, fontWeight: 700, color: muted, paddingTop: 16, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Your Gallery Items</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {myItems.map(item => (
-                    <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-xl" style={{ background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div className="flex items-center gap-3 min-w-0">
+                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 12px', borderRadius: 10, background: itemBg, border: `1px solid ${itemBorder}` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                         <span style={{ flexShrink: 0, padding: '2px 7px', borderRadius: 20, fontSize: 9, fontWeight: 800, background: meta(item.platform).color + '18', color: meta(item.platform).color, border: `1px solid ${meta(item.platform).color}30` }}>
                           {meta(item.platform).label}
                         </span>
-                        <span className={`text-xs font-medium truncate ${textPrimary}`}>{item.caption}</span>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.caption}</span>
                       </div>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        disabled={deleting === item.id}
-                        title="Remove from gallery"
+                      <button onClick={() => handleDelete(item.id)} disabled={deleting === item.id}
                         style={{ flexShrink: 0, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: deleting === item.id ? 'not-allowed' : 'pointer', opacity: deleting === item.id ? 0.5 : 1 }}>
                         {deleting === item.id ? '...' : 'Remove'}
                       </button>
@@ -292,12 +273,7 @@ export default function GallerySubmitButton({ campaigns = [], isDark = true }) {
       </div>
 
       {showModal && (
-        <SubmitModal
-          onClose={() => setShowModal(false)}
-          onAdded={handleAdded}
-          campaigns={campaigns}
-          isDark={isDark}
-        />
+        <SubmitModal onClose={() => setShowModal(false)} onAdded={handleAdded} campaigns={campaigns} />
       )}
     </>
   );
