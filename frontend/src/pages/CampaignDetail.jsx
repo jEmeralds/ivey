@@ -7,7 +7,6 @@ import {
 import { OUTPUT_FORMATS } from '../constants/outputFormats';
 import MediaUpload from '../components/MediaUpload';
 import ReactMarkdown from 'react-markdown';
-import DesignStudio from '../components/DesignStudio';
 import { usePostToSocial } from '../components/SocialConnect';
 
 const VISUAL_FORMATS = ['BANNER_AD', 'PRINT_AD', 'FLYER_TEXT', 'GOOGLE_SEARCH_AD'];
@@ -15,6 +14,98 @@ const VIDEO_FORMATS  = ['YOUTUBE_VIDEO_AD', 'YOUTUBE_SHORTS'];
 
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.vercel.app';
 const API_URL      = import.meta.env.VITE_API_URL      || 'https://ivey-backend-production.up.railway.app';
+
+// ── Clean markdown from content for external tools ────────────────────────────
+function cleanForExternal(raw = '') {
+  return raw
+    .replace(/#{1,6}\s*/g, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/>\s*/g, '')
+    .replace(/---+/g, '')
+    .replace(/\(VISUAL:[^)]*\)/gi, '')
+    .replace(/\(AUDIO:[^)]*\)/gi, '')
+    .replace(/\(TEXT OVERLAY:[^)]*\)/gi, '')
+    .trim();
+}
+
+// ── Tool routing — which tools are best for each format ───────────────────────
+function getToolsForFormat(format) {
+  const isVideo   = VIDEO_FORMATS.includes(format);
+  const isDesign  = ['BANNER_AD', 'PRINT_AD', 'FLYER_TEXT', 'GOOGLE_SEARCH_AD'].includes(format);
+  const isStory   = ['TIKTOK', 'YOUTUBE_SHORTS', 'INSTAGRAM_CAPTION'].includes(format);
+
+  const tools = [];
+
+  // Design tool — Canva
+  tools.push({
+    id: 'canva',
+    label: '🎨 Canva',
+    url: 'https://www.canva.com/create/',
+    color: '#7C3AED',
+    bg: 'rgba(124,58,237,0.1)',
+    border: 'rgba(124,58,237,0.25)',
+    tip: 'Paste your content into Canva to create a stunning visual',
+  });
+
+  // AI Image — Leonardo.ai (free 150 credits/day)
+  tools.push({
+    id: 'leonardo',
+    label: '🖼 AI Image',
+    url: 'https://app.leonardo.ai/',
+    color: '#f59e0b',
+    bg: 'rgba(245,158,11,0.1)',
+    border: 'rgba(245,158,11,0.25)',
+    tip: 'Use your content as a prompt in Leonardo AI to generate a free image',
+  });
+
+  // Video — HeyGen (only for video formats)
+  if (isVideo) {
+    tools.push({
+      id: 'heygen',
+      label: '🎬 HeyGen',
+      url: 'https://app.heygen.com/create',
+      color: '#ef4444',
+      bg: 'rgba(239,68,68,0.1)',
+      border: 'rgba(239,68,68,0.2)',
+      tip: 'Paste your script into HeyGen to generate an AI avatar video',
+    });
+  }
+
+  return tools;
+}
+
+// ── Smart Redirect Tooltip ────────────────────────────────────────────────────
+function RedirectTooltip({ tool, onConfirm, onCancel }) {
+  return (
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{
+        position: 'absolute', top: '110%', left: 0, zIndex: 100,
+        background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 12, padding: '14px 16px', width: 280,
+        boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
+      }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#f1f5f9', marginBottom: 6 }}>
+        Ready to open {tool.label.replace(/^[^\s]+\s/, '')}
+      </div>
+      <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5, marginBottom: 12 }}>
+        ✓ Content copied to clipboard<br />
+        {tool.tip}
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={onConfirm}
+          style={{ flex: 1, padding: '7px', borderRadius: 7, border: 'none', background: `linear-gradient(135deg, ${tool.color}, ${tool.color}cc)`, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+          Open {tool.label.replace(/^[^\s]+\s/, '')} →
+        </button>
+        <button onClick={onCancel}
+          style={{ padding: '7px 12px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#475569', fontSize: 11, cursor: 'pointer' }}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 const Toast = ({ message, type, visible }) => {
@@ -281,20 +372,17 @@ const StrategySection = ({ title, content, icon, defaultOpen, campaignName, onSa
 };
 
 // ─── Content Card ─────────────────────────────────────────────────────────────
-const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, campaignId, onSave, onShare, savedKeys, media, onPostToSocial, showToast, allContent, onOpenDesignStudio }) => {
-  const [activeTab, setActiveTab]       = useState('copy');
-  const [isExpanded, setIsExpanded]     = useState(defaultExpanded);
-  const [copied, setCopied]             = useState(false);
-  const [saving, setSaving]             = useState(false);
-  const [visualModal, setVisualModal]   = useState(false);
-  const [imageUrl, setImageUrl]         = useState(null);
-  const [imageLoading, setImageLoading] = useState(false);
-  const [imageError, setImageError]     = useState(null);
+const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, campaignId, onSave, onShare, savedKeys, media, onPostToSocial, showToast }) => {
+  const [activeTab, setActiveTab]   = useState('copy');
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [copied, setCopied]         = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [activeTooltip, setActiveTooltip] = useState(null); // tool id
 
   const formatName = OUTPUT_FORMATS[item.format]?.name || item.format;
   const key        = `content_${item.format}`;
   const isSaved    = savedKeys.has(key);
-  const isVideo    = VIDEO_FORMATS.includes(item.format);
+  const tools      = getToolsForFormat(item.format);
 
   const parseVisualContent = (content) => {
     if (!content) return { copy: content, design: '' };
@@ -308,85 +396,89 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
 
   const { copy, design } = isVisualFormat ? parseVisualContent(item.content) : { copy: item.content, design: '' };
 
-  const handleCopy   = (text, e) => { e?.stopPropagation(); navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
-  const handleSave   = async (e) => { e.stopPropagation(); if (isSaved) return; setSaving(true); await onSave({ title: `${formatName} — ${campaignName}`, content: item.content, content_type: 'content', format: item.format, key }); setSaving(false); };
-  const handleShare  = (e) => { e.stopPropagation(); onShare({ title: `${formatName} — ${campaignName}`, content: item.content }); };
+  const handleCopy  = (text, e) => { e?.stopPropagation(); navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  const handleSave  = async (e) => { e.stopPropagation(); if (isSaved) return; setSaving(true); await onSave({ title: `${formatName} — ${campaignName}`, content: item.content, content_type: 'content', format: item.format, key }); setSaving(false); };
+  const handleShare = (e) => { e.stopPropagation(); onShare({ title: `${formatName} — ${campaignName}`, content: item.content }); };
 
-  // ── HeyGen video handler ──────────────────────────────────────────────────
-  const handleGenerateVideo = (e) => {
+  // Smart redirect: copy content then show tooltip
+  const handleToolClick = (e, tool) => {
     e.stopPropagation();
-    // Strip markdown for a clean script
-    const cleanScript = item.content
-      .replace(/#{1,6}\s*/g, '')
-      .replace(/\*\*(.*?)\*\*/g, '$1')
-      .replace(/\*(.*?)\*/g, '$1')
-      .replace(/>\s*/g, '')
-      .replace(/---/g, '')
-      .trim();
-    navigator.clipboard.writeText(cleanScript).catch(() => {});
-    window.open('https://app.heygen.com/create', '_blank');
-    showToast('🎬 Script copied! Paste it in HeyGen to generate your video.', 'info');
+    const clean = cleanForExternal(item.content);
+    navigator.clipboard.writeText(clean).catch(() => {});
+    setActiveTooltip(tool.id);
   };
 
-  const handleGenerateVisual = async (refId) => {
-    setVisualModal(true);
-    setImageUrl(null);
-    setImageError(null);
-    setImageLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/campaigns/${campaignId}/generate-visual`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ format: item.format, adCopy: item.content, referenceMediaId: refId || null })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to generate visual');
-      setImageUrl(data.imageUrl);
-    } catch (err) {
-      setImageError(err.message || 'Failed to generate visual. Please try again.');
-    } finally {
-      setImageLoading(false);
-    }
+  // Open tool in new tab
+  const handleToolConfirm = (tool) => {
+    window.open(tool.url, '_blank');
+    setActiveTooltip(null);
+    showToast(`✓ Content copied — paste it in ${tool.label.replace(/^[^\s]+\s/, '')}`, 'info');
   };
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-xl transition-all group">
+      <div
+        className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-xl transition-all group"
+        onClick={() => activeTooltip && setActiveTooltip(null)}
+      >
         <div className="px-5 py-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/15 dark:to-teal-900/10 flex items-center justify-between cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
           <span className="text-xs font-medium text-emerald-600 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/10 px-3 py-1 rounded-full">
             {OUTPUT_FORMATS[item.format]?.platform || formatName}
           </span>
           <div className="flex items-center gap-1.5">
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all" style={{ position: 'relative' }}>
 
-              {/* ✦ Design Studio button — all formats */}
-              <button
-                onClick={(e) => { e.stopPropagation(); onOpenDesignStudio(item); }}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all"
-                style={{ background: 'rgba(99,102,241,0.12)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.25)' }}
-                title="Open Design Studio — create a visual from this content"
-              >
-                ✦ Design
-              </button>
+              {/* Smart redirect tool buttons */}
+              {tools.map(tool => (
+                <div key={tool.id} style={{ position: 'relative' }}>
+                  <button
+                    onClick={(e) => handleToolClick(e, tool)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all"
+                    style={{ background: tool.bg, color: tool.color, border: `1px solid ${tool.border}` }}
+                    title={tool.tip}
+                  >
+                    {tool.label}
+                  </button>
+                  {activeTooltip === tool.id && (
+                    <RedirectTooltip
+                      tool={tool}
+                      onConfirm={() => handleToolConfirm(tool)}
+                      onCancel={() => setActiveTooltip(null)}
+                    />
+                  )}
+                </div>
+              ))}
 
-              {/* 🎬 Video button — only on video formats */}
-              {isVideo && (
-                <button
-                  onClick={handleGenerateVideo}
+              {/* Post to social */}
+              {onPostToSocial && (
+                <button onClick={(e) => { e.stopPropagation(); onPostToSocial(item.content); }}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all"
-                  style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}
-                  title="Copy script & open HeyGen to generate video"
-                >
-                  🎬 Video
+                  style={{ background: 'rgba(0,0,0,0.15)', color: '#94a3b8' }}
+                  title="Post to Twitter">
+                  𝕏 Post
                 </button>
               )}
 
-              <button onClick={(e) => { e.stopPropagation(); handleGenerateVisual(); }} className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 text-xs font-medium transition-all" title="Generate AI visual">🎨 Visual</button>
-              {onPostToSocial && <button onClick={(e) => { e.stopPropagation(); onPostToSocial(item.content); }} className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all" style={{background:'rgba(0,0,0,0.15)',color:'#94a3b8'}} title="Post to Twitter">𝕏 Post</button>}
-              <button onClick={handleSave} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${isSaved ? 'bg-amber-500/20 text-amber-500' : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'}`} title={isSaved ? 'Saved!' : 'Save'}>{saving ? '⏳' : isSaved ? '✅' : '🔖'}</button>
-              <button onClick={handleShare} className="w-7 h-7 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 flex items-center justify-center text-xs transition-all" title="Share">🔗</button>
-              <button onClick={(e) => handleCopy(item.content, e)} className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${copied ? 'bg-amber-500/20 text-amber-500' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'}`} title="Copy">{copied ? '✅' : '📋'}</button>
+              {/* Save */}
+              <button onClick={handleSave}
+                className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${isSaved ? 'bg-amber-500/20 text-amber-500' : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'}`}
+                title={isSaved ? 'Saved!' : 'Save'}>
+                {saving ? '⏳' : isSaved ? '✅' : '🔖'}
+              </button>
+
+              {/* Share */}
+              <button onClick={handleShare}
+                className="w-7 h-7 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 flex items-center justify-center text-xs transition-all"
+                title="Share">
+                🔗
+              </button>
+
+              {/* Copy */}
+              <button onClick={(e) => handleCopy(item.content, e)}
+                className={`w-7 h-7 rounded-md flex items-center justify-center text-xs transition-all ${copied ? 'bg-amber-500/20 text-amber-500' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
+                title="Copy">
+                {copied ? '✅' : '📋'}
+              </button>
             </div>
             <span className={`text-gray-400 text-xs transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
           </div>
@@ -404,24 +496,9 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
                 <ReactMarkdown>{activeTab === 'design' && design ? design : copy}</ReactMarkdown>
               </div>
             </div>
-            {imageUrl && (
-              <div className="px-5 pb-4">
-                <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 cursor-pointer" onClick={() => setVisualModal(true)}>
-                  <img src={imageUrl} alt="Generated visual" className="w-full h-32 object-cover" />
-                  <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
-                    <span className="text-xs text-gray-500">AI Generated Visual</span>
-                    <div className="flex gap-2">
-                      <a href={imageUrl} target="_blank" rel="noopener noreferrer" download onClick={e => e.stopPropagation()} className="text-xs text-emerald-500 hover:text-emerald-400">⬇️ Download</a>
-                      <button onClick={(e) => { e.stopPropagation(); handleGenerateVisual(); }} className="text-xs text-amber-500 hover:text-amber-400">🔄 New</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>
-      <VisualModal isOpen={visualModal} onClose={() => setVisualModal(false)} imageUrl={imageUrl} isLoading={imageLoading} format={item.format} error={imageError} onGenerate={handleGenerateVisual} media={media} />
     </>
   );
 };
@@ -478,7 +555,6 @@ const CampaignDetail = () => {
   const [shareUrl,            setShareUrl]            = useState('');
   const [sharing,             setSharing]             = useState(false);
   const [toast,               setToast]               = useState({ visible: false, message: '', type: 'success' });
-  const [designStudio,        setDesignStudio]        = useState({ open: false, item: null });
 
   const { open: openPostModal, ModalSlot: PostModalSlot } = usePostToSocial();
 
@@ -654,9 +730,7 @@ const CampaignDetail = () => {
               <div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">🎨 Generated Content</h2>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Hover any card to reveal actions —
-                  <span className="text-amber-400 font-medium"> 🎨 Visual</span> for images,
-                  <span className="text-red-400 font-medium"> 🎬 Video</span> for YouTube formats
+                  Hover any card — 🎨 <span className="text-purple-400 font-medium">Canva</span>, 🖼 <span className="text-amber-400 font-medium">AI Image</span>, 🎬 <span className="text-red-400 font-medium">HeyGen</span> for video formats
                 </p>
               </div>
               <div className="flex gap-2">
@@ -679,22 +753,13 @@ const CampaignDetail = () => {
                 </h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   {items.map((item, idx) => (
-                    <ContentCard key={idx} item={item} isVisualFormat={VISUAL_FORMATS.includes(format)} defaultExpanded={expandAll} campaignName={campaign.name} campaignId={id} onSave={handleSave} onShare={openShareModal} savedKeys={savedKeys} media={media} showToast={showToast} allContent={generatedContent} onOpenDesignStudio={(item) => setDesignStudio({ open: true, item })} onPostToSocial={(text) => openPostModal({ platform: 'twitter', text, campaignId: id })} />
+                    <ContentCard key={idx} item={item} isVisualFormat={VISUAL_FORMATS.includes(format)} defaultExpanded={expandAll} campaignName={campaign.name} campaignId={id} onSave={handleSave} onShare={openShareModal} savedKeys={savedKeys} media={media} showToast={showToast} onPostToSocial={(text) => openPostModal({ platform: 'twitter', text, campaignId: id })} />
                   ))}
                 </div>
               </div>
             ))}
           </div>
         )}
-
-        {/* Design Studio modal */}
-        <DesignStudio
-          isOpen={designStudio.open}
-          onClose={() => setDesignStudio({ open: false, item: null })}
-          contentItem={designStudio.item}
-          campaignName={campaign?.name}
-          allContent={generatedContent}
-        />
 
         <SavedLibrary savedItems={savedItems} onDelete={handleDeleteSaved} onShare={openShareModal} />
       </div>
