@@ -7,7 +7,7 @@ import {
 import { OUTPUT_FORMATS } from '../constants/outputFormats';
 import MediaUpload from '../components/MediaUpload';
 import ReactMarkdown from 'react-markdown';
-import DesignEditor from '../components/DesignEditor';
+import DesignStudio from '../components/DesignStudio';
 import { usePostToSocial } from '../components/SocialConnect';
 
 const VISUAL_FORMATS = ['BANNER_AD', 'PRINT_AD', 'FLYER_TEXT', 'GOOGLE_SEARCH_AD'];
@@ -281,7 +281,7 @@ const StrategySection = ({ title, content, icon, defaultOpen, campaignName, onSa
 };
 
 // ─── Content Card ─────────────────────────────────────────────────────────────
-const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, campaignId, onSave, onShare, savedKeys, media, onPostToSocial, showToast }) => {
+const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, campaignId, onSave, onShare, savedKeys, media, onPostToSocial, showToast, allContent, onOpenDesignStudio }) => {
   const [activeTab, setActiveTab]       = useState('copy');
   const [isExpanded, setIsExpanded]     = useState(defaultExpanded);
   const [copied, setCopied]             = useState(false);
@@ -359,6 +359,16 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
           </span>
           <div className="flex items-center gap-1.5">
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+
+              {/* ✦ Design Studio button — all formats */}
+              <button
+                onClick={(e) => { e.stopPropagation(); onOpenDesignStudio(item); }}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all"
+                style={{ background: 'rgba(99,102,241,0.12)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.25)' }}
+                title="Open Design Studio — create a visual from this content"
+              >
+                ✦ Design
+              </button>
 
               {/* 🎬 Video button — only on video formats */}
               {isVideo && (
@@ -468,6 +478,7 @@ const CampaignDetail = () => {
   const [shareUrl,            setShareUrl]            = useState('');
   const [sharing,             setSharing]             = useState(false);
   const [toast,               setToast]               = useState({ visible: false, message: '', type: 'success' });
+  const [designStudio,        setDesignStudio]        = useState({ open: false, item: null });
 
   const { open: openPostModal, ModalSlot: PostModalSlot } = usePostToSocial();
 
@@ -668,7 +679,7 @@ const CampaignDetail = () => {
                 </h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   {items.map((item, idx) => (
-                    <ContentCard key={idx} item={item} isVisualFormat={VISUAL_FORMATS.includes(format)} defaultExpanded={expandAll} campaignName={campaign.name} campaignId={id} onSave={handleSave} onShare={openShareModal} savedKeys={savedKeys} media={media} showToast={showToast} onPostToSocial={(text) => openPostModal({ platform: 'twitter', text, campaignId: id })} />
+                    <ContentCard key={idx} item={item} isVisualFormat={VISUAL_FORMATS.includes(format)} defaultExpanded={expandAll} campaignName={campaign.name} campaignId={id} onSave={handleSave} onShare={openShareModal} savedKeys={savedKeys} media={media} showToast={showToast} allContent={generatedContent} onOpenDesignStudio={(item) => setDesignStudio({ open: true, item })} onPostToSocial={(text) => openPostModal({ platform: 'twitter', text, campaignId: id })} />
                   ))}
                 </div>
               </div>
@@ -676,10 +687,14 @@ const CampaignDetail = () => {
           </div>
         )}
 
-        {/* Design Editor */}
-        {generatedContent.length > 0 && (
-          <DesignEditor generatedContent={generatedContent} campaignName={campaign.name} />
-        )}
+        {/* Design Studio modal */}
+        <DesignStudio
+          isOpen={designStudio.open}
+          onClose={() => setDesignStudio({ open: false, item: null })}
+          contentItem={designStudio.item}
+          campaignName={campaign?.name}
+          allContent={generatedContent}
+        />
 
         <SavedLibrary savedItems={savedItems} onDelete={handleDeleteSaved} onShare={openShareModal} />
       </div>
