@@ -19,8 +19,60 @@ function isLight(hex) {
   } catch { return false; }
 }
 
-// Smart content parser — skips format titles, section headers, pulls real copy
+// Smart content parser — format-aware, skips structure, pulls real copy
 function parseContent(raw = '', format = '') {
+  if (!raw) return { headline: '', body: '', cta: 'Learn More' };
+
+  // ── Video/Script formats: special extraction ─────────────────────────────
+  // TikTok, YouTube shorts/ads have Hook/Body/CTA sections with (VISUAL:) directions
+  const isVideoFormat = ['TIKTOK', 'YOUTUBE_VIDEO_AD', 'YOUTUBE_SHORTS'].includes(format);
+
+  if (isVideoFormat) {
+    // Remove all (VISUAL: ...) and (AUDIO: ...) stage directions
+    const stripped = raw
+      .replace(/\(VISUAL:[^)]*\)/gi, '')
+      .replace(/\(AUDIO:[^)]*\)/gi, '')
+      .replace(/\(TEXT OVERLAY:[^)]*\)/gi, '')
+      .replace(/\(SCENE:[^)]*\)/gi, '')
+      .replace(/\[[^\]]*\]/g, '')       // [placeholder]
+      .replace(/#{1,6}\s+/g, '\n')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/---+/g, '\n')
+      .trim();
+
+    // Find the actual hook text — the line AFTER "Hook (0-3 sec)" header
+    const hookMatch = stripped.match(/hook[^:\n]*[\n:]+\s*([^\n]{10,120})/i);
+    // Find CTA text — line after CTA section header
+    const ctaMatch  = stripped.match(/cta[^:\n]*[\n:]+\s*([^\n]{3,60})/i);
+    // Find product/key message line — look for lines mentioning brand/product
+    const brandName = stripped.match(/["']([^"']{5,40})["']/)?.[1]; // quoted text
+
+    // Get all real spoken lines (not headers, not directions)
+    const spokenLines = stripped
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => {
+        if (l.length < 10) return false;
+        if (/^(hook|body|cta|intro|outro|sec|production|hashtag|note|visual|audio)/i.test(l)) return false;
+        if (l.endsWith(':')) return false;
+        if (/^\d+-\d+\s*sec/i.test(l)) return false;  // "0-3 sec"
+        if (/^\d+\s*sec/i.test(l)) return false;        // "30 sec"
+        return true;
+      });
+
+    const headline = (hookMatch?.[1] || spokenLines[0] || brandName || '').trim().slice(0, 80);
+    const body = spokenLines
+      .filter(l => l !== headline)
+      .slice(0, 2)
+      .join(' ')
+      .slice(0, 160);
+    const cta = (ctaMatch?.[1] || 'Watch Now').trim().slice(0, 40);
+
+    return { headline, body, cta };
+  }
+
+  // ── Clean markdown for all other formats ────────────────────────────────
   const cleaned = raw
     .replace(/#{1,6}\s+/g, '\n')
     .replace(/\*\*(.*?)\*\*/g, '$1')
@@ -28,25 +80,30 @@ function parseContent(raw = '', format = '') {
     .replace(/`(.*?)`/g, '$1')
     .replace(/>\s*/g, '')
     .replace(/---+/g, '\n')
-    .replace(/\[\s*[^\]]*\s*\]/g, '')  // [placeholder text]
-    .replace(/\d+\.\s+/g, '')
-    .replace(/[-•]\s+/g, '')
+    .replace(/\[[^\]]*\]/g, '')    // [placeholder text]
+    .replace(/\([^)]{0,30}\)/g, '') // short parentheticals like (max 30 chars)
+    .replace(/^\d+\.\s+/gm, '')
+    .replace(/^[-•]\s+/gm, '')
     .trim();
 
-  // Skip patterns — these are document structure, not marketing copy
+  // Skip patterns — document structure, not copy
   const skipPatterns = [
     /^\d+-second/i,
     /^script:/i,
     /^video (title|script|ad)/i,
-    /^(hook|body|cta|intro|outro|section)\s*[:(\d]/i,
-    /^(post|caption|headline|subject line|preview text):/i,
-    /^variation \d/i,
+    /^hook\s*[\d(]/i,
+    /^body\s*[\d(]/i,
+    /^cta\s*[\d(]/i,
+    /^(intro|outro|section)\s*[:(\d]/i,
+    /^(post|caption|headline|subject line|preview text)\s*:/i,
+    /^(variation|version)\s*\d/i,
     /^ad (copy|variation|text)/i,
-    /sec(onds?)?\s*[-–—]/i,
-    /^0-\d+\s/,
-    /^(production notes|hashtags|posting tips|engagement)/i,
-    /^(main headline|subheadline|cta button)/i,
+    /^\d+-\d+\s*sec/i,
+    /^(production notes|hashtags|posting tips|engagement strategy)/i,
+    /^(main headline|subheadline|cta button text)/i,
     /^(ad variation|display url)/i,
+    /^(trending sound|visual cue|text overlay)/i,
+    /^recommended hashtag/i,
   ];
 
   const lines = cleaned
@@ -55,35 +112,42 @@ function parseContent(raw = '', format = '') {
     .filter(l => {
       if (l.length < 8) return false;
       if (l.startsWith('http')) return false;
-      if (l.endsWith(':') && l.length < 40) return false; // section headers
+      if (l.endsWith(':') && l.length < 50) return false;
       if (skipPatterns.some(p => p.test(l))) return false;
       return true;
     });
 
-  // For twitter — look for actual tweet text (short, punchy)
+  // Twitter: short punchy single line
   if (format === 'TWITTER_POST') {
     const tweet = lines.find(l => l.length > 10 && l.length < 240 && !l.includes(':'));
-    if (tweet) return { headline: tweet.slice(0, 80), body: '', cta: 'Learn More' };
+    return { headline: (tweet || lines[0] || '').slice(0, 80), body: '', cta: 'Follow Us' };
   }
 
-  // For email — look for subject line patterns
+  // Email: subject line is typically the first short line
   if (format === 'EMAIL_MARKETING') {
-    const subject = lines.find(l => l.length > 5 && l.length < 60);
+    const subject = lines.find(l => l.length > 5 && l.length < 65);
     const body = lines.filter(l => l !== subject).slice(0, 2).join(' ');
-    return { headline: subject?.slice(0, 80) || '', body: body.slice(0, 160), cta: 'Read More' };
+    return { headline: (subject || '').slice(0, 80), body: body.slice(0, 160), cta: 'Read More' };
   }
 
-  // General: find best headline candidate (short, no colons, punchy)
+  // Banner/Google ads: find the headline (short, punchy)
+  if (['BANNER_AD', 'GOOGLE_SEARCH_AD'].includes(format)) {
+    const short = lines.find(l => l.length >= 8 && l.length <= 40);
+    const med   = lines.find(l => l !== short && l.length > 20 && l.length <= 90);
+    return { headline: (short || lines[0] || '').slice(0, 40), body: (med || '').slice(0, 90), cta: 'Learn More' };
+  }
+
+  // General: best short line as headline
   const headlineCandidates = lines.filter(l =>
-    l.length >= 10 &&
-    l.length <= 85 &&
-    !l.includes(':') &&
-    !l.match(/^\(/)
+    l.length >= 10 && l.length <= 85 && !l.includes(':')
   );
 
   const headline = (headlineCandidates[0] || lines[0] || '').slice(0, 80);
-  const bodyLines = lines.filter(l => l !== headline && l.length > 12).slice(0, 3);
-  const body = bodyLines.join(' ').slice(0, 180);
+  const body = lines
+    .filter(l => l !== headline && l.length > 12)
+    .slice(0, 3)
+    .join(' ')
+    .slice(0, 180);
 
   return { headline, body, cta: 'Learn More' };
 }
