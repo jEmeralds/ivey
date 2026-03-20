@@ -1,79 +1,94 @@
 // frontend/src/components/DesignStudio.jsx
-// Full-screen design modal — triggered from a content card with content pre-loaded.
-// Shows 3 instant design variations. User picks, tweaks, exports.
-// Requires: html2canvas already installed
+// Full-screen design modal — 3 instant variations, 40+ palettes, smart content parsing
+// Triggered per content card from CampaignDetail
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import html2canvas from 'html2canvas';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Utilities ─────────────────────────────────────────────────────────────────
 function isLight(hex) {
   if (!hex || hex.length < 4) return false;
   try {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
+    const h = hex.replace('#', '');
+    const r = parseInt(h.slice(0,2), 16);
+    const g = parseInt(h.slice(2,4), 16);
+    const b = parseInt(h.slice(4,6), 16);
     return (r * 299 + g * 587 + b * 114) / 1000 > 128;
   } catch { return false; }
 }
 
-// Clean markdown from AI content
-function cleanText(raw = '', maxLen = 80) {
-  return raw
-    .replace(/#{1,6}\s*/g, '')
+// Smart content parser — skips format titles, section headers, pulls real copy
+function parseContent(raw = '', format = '') {
+  const cleaned = raw
+    .replace(/#{1,6}\s+/g, '\n')
     .replace(/\*\*(.*?)\*\*/g, '$1')
     .replace(/\*(.*?)\*/g, '$1')
+    .replace(/`(.*?)`/g, '$1')
     .replace(/>\s*/g, '')
-    .replace(/---+/g, '')
-    .replace(/\[\s*[^\]]*\s*\]/g, '')
+    .replace(/---+/g, '\n')
+    .replace(/\[\s*[^\]]*\s*\]/g, '')  // [placeholder text]
     .replace(/\d+\.\s+/g, '')
-    .split('\n')
-    .map(l => l.trim())
-    .filter(l => l.length > 4 && !l.startsWith('http') && !l.startsWith('**') && l !== '---')
-    .join(' ')
-    .slice(0, maxLen)
+    .replace(/[-•]\s+/g, '')
     .trim();
-}
 
-// Extract meaningful headline + body from any format's content
-function parseContent(rawContent, format) {
-  if (!rawContent) return { headline: '', body: '', hook: '' };
+  // Skip patterns — these are document structure, not marketing copy
+  const skipPatterns = [
+    /^\d+-second/i,
+    /^script:/i,
+    /^video (title|script|ad)/i,
+    /^(hook|body|cta|intro|outro|section)\s*[:(\d]/i,
+    /^(post|caption|headline|subject line|preview text):/i,
+    /^variation \d/i,
+    /^ad (copy|variation|text)/i,
+    /sec(onds?)?\s*[-–—]/i,
+    /^0-\d+\s/,
+    /^(production notes|hashtags|posting tips|engagement)/i,
+    /^(main headline|subheadline|cta button)/i,
+    /^(ad variation|display url)/i,
+  ];
 
-  const lines = rawContent
-    .replace(/#{1,6}\s*/g, '')
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/\*(.*?)\*/g, '$1')
-    .replace(/>\s*/g, '')
-    .replace(/---+/g, '')
+  const lines = cleaned
     .split('\n')
     .map(l => l.trim())
-    .filter(l => l.length > 6 && !l.startsWith('http') && !l.match(/^\[.*\]$/));
+    .filter(l => {
+      if (l.length < 8) return false;
+      if (l.startsWith('http')) return false;
+      if (l.endsWith(':') && l.length < 40) return false; // section headers
+      if (skipPatterns.some(p => p.test(l))) return false;
+      return true;
+    });
 
-  // For video formats, look for hook specifically
-  const hookLine = lines.find(l =>
-    l.toLowerCase().includes('hook') ||
-    l.toLowerCase().includes('attention') ||
-    l.toLowerCase().includes('stop')
-  );
+  // For twitter — look for actual tweet text (short, punchy)
+  if (format === 'TWITTER_POST') {
+    const tweet = lines.find(l => l.length > 10 && l.length < 240 && !l.includes(':'));
+    if (tweet) return { headline: tweet.slice(0, 80), body: '', cta: 'Learn More' };
+  }
 
-  // Find the most compelling short line for headline (not a section header)
+  // For email — look for subject line patterns
+  if (format === 'EMAIL_MARKETING') {
+    const subject = lines.find(l => l.length > 5 && l.length < 60);
+    const body = lines.filter(l => l !== subject).slice(0, 2).join(' ');
+    return { headline: subject?.slice(0, 80) || '', body: body.slice(0, 160), cta: 'Read More' };
+  }
+
+  // General: find best headline candidate (short, no colons, punchy)
   const headlineCandidates = lines.filter(l =>
-    l.length > 10 &&
-    l.length < 90 &&
-    !l.match(/^\d+[\.\)]\s/) && // not a numbered list
-    !l.endsWith(':')             // not a section header
+    l.length >= 10 &&
+    l.length <= 85 &&
+    !l.includes(':') &&
+    !l.match(/^\(/)
   );
 
   const headline = (headlineCandidates[0] || lines[0] || '').slice(0, 80);
-  const body     = lines.slice(1, 4).filter(l => l !== headline).join(' ').slice(0, 160);
-  const hook     = hookLine ? hookLine.slice(0, 80) : headline;
+  const bodyLines = lines.filter(l => l !== headline && l.length > 12).slice(0, 3);
+  const body = bodyLines.join(' ').slice(0, 180);
 
-  return { headline, body, hook };
+  return { headline, body, cta: 'Learn More' };
 }
 
-// Map format keys to canvas template types
+// Format key → canvas template type
 function formatToTemplate(format) {
   const map = {
     INSTAGRAM_CAPTION: 'instagram',
@@ -93,105 +108,132 @@ function formatToTemplate(format) {
 }
 
 const CANVAS_SIZES = {
-  instagram: { w: 400, h: 400,  label: '1:1' },
-  story:     { w: 225, h: 400,  label: '9:16' },
-  youtube:   { w: 400, h: 225,  label: '16:9' },
-  twitter:   { w: 400, h: 225,  label: '16:9' },
-  linkedin:  { w: 400, h: 300,  label: '4:3' },
+  instagram: { w: 400, h: 400,  label: '1:1'    },
+  story:     { w: 225, h: 400,  label: '9:16'   },
+  youtube:   { w: 400, h: 225,  label: '16:9'   },
+  twitter:   { w: 400, h: 225,  label: '16:9'   },
+  linkedin:  { w: 400, h: 300,  label: '4:3'    },
   facebook:  { w: 400, h: 210,  label: '1.91:1' },
   banner:    { w: 400, h: 150,  label: 'Banner' },
-  flyer:     { w: 280, h: 400,  label: 'Flyer' },
-  email:     { w: 400, h: 160,  label: 'Email' },
+  flyer:     { w: 280, h: 400,  label: 'Flyer'  },
+  email:     { w: 400, h: 160,  label: 'Email'  },
 };
 
-// ── Design Variations ─────────────────────────────────────────────────────────
-// Each variation is a named design style. Given the same content + palette,
-// they produce distinctly different layouts.
+// ── 40+ Colour Palettes ───────────────────────────────────────────────────────
+const PALETTES = [
+  // Dark palettes
+  { id: 'midnight',   name: 'Midnight',       bg: '#0c1220', accent: '#6366f1', text: '#f8fafc', sub: '#a5b4fc', tag: 'dark' },
+  { id: 'noir',       name: 'Noir',           bg: '#0a0a0a', accent: '#ffffff', text: '#ffffff', sub: '#999999', tag: 'dark' },
+  { id: 'obsidian',   name: 'Obsidian',       bg: '#111111', accent: '#f59e0b', text: '#fafafa', sub: '#d4a017', tag: 'dark' },
+  { id: 'deep_space', name: 'Deep Space',     bg: '#04040f', accent: '#38bdf8', text: '#e0f2fe', sub: '#7dd3fc', tag: 'dark' },
+  { id: 'forest',     name: 'Forest',         bg: '#0d1f0f', accent: '#22c55e', text: '#f0fdf4', sub: '#86efac', tag: 'dark' },
+  { id: 'dark_jade',  name: 'Dark Jade',      bg: '#011a14', accent: '#10b981', text: '#ecfdf5', sub: '#6ee7b7', tag: 'dark' },
+  { id: 'ocean',      name: 'Ocean',          bg: '#020d1a', accent: '#38bdf8', text: '#f0f9ff', sub: '#7dd3fc', tag: 'dark' },
+  { id: 'ember',      name: 'Ember',          bg: '#130800', accent: '#f97316', text: '#fff7ed', sub: '#fdba74', tag: 'dark' },
+  { id: 'volcano',    name: 'Volcano',        bg: '#140300', accent: '#ef4444', text: '#fff5f5', sub: '#fca5a5', tag: 'dark' },
+  { id: 'violet',     name: 'Violet',         bg: '#0d0520', accent: '#a855f7', text: '#faf5ff', sub: '#d8b4fe', tag: 'dark' },
+  { id: 'electric',   name: 'Electric',       bg: '#080028', accent: '#818cf8', text: '#eef2ff', sub: '#c7d2fe', tag: 'dark' },
+  { id: 'rose_dark',  name: 'Dark Rose',      bg: '#18030d', accent: '#f43f5e', text: '#fff1f2', sub: '#fda4af', tag: 'dark' },
+  { id: 'magenta',    name: 'Magenta',        bg: '#150010', accent: '#e879f9', text: '#fdf4ff', sub: '#f0abfc', tag: 'dark' },
+  { id: 'gold',       name: 'Gold',           bg: '#0f0900', accent: '#eab308', text: '#fefce8', sub: '#fde047', tag: 'dark' },
+  { id: 'teal',       name: 'Teal',           bg: '#011a18', accent: '#14b8a6', text: '#f0fdfa', sub: '#5eead4', tag: 'dark' },
+  { id: 'lime_dark',  name: 'Lime Night',     bg: '#081000', accent: '#84cc16', text: '#f7fee7', sub: '#bef264', tag: 'dark' },
+  { id: 'cyan_dark',  name: 'Cyan Night',     bg: '#001416', accent: '#06b6d4', text: '#ecfeff', sub: '#67e8f9', tag: 'dark' },
+  { id: 'charcoal',   name: 'Charcoal',       bg: '#1c1c1e', accent: '#f1f5f9', text: '#ffffff', sub: '#94a3b8', tag: 'dark' },
+  { id: 'slate_dark', name: 'Slate',          bg: '#0f172a', accent: '#64748b', text: '#f1f5f9', sub: '#94a3b8', tag: 'dark' },
+  { id: 'bronze',     name: 'Bronze',         bg: '#0c0800', accent: '#cd7f32', text: '#fdf8f0', sub: '#d4a26a', tag: 'dark' },
+  { id: 'neon_green', name: 'Neon Green',     bg: '#010f00', accent: '#39ff14', text: '#f0fff0', sub: '#90ee90', tag: 'dark' },
+  { id: 'neon_blue',  name: 'Neon Blue',      bg: '#00010f', accent: '#00c8ff', text: '#f0f8ff', sub: '#87ceeb', tag: 'dark' },
+  { id: 'crimson',    name: 'Crimson',        bg: '#120004', accent: '#dc2626', text: '#fff5f5', sub: '#fca5a5', tag: 'dark' },
+  { id: 'military',   name: 'Military',       bg: '#0a0c00', accent: '#4d5a00', text: '#f5f5e8', sub: '#8a9a00', tag: 'dark' },
+  { id: 'mocha',      name: 'Mocha',          bg: '#120800', accent: '#a0522d', text: '#fdf5ec', sub: '#c87941', tag: 'dark' },
+  // Light palettes
+  { id: 'arctic',     name: 'Arctic',         bg: '#f8fafc', accent: '#0ea5e9', text: '#0f172a', sub: '#475569', tag: 'light' },
+  { id: 'cream',      name: 'Cream',          bg: '#fdf6ec', accent: '#92400e', text: '#1c0a00', sub: '#78350f', tag: 'light' },
+  { id: 'concrete',   name: 'Concrete',       bg: '#f1f5f9', accent: '#111827', text: '#111827', sub: '#4b5563', tag: 'light' },
+  { id: 'rose_light', name: 'Rose Light',     bg: '#fff1f2', accent: '#e11d48', text: '#0f172a', sub: '#6b7280', tag: 'light' },
+  { id: 'mint',       name: 'Mint',           bg: '#f0fdf4', accent: '#16a34a', text: '#0f172a', sub: '#4b5563', tag: 'light' },
+  { id: 'lavender',   name: 'Lavender',       bg: '#f5f3ff', accent: '#7c3aed', text: '#0f172a', sub: '#6b7280', tag: 'light' },
+  { id: 'peach',      name: 'Peach',          bg: '#fff7ed', accent: '#ea580c', text: '#1c1917', sub: '#57534e', tag: 'light' },
+  { id: 'sky',        name: 'Sky',            bg: '#f0f9ff', accent: '#0284c7', text: '#0c4a6e', sub: '#475569', tag: 'light' },
+  { id: 'sand',       name: 'Sand',           bg: '#fefce8', accent: '#ca8a04', text: '#1c1917', sub: '#78716c', tag: 'light' },
+  { id: 'blush',      name: 'Blush',          bg: '#fdf2f8', accent: '#db2777', text: '#0f172a', sub: '#6b7280', tag: 'light' },
+  { id: 'paper',      name: 'Paper',          bg: '#fffbeb', accent: '#b45309', text: '#1c0a00', sub: '#78350f', tag: 'light' },
+  { id: 'fog',        name: 'Fog',            bg: '#f8fafc', accent: '#334155', text: '#0f172a', sub: '#64748b', tag: 'light' },
+  { id: 'spring',     name: 'Spring',         bg: '#f7fee7', accent: '#65a30d', text: '#1a2e05', sub: '#4b5563', tag: 'light' },
+  { id: 'ice',        name: 'Ice',            bg: '#ecfeff', accent: '#0891b2', text: '#083344', sub: '#475569', tag: 'light' },
+  { id: 'cotton',     name: 'Cotton',         bg: '#fff0f6', accent: '#be185d', text: '#0f172a', sub: '#6b7280', tag: 'light' },
+  { id: 'clay',       name: 'Clay',           bg: '#fef3c7', accent: '#92400e', text: '#1c0a00', sub: '#78350f', tag: 'light' },
+  { id: 'pearl',      name: 'Pearl',          bg: '#fafafa', accent: '#1e293b', text: '#0f172a', sub: '#64748b', tag: 'light' },
+];
 
-// Variation A: Bold typographic — large headline, accent strip, minimal photo
+const PALETTE_TAGS = ['all', 'dark', 'light'];
+
+// ── Canvas Variations ─────────────────────────────────────────────────────────
+
 function VariationBold({ d, p, photo, logo, size }) {
   const { w, h } = size;
   const isWide = w > h * 1.2;
   const isTall = h > w * 1.2;
+  const headFS = isWide ? 14 : isTall ? 22 : 20;
 
   return (
     <div style={{ width: w, height: h, background: p.bg, position: 'relative', overflow: 'hidden', fontFamily: "'DM Sans','Segoe UI',sans-serif", display: 'flex', flexDirection: isWide ? 'row' : 'column' }}>
-      {/* Accent strip */}
-      <div style={{ position: 'absolute', [isWide ? 'left' : 'top']: 0, [isWide ? 'top' : 'left']: 0, [isWide ? 'bottom' : 'right']: 0, [isWide ? 'width' : 'height']: 4, background: `linear-gradient(${isWide ? '180deg' : '90deg'}, ${p.accent}, ${p.accent}88)` }} />
-
-      {/* Content */}
-      <div style={{ flex: 1, padding: isWide ? '18px 20px 18px 24px' : isTall ? '16px 16px' : '14px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', zIndex: 2 }}>
-        {/* Brand */}
+      <div style={{ position: 'absolute', [isWide?'left':'top']: 0, [isWide?'top':'left']: 0, [isWide?'bottom':'right']: 0, [isWide?'width':'height']: 4, background: `linear-gradient(${isWide?'180':'90'}deg, ${p.accent}, ${p.accent}66)` }} />
+      <div style={{ flex: 1, padding: isWide ? '16px 18px 16px 22px' : '14px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', zIndex: 2 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           {logo
-            ? <img src={logo} style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'contain' }} />
-            : <div style={{ width: 26, height: 26, borderRadius: 6, background: p.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: p.bg, flexShrink: 0 }}>{(d.brandName||'I')[0]}</div>}
-          <span style={{ fontSize: 9, fontWeight: 800, color: p.accent, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{d.brandName||'Brand'}</span>
+            ? <img src={logo} style={{ width: 24, height: 24, borderRadius: 5, objectFit: 'contain', flexShrink: 0 }} />
+            : <div style={{ width: 24, height: 24, borderRadius: 5, background: p.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, color: p.bg, flexShrink: 0 }}>{(d.brandName||'I')[0].toUpperCase()}</div>}
+          <span style={{ fontSize: 9, fontWeight: 800, color: p.accent, textTransform: 'uppercase', letterSpacing: '0.12em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: isWide ? 90 : 160 }}>{d.brandName||'Brand'}</span>
         </div>
-
-        {/* Main content */}
         <div>
           <div style={{ fontSize: 8, fontWeight: 700, color: p.accent, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 5, opacity: 0.75 }}>{d.badge||'Marketing'}</div>
-          <div style={{ fontSize: isWide ? 15 : isTall ? 21 : 19, fontWeight: 900, color: p.text, lineHeight: 1.1, letterSpacing: '-0.025em', marginBottom: isWide ? 0 : 6 }}>{d.headline||'Your headline here'}</div>
-          {!isWide && d.body && <div style={{ fontSize: isTall ? 11 : 10, color: p.sub, lineHeight: 1.55, marginTop: 4 }}>{d.body.slice(0, isTall ? 130 : 90)}</div>}
+          <div style={{ fontSize: headFS, fontWeight: 900, color: p.text, lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: 5, maxWidth: isWide ? 180 : '100%' }}>{d.headline||'Your headline'}</div>
+          {!isWide && d.body && <div style={{ fontSize: isTall ? 11 : 10, color: p.sub, lineHeight: 1.55 }}>{d.body.slice(0, isTall ? 140 : 90)}</div>}
         </div>
-
-        {/* CTA */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ padding: '5px 13px', borderRadius: 20, background: p.accent, fontSize: 9, fontWeight: 800, color: p.bg, letterSpacing: '0.02em' }}>{d.cta||'Learn More'}</div>
-          {d.website && <span style={{ fontSize: 8, color: p.sub, opacity: 0.55 }}>{d.website}</span>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <div style={{ padding: '5px 12px', borderRadius: 20, background: p.accent, fontSize: 9, fontWeight: 800, color: p.bg }}>{d.cta||'Learn More'}</div>
+          {d.website && <span style={{ fontSize: 8, color: p.sub, opacity: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80 }}>{d.website}</span>}
         </div>
       </div>
-
-      {/* Photo panel */}
       {photo
-        ? <div style={{ [isWide ? 'width' : 'height']: isWide ? '42%' : '38%', position: 'relative', flexShrink: 0, overflow: 'hidden' }}>
+        ? <div style={{ [isWide?'width':'height']: isWide?'42%':'36%', position: 'relative', flexShrink: 0, overflow: 'hidden' }}>
             <img src={photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(${isWide ? 'to right' : 'to bottom'}, ${p.bg}cc, transparent)` }} />
+            <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(${isWide?'to right':'to bottom'}, ${p.bg}cc, transparent 60%)` }} />
           </div>
-        : <div style={{ [isWide ? 'width' : 'height']: isWide ? '35%' : '30%', background: p.accent+'12', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: 22, opacity: 0.1 }}>✦</span>
+        : <div style={{ [isWide?'width':'height']: isWide?'36%':'28%', background: p.accent+'10', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid ${p.accent}30` }} />
           </div>}
-
-      {/* Subtle background shape */}
-      <div style={{ position: 'absolute', bottom: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: p.accent, opacity: 0.04, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: p.accent, opacity: 0.05 }} />
     </div>
   );
 }
 
-// Variation B: Full bleed photo with gradient overlay
 function VariationFullBleed({ d, p, photo, logo, size }) {
   const { w, h } = size;
-  const isTall = h > w * 1.1;
+  const isTall = h > w;
+  const headFS = isTall ? 21 : w > h * 1.5 ? 14 : 18;
 
   return (
     <div style={{ width: w, height: h, position: 'relative', overflow: 'hidden', fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
-      {/* Background */}
       {photo
         ? <img src={photo} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-        : <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 70% 30%, ${p.accent}55 0%, ${p.bg} 65%)` }} />}
-
-      {/* Gradient overlay */}
+        : <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 65% 25%, ${p.accent}60 0%, ${p.bg} 65%)` }} />}
       <div style={{ position: 'absolute', inset: 0, background: photo
-        ? `linear-gradient(to top, ${p.bg}f5 0%, ${p.bg}99 45%, ${p.bg}44 75%, transparent 100%)`
-        : 'transparent'
-      }} />
-
-      {/* Content */}
-      <div style={{ position: 'absolute', inset: 0, padding: isTall ? '16px 18px' : '14px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-        {/* Brand top */}
+        ? `linear-gradient(to top, ${p.bg}f8 0%, ${p.bg}bb 40%, ${p.bg}44 70%, transparent 100%)`
+        : 'transparent' }} />
+      <div style={{ position: 'absolute', inset: 0, padding: '14px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, alignSelf: 'flex-start' }}>
           {logo
-            ? <img src={logo} style={{ width: 28, height: 28, borderRadius: 7, objectFit: 'contain', background: 'rgba(255,255,255,0.12)', padding: 2 }} />
-            : <div style={{ width: 28, height: 28, borderRadius: 7, background: p.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: p.bg }}>{(d.brandName||'I')[0]}</div>}
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.08em', textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>{d.brandName||'Brand'}</span>
+            ? <img src={logo} style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'contain', background: 'rgba(255,255,255,0.15)', padding: 2 }} />
+            : <div style={{ width: 26, height: 26, borderRadius: 6, background: p.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: p.bg }}>{(d.brandName||'I')[0].toUpperCase()}</div>}
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.08em', textShadow: '0 1px 6px rgba(0,0,0,0.7)' }}>{d.brandName||'Brand'}</span>
         </div>
-
-        {/* Bottom content */}
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 9px', borderRadius: 20, background: p.accent, fontSize: 8, fontWeight: 800, color: p.bg, marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{d.badge||'Marketing'}</div>
-          <div style={{ fontSize: isTall ? 20 : 17, fontWeight: 900, color: '#fff', lineHeight: 1.12, letterSpacing: '-0.02em', marginBottom: 5, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>{d.headline||'Your headline here'}</div>
-          {isTall && d.body && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5, marginBottom: 10 }}>{d.body.slice(0, 120)}</div>}
+          <div style={{ display: 'inline-flex', padding: '2px 9px', borderRadius: 20, background: p.accent, fontSize: 8, fontWeight: 800, color: p.bg, marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{d.badge||'Marketing'}</div>
+          <div style={{ fontSize: headFS, fontWeight: 900, color: '#fff', lineHeight: 1.12, letterSpacing: '-0.02em', marginBottom: 6, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>{d.headline||'Your headline'}</div>
+          {isTall && d.body && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.72)', lineHeight: 1.5, marginBottom: 10 }}>{d.body.slice(0, 130)}</div>}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: isTall ? 0 : 4 }}>
             <div style={{ padding: '5px 14px', borderRadius: 20, background: p.accent, fontSize: 9, fontWeight: 800, color: p.bg }}>{d.cta||'Learn More'}</div>
             {d.website && <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)' }}>{d.website}</span>}
@@ -202,7 +244,6 @@ function VariationFullBleed({ d, p, photo, logo, size }) {
   );
 }
 
-// Variation C: Editorial / magazine — clean grid with photo in upper section
 function VariationEditorial({ d, p, photo, logo, size }) {
   const { w, h } = size;
   const isWide = w > h * 1.3;
@@ -211,57 +252,47 @@ function VariationEditorial({ d, p, photo, logo, size }) {
   return (
     <div style={{ width: w, height: h, background: p.bg, position: 'relative', overflow: 'hidden', fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
       {isWide ? (
-        // Wide: left content, right photo
         <div style={{ display: 'flex', height: '100%' }}>
-          <div style={{ flex: 1, padding: '14px 18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            {/* Brand */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {logo ? <img src={logo} style={{ width: 22, height: 22, borderRadius: 5, objectFit: 'contain' }} />
-                : <div style={{ width: 22, height: 22, borderRadius: 5, background: p.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: p.bg }}>{(d.brandName||'I')[0]}</div>}
-              <span style={{ fontSize: 8, fontWeight: 800, color: p.sub, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{d.brandName}</span>
+          <div style={{ flex: 1, padding: '13px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              {logo ? <img src={logo} style={{ width: 20, height: 20, borderRadius: 4, objectFit: 'contain', flexShrink: 0 }} />
+                : <div style={{ width: 20, height: 20, borderRadius: 4, background: p.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: p.bg, flexShrink: 0 }}>{(d.brandName||'I')[0].toUpperCase()}</div>}
+              <span style={{ fontSize: 7, fontWeight: 800, color: p.sub, textTransform: 'uppercase', letterSpacing: '0.1em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.brandName}</span>
             </div>
-            {/* Content */}
             <div>
               <div style={{ fontSize: 7, fontWeight: 700, color: p.accent, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 4 }}>{d.badge}</div>
-              <div style={{ fontSize: 14, fontWeight: 900, color: p.text, lineHeight: 1.15, letterSpacing: '-0.02em' }}>{d.headline}</div>
+              <div style={{ fontSize: 13, fontWeight: 900, color: p.text, lineHeight: 1.15, letterSpacing: '-0.02em' }}>{d.headline}</div>
             </div>
-            {/* CTA */}
-            <div style={{ display: 'inline-flex', padding: '4px 12px', borderRadius: 5, background: p.accent, fontSize: 8, fontWeight: 800, color: p.bg, alignSelf: 'flex-start' }}>{d.cta||'Learn More'}</div>
+            <div style={{ display: 'inline-flex', padding: '3px 10px', borderRadius: 5, background: p.accent, fontSize: 7, fontWeight: 800, color: p.bg }}>{d.cta||'Learn More'}</div>
           </div>
-          {/* Photo */}
           <div style={{ width: '44%', position: 'relative', flexShrink: 0 }}>
             {photo ? <img src={photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <div style={{ width: '100%', height: '100%', background: p.accent+'18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 24, opacity: 0.12 }}>✦</span></div>}
+              : <div style={{ width: '100%', height: '100%', background: p.accent+'15' }} />}
             <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: p.accent }} />
           </div>
         </div>
       ) : (
-        // Portrait / square: photo top, content bottom
         <>
-          {/* Photo section */}
           <div style={{ height: photoH, position: 'relative', overflow: 'hidden' }}>
             {photo ? <img src={photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${p.accent}22, ${p.accent}08)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 32, opacity: 0.1 }}>✦</span></div>}
-            {/* Badge on photo */}
-            <div style={{ position: 'absolute', top: 10, left: 14, padding: '2px 9px', borderRadius: 20, background: p.accent, fontSize: 8, fontWeight: 800, color: p.bg, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{d.badge||'Marketing'}</div>
+              : <div style={{ width: '100%', height: '100%', background: `linear-gradient(135deg, ${p.accent}20, ${p.accent}08)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', border: `2px solid ${p.accent}40` }} />
+                </div>}
+            <div style={{ position: 'absolute', top: 9, left: 12, padding: '2px 8px', borderRadius: 20, background: p.accent, fontSize: 7, fontWeight: 800, color: p.bg, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{d.badge||'Marketing'}</div>
           </div>
-
-          {/* Accent line */}
           <div style={{ height: 3, background: `linear-gradient(90deg, ${p.accent}, ${p.accent}44)` }} />
-
-          {/* Content section */}
-          <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: h - photoH - 3, boxSizing: 'border-box' }}>
+          <div style={{ padding: '11px 13px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: h - photoH - 3, boxSizing: 'border-box' }}>
             <div>
-              <div style={{ fontSize: h > w * 1.3 ? 18 : 15, fontWeight: 900, color: p.text, lineHeight: 1.15, letterSpacing: '-0.02em', marginBottom: 4 }}>{d.headline||'Your headline'}</div>
-              {d.body && <div style={{ fontSize: 10, color: p.sub, lineHeight: 1.5 }}>{d.body.slice(0, 100)}</div>}
+              <div style={{ fontSize: h > w * 1.3 ? 17 : 14, fontWeight: 900, color: p.text, lineHeight: 1.15, letterSpacing: '-0.02em', marginBottom: 4 }}>{d.headline||'Your headline'}</div>
+              {d.body && <div style={{ fontSize: 9, color: p.sub, lineHeight: 1.5 }}>{d.body.slice(0, 100)}</div>}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {logo ? <img src={logo} style={{ width: 20, height: 20, borderRadius: 4, objectFit: 'contain' }} />
-                  : <div style={{ width: 20, height: 20, borderRadius: 4, background: p.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 900, color: p.bg }}>{(d.brandName||'I')[0]}</div>}
-                <span style={{ fontSize: 8, fontWeight: 700, color: p.text, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{d.brandName||'Brand'}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                {logo ? <img src={logo} style={{ width: 18, height: 18, borderRadius: 4, objectFit: 'contain' }} />
+                  : <div style={{ width: 18, height: 18, borderRadius: 4, background: p.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 900, color: p.bg }}>{(d.brandName||'I')[0].toUpperCase()}</div>}
+                <span style={{ fontSize: 7, fontWeight: 700, color: p.text, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{d.brandName||'Brand'}</span>
               </div>
-              <div style={{ padding: '4px 12px', borderRadius: 20, background: p.accent, fontSize: 8, fontWeight: 800, color: p.bg }}>{d.cta||'Learn More'}</div>
+              <div style={{ padding: '3px 10px', borderRadius: 20, background: p.accent, fontSize: 7, fontWeight: 800, color: p.bg }}>{d.cta||'Learn More'}</div>
             </div>
           </div>
         </>
@@ -270,16 +301,15 @@ function VariationEditorial({ d, p, photo, logo, size }) {
   );
 }
 
-// ── Variation renderer ────────────────────────────────────────────────────────
 const VARIATIONS = [
-  { id: 'bold',      label: 'Bold',      desc: 'Strong typography' },
-  { id: 'fullbleed', label: 'Full Bleed', desc: 'Immersive photo' },
-  { id: 'editorial', label: 'Editorial', desc: 'Magazine style' },
+  { id: 'bold',      label: 'Bold',      desc: 'Strong & direct' },
+  { id: 'fullbleed', label: 'Full Bleed', desc: 'Photo-first' },
+  { id: 'editorial', label: 'Editorial', desc: 'Magazine clean' },
 ];
 
-function RenderVariation({ variationId, d, p, photo, logo, size }) {
+function RenderVariation({ id, d, p, photo, logo, size }) {
   const props = { d, p, photo, logo, size };
-  switch (variationId) {
+  switch (id) {
     case 'bold':      return <VariationBold      {...props} />;
     case 'fullbleed': return <VariationFullBleed {...props} />;
     case 'editorial': return <VariationEditorial {...props} />;
@@ -287,20 +317,24 @@ function RenderVariation({ variationId, d, p, photo, logo, size }) {
   }
 }
 
-// ── Main DesignStudio Modal ───────────────────────────────────────────────────
-export default function DesignStudio({ isOpen, onClose, contentItem, campaignName, allContent }) {
-  const [brand,       setBrand]       = useState(null);
-  const [paletteIdx,  setPaletteIdx]  = useState(0);
-  const [customPalette, setCustomPalette] = useState(null);
-  const [photo,       setPhoto]       = useState(null);
-  const [logo,        setLogo]        = useState(null);
-  const [selected,    setSelected]    = useState('bold');
-  const [exporting,   setExporting]   = useState(null); // variationId being exported
-  const [exported,    setExported]    = useState(null);
-  const [editing,     setEditing]     = useState(false);
-  const [data,        setData]        = useState({ brandName: '', tagline: '', badge: '', headline: '', body: '', cta: 'Learn More', website: '' });
+// ── Main Component ────────────────────────────────────────────────────────────
+export default function DesignStudio({ isOpen, onClose, contentItem, campaignName }) {
+  const [brand,        setBrand]        = useState(null);
+  const [paletteId,    setPaletteId]    = useState('midnight');
+  const [paletteFilter,setPaletteFilter]= useState('all');
+  const [photo,        setPhoto]        = useState(null);
+  const [logo,         setLogo]         = useState(null);
+  const [selected,     setSelected]     = useState('bold');
+  const [exporting,    setExporting]    = useState(null);
+  const [exported,     setExported]     = useState(null);
+  const [editing,      setEditing]      = useState(false);
+  const [showPalettes, setShowPalettes] = useState(false);
+  const [data, setData] = useState({
+    brandName: '', tagline: '', badge: '',
+    headline: '', body: '', cta: 'Learn More', website: '',
+  });
 
-  const canvasRefs = {
+  const refs = {
     bold:      useRef(null),
     fullbleed: useRef(null),
     editorial: useRef(null),
@@ -308,47 +342,30 @@ export default function DesignStudio({ isOpen, onClose, contentItem, campaignNam
   const photoRef = useRef(null);
   const logoRef  = useRef(null);
 
-  // ── Palettes ─────────────────────────────────────────────────────────────────
-  const PALETTES = [
-    { id: 'midnight', name: 'Midnight',  bg: '#0c1220', accent: '#6366f1', text: '#f8fafc', sub: '#a5b4fc' },
-    { id: 'noir',     name: 'Noir',      bg: '#0a0a0a', accent: '#ffffff', text: '#ffffff', sub: '#999999' },
-    { id: 'forest',   name: 'Forest',    bg: '#0d1f0f', accent: '#22c55e', text: '#f0fdf4', sub: '#86efac' },
-    { id: 'ocean',    name: 'Ocean',     bg: '#020d1a', accent: '#38bdf8', text: '#f0f9ff', sub: '#7dd3fc' },
-    { id: 'ember',    name: 'Ember',     bg: '#130800', accent: '#f97316', text: '#fff7ed', sub: '#fdba74' },
-    { id: 'violet',   name: 'Violet',    bg: '#0d0520', accent: '#a855f7', text: '#faf5ff', sub: '#d8b4fe' },
-    { id: 'rose',     name: 'Rose',      bg: '#18030d', accent: '#f43f5e', text: '#fff1f2', sub: '#fda4af' },
-    { id: 'gold',     name: 'Gold',      bg: '#0f0900', accent: '#eab308', text: '#fefce8', sub: '#fde047' },
-    { id: 'arctic',   name: 'Arctic',    bg: '#f8fafc', accent: '#0ea5e9', text: '#0f172a', sub: '#475569' },
-    { id: 'teal',     name: 'Teal',      bg: '#011a18', accent: '#14b8a6', text: '#f0fdfa', sub: '#5eead4' },
-  ];
+  const activePalette = PALETTES.find(p => p.id === paletteId) || PALETTES[0];
+  const filteredPalettes = paletteFilter === 'all' ? PALETTES : PALETTES.filter(p => p.tag === paletteFilter);
 
-  const activePalette = (() => {
-    if (customPalette) return customPalette;
-    if (brand?.paletteOverride) return brand.paletteOverride;
-    return PALETTES[paletteIdx] || PALETTES[0];
-  })();
-
-  // ── Load brand + parse content on open ───────────────────────────────────────
+  // Load brand + parse content on open
   useEffect(() => {
     if (!isOpen || !contentItem) return;
 
-    // Parse content
-    const parsed = parseContent(contentItem.content, contentItem.format);
+    const parsed = parseContent(contentItem.content || '', contentItem.format || '');
     setData(prev => ({
       ...prev,
-      headline: parsed.headline || prev.headline,
-      body:     parsed.body     || prev.body,
-      brandName: campaignName   || prev.brandName,
-      badge:    'Marketing',
-      cta:      'Learn More',
+      headline:  parsed.headline,
+      body:      parsed.body,
+      cta:       'Learn More',
+      brandName: campaignName || prev.brandName,
+      badge:     'Marketing',
     }));
     setPhoto(null);
     setExported(null);
     setEditing(false);
+    setShowPalettes(false);
 
-    // Fetch brand profile
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (!token) return;
+
     fetch(`${API_BASE}/brand/default`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(res => {
@@ -362,28 +379,36 @@ export default function DesignStudio({ isOpen, onClose, contentItem, campaignNam
           badge:     b.industry   || 'Marketing',
           website:   b.website    || '',
         }));
-        // Build brand palette if 2+ colors set
+        // Auto-set brand palette if colors available
         const colors = b.brand_colors || [];
         if (colors.length >= 2) {
           const bg = colors[0], accent = colors[1];
-          const brandPal = {
-            id: 'brand', name: `${b.brand_name} Brand`,
+          // Inject as a dynamic palette
+          setPaletteId('__brand__');
+          setBrand(prev => ({ ...prev, _palette: {
+            id: '__brand__', name: `${b.brand_name} Brand`,
             bg, accent,
             text: isLight(bg) ? '#0f172a' : '#f8fafc',
             sub:  isLight(bg) ? '#475569' : '#94a3b8',
-          };
-          setCustomPalette(brandPal);
+            tag: 'dark',
+          }}));
         }
       })
       .catch(() => {});
-  }, [isOpen, contentItem]);
+  }, [isOpen, contentItem, campaignName]);
 
-  // Lock body scroll when open
+  // Lock scroll
   useEffect(() => {
-    if (isOpen) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
+    document.body.style.overflow = isOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
+
+  const getActivePalette = () => {
+    if (paletteId === '__brand__' && brand?._palette) return brand._palette;
+    return PALETTES.find(p => p.id === paletteId) || PALETTES[0];
+  };
+
+  const p = getActivePalette();
 
   const handleFile = (e, setter) => {
     const file = e.target.files[0];
@@ -394,23 +419,23 @@ export default function DesignStudio({ isOpen, onClose, contentItem, campaignNam
     e.target.value = '';
   };
 
-  const handleExport = async (variationId) => {
-    const ref = canvasRefs[variationId];
+  const handleExport = async (varId) => {
+    const ref = refs[varId];
     if (!ref?.current) return;
-    setExporting(variationId);
-    await new Promise(r => setTimeout(r, 60));
+    setExporting(varId);
+    await new Promise(r => setTimeout(r, 80));
     try {
       const canvas = await html2canvas(ref.current, {
-        scale: 2, useCORS: true,
-        backgroundColor: activePalette.bg,
+        scale: 2.5, useCORS: true,
+        backgroundColor: p.bg,
         logging: false, allowTaint: true,
       });
       const link = document.createElement('a');
-      const formatSlug = contentItem?.format?.toLowerCase() || 'design';
-      link.download = `ivey-${formatSlug}-${variationId}-${Date.now()}.png`;
+      const slug = (contentItem?.format || 'design').toLowerCase();
+      link.download = `ivey-${slug}-${varId}-${Date.now()}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-      setExported(variationId);
+      setExported(varId);
       setTimeout(() => setExported(null), 2500);
     } catch (e) { console.error('Export failed:', e); }
     finally { setExporting(null); }
@@ -418,78 +443,76 @@ export default function DesignStudio({ isOpen, onClose, contentItem, campaignNam
 
   if (!isOpen || !contentItem) return null;
 
-  const templateType = formatToTemplate(contentItem.format);
+  const templateType = formatToTemplate(contentItem.format || '');
   const size = CANVAS_SIZES[templateType] || CANVAS_SIZES.instagram;
-  const formatName = contentItem.format?.replace(/_/g, ' ') || 'Content';
-
-  // Scale canvas for display (max ~280px wide in the cards)
-  const maxDisplayW = 260;
-  const scale = Math.min(1, maxDisplayW / size.w);
-  const displayW = Math.round(size.w * scale);
-  const displayH = Math.round(size.h * scale);
+  const formatName = (contentItem.format || '').replace(/_/g, ' ');
+  const maxW = 240;
+  const scale = Math.min(1, maxW / size.w);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)' }}>
-
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>✦</div>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 1000,
+      background: 'rgba(2,4,12,0.97)',
+      backdropFilter: 'blur(12px)',
+      display: 'flex', flexDirection: 'column',
+      fontFamily: "'DM Sans','Segoe UI',sans-serif",
+    }}>
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>✦</div>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#f1f5f9' }}>Design Studio</div>
-            <div style={{ fontSize: 11, color: '#475569', marginTop: 1 }}>{formatName} · {size.w}×{size.h}px · {size.label}</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#f1f5f9' }}>Design Studio</div>
+            <div style={{ fontSize: 10, color: '#334155' }}>{formatName} · {size.w}×{size.h} · {size.label}</div>
           </div>
         </div>
-        <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>✕</button>
+        <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', color: '#64748b', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
       </div>
 
-      {/* Body */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '20px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+      {/* ── Body ── */}
+      <div style={{ flex: 1, overflow: 'auto', padding: '18px 20px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-          {/* Three variations side by side */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16, marginBottom: 24 }}>
+          {/* ── 3 Variations ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
             {VARIATIONS.map(v => (
-              <div key={v.id}
-                onClick={() => setSelected(v.id)}
+              <div key={v.id} onClick={() => setSelected(v.id)}
                 style={{
-                  borderRadius: 14,
-                  border: `2px solid ${selected === v.id ? '#6366f1' : 'rgba(255,255,255,0.06)'}`,
-                  background: selected === v.id ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)',
-                  overflow: 'hidden', cursor: 'pointer', transition: 'all 0.2s',
-                  boxShadow: selected === v.id ? '0 0 0 1px #6366f1, 0 8px 32px rgba(99,102,241,0.2)' : 'none',
+                  borderRadius: 14, cursor: 'pointer', overflow: 'hidden',
+                  border: `2px solid ${selected === v.id ? '#6366f1' : 'rgba(255,255,255,0.05)'}`,
+                  background: selected === v.id ? 'rgba(99,102,241,0.07)' : 'rgba(255,255,255,0.02)',
+                  transition: 'all 0.2s',
+                  boxShadow: selected === v.id ? '0 0 0 1px #6366f1, 0 8px 32px rgba(99,102,241,0.18)' : 'none',
                 }}>
 
-                {/* Variation label */}
-                <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: selected === v.id ? '#818cf8' : '#64748b' }}>{v.label}</span>
-                    <span style={{ fontSize: 10, color: '#334155', marginLeft: 6 }}>{v.desc}</span>
-                  </div>
-                  {selected === v.id && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1' }} />}
+                {/* Label */}
+                <div style={{ padding: '9px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: selected === v.id ? '#818cf8' : '#475569' }}>{v.label}</span>
+                  <span style={{ fontSize: 9, color: '#1e293b' }}>{v.desc}</span>
                 </div>
 
-                {/* Canvas preview */}
-                <div style={{ padding: '14px', display: 'flex', justifyContent: 'center', background: '#04080f' }}>
-                  <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: size.w, height: size.h, flexShrink: 0 }}
-                    ref={canvasRefs[v.id]}>
-                    <RenderVariation variationId={v.id} d={data} p={activePalette} photo={photo} logo={logo} size={size} />
+                {/* Canvas */}
+                <div style={{ padding: '12px', background: '#030811', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: Math.round(size.h * scale) + 24 }}>
+                  <div style={{ transform: `scale(${scale})`, transformOrigin: 'top center' }}
+                    ref={refs[v.id]}>
+                    <RenderVariation id={v.id} d={data} p={p} photo={photo} logo={logo} size={size} />
                   </div>
-                  {/* Invisible spacer to make container correct size */}
-                  <div style={{ width: displayW, height: displayH, flexShrink: 0, marginLeft: -(size.w) }} />
                 </div>
 
-                {/* Export button */}
-                <div style={{ padding: '10px 14px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                {/* Export */}
+                <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                   <button
                     onClick={e => { e.stopPropagation(); handleExport(v.id); }}
                     disabled={!!exporting}
                     style={{
-                      width: '100%', padding: '8px', borderRadius: 8, border: 'none',
-                      background: exported === v.id ? 'linear-gradient(135deg,#10b981,#059669)' : selected === v.id ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(255,255,255,0.05)',
-                      color: selected === v.id || exported === v.id ? '#fff' : '#475569',
-                      fontSize: 11, fontWeight: 700, cursor: exporting ? 'wait' : 'pointer',
-                      transition: 'all 0.2s',
+                      width: '100%', padding: '7px', borderRadius: 7, border: 'none', cursor: exporting ? 'wait' : 'pointer',
+                      background: exported === v.id
+                        ? 'linear-gradient(135deg,#10b981,#059669)'
+                        : selected === v.id
+                          ? 'linear-gradient(135deg,#6366f1,#8b5cf6)'
+                          : 'rgba(255,255,255,0.04)',
+                      color: selected === v.id || exported === v.id ? '#fff' : '#334155',
+                      fontSize: 11, fontWeight: 700, transition: 'all 0.2s',
                     }}>
                     {exporting === v.id ? '⏳ Exporting...' : exported === v.id ? '✅ Downloaded!' : '⬇ Export PNG'}
                   </button>
@@ -498,56 +521,78 @@ export default function DesignStudio({ isOpen, onClose, contentItem, campaignNam
             ))}
           </div>
 
-          {/* Controls row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+          {/* ── Controls ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
 
-            {/* Palette selector */}
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px 16px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Color Palette</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {/* Brand palette dot (if available) */}
-                {brand?.brand_colors?.length >= 2 && (
-                  <button
-                    onClick={() => { setCustomPalette({ id:'brand', name:`${brand.brand_name} Brand`, bg: brand.brand_colors[0], accent: brand.brand_colors[1], text: isLight(brand.brand_colors[0]) ? '#0f172a' : '#f8fafc', sub: isLight(brand.brand_colors[0]) ? '#475569' : '#94a3b8' }); }}
-                    title={`${brand.brand_name} Brand Colors`}
-                    style={{ width: 26, height: 26, borderRadius: '50%', background: brand.brand_colors[1], border: customPalette?.id === 'brand' ? '3px solid #f1f5f9' : '2px solid rgba(255,255,255,0.1)', cursor: 'pointer', transform: customPalette?.id === 'brand' ? 'scale(1.25)' : 'scale(1)', transition: 'all 0.15s', position: 'relative', outline: 'none' }}>
-                    <span style={{ position: 'absolute', bottom: -14, left: '50%', transform: 'translateX(-50%)', fontSize: 7, color: '#475569', whiteSpace: 'nowrap' }}>Brand</span>
+            {/* Palette */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '13px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Palette</div>
+                <button onClick={() => setShowPalettes(v => !v)} style={{ fontSize: 9, fontWeight: 700, color: showPalettes ? '#6366f1' : '#334155', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  {showPalettes ? 'Collapse ▲' : `Show all (${PALETTES.length}) ▼`}
+                </button>
+              </div>
+
+              {/* Filter tabs */}
+              {showPalettes && (
+                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                  {PALETTE_TAGS.map(t => (
+                    <button key={t} onClick={() => setPaletteFilter(t)}
+                      style={{ padding: '3px 10px', borderRadius: 20, fontSize: 9, fontWeight: 700, cursor: 'pointer', border: `1px solid ${paletteFilter === t ? '#6366f1' : 'rgba(255,255,255,0.08)'}`, background: paletteFilter === t ? '#6366f100' : 'transparent', color: paletteFilter === t ? '#818cf8' : '#334155', textTransform: 'capitalize' }}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Palette dots grid */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: showPalettes ? 7 : 6 }}>
+                {/* Brand palette dot */}
+                {brand?._palette && (
+                  <button onClick={() => setPaletteId('__brand__')} title={brand._palette.name}
+                    style={{ width: showPalettes ? 28 : 22, height: showPalettes ? 28 : 22, borderRadius: '50%', background: brand._palette.accent, border: paletteId === '__brand__' ? '3px solid #f1f5f9' : '2px solid rgba(255,255,255,0.1)', cursor: 'pointer', transform: paletteId === '__brand__' ? 'scale(1.2)' : 'scale(1)', transition: 'all 0.15s', outline: 'none', flexShrink: 0, position: 'relative' }}>
+                    {showPalettes && paletteId === '__brand__' && <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid #f1f5f9' }} />}
                   </button>
                 )}
-                {PALETTES.map((pp, i) => (
-                  <button key={pp.id} onClick={() => { setCustomPalette(null); setPaletteIdx(i); }} title={pp.name}
-                    style={{ width: 26, height: 26, borderRadius: '50%', background: pp.accent, border: !customPalette && paletteIdx === i ? '3px solid #f1f5f9' : '2px solid rgba(255,255,255,0.08)', cursor: 'pointer', transform: !customPalette && paletteIdx === i ? 'scale(1.25)' : 'scale(1)', transition: 'all 0.15s', outline: 'none', flexShrink: 0 }} />
+                {(showPalettes ? filteredPalettes : PALETTES.slice(0, 18)).map(pp => (
+                  <button key={pp.id} onClick={() => setPaletteId(pp.id)} title={pp.name}
+                    style={{ width: showPalettes ? 28 : 22, height: showPalettes ? 28 : 22, borderRadius: '50%', background: pp.accent, border: paletteId === pp.id ? '3px solid #f1f5f9' : '2px solid rgba(255,255,255,0.07)', cursor: 'pointer', transform: paletteId === pp.id ? 'scale(1.2)' : 'scale(1)', transition: 'all 0.15s', outline: 'none', flexShrink: 0 }} />
                 ))}
               </div>
-              <div style={{ marginTop: 12, fontSize: 11, color: '#475569' }}>
-                Active: <span style={{ color: '#94a3b8', fontWeight: 600 }}>{activePalette.name}</span>
+
+              {/* Active palette info */}
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 20, height: 20, borderRadius: 5, background: p.bg, border: `2px solid ${p.accent}`, flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: '#64748b' }}>{p.name}</span>
               </div>
             </div>
 
-            {/* Photo & logo upload */}
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px 16px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Photos & Logo</div>
+            {/* Photos & Logo */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '13px 14px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Photos & Logo</div>
               <div style={{ display: 'flex', gap: 10 }}>
                 {/* Photo */}
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 9, color: '#475569', marginBottom: 5, fontWeight: 600 }}>Product Photo</div>
-                  <div onClick={() => photoRef.current?.click()} style={{ height: 60, borderRadius: 8, background: '#0f172a', border: '1px dashed #1e293b', cursor: 'pointer', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 5 }}>
-                    {photo ? <img src={photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 10, color: '#1e293b' }}>Click to upload</span>}
+                  <div style={{ fontSize: 9, color: '#334155', marginBottom: 5, fontWeight: 600 }}>Product Photo</div>
+                  <div onClick={() => photoRef.current?.click()}
+                    style={{ height: 64, borderRadius: 8, background: '#0a0f1a', border: '1px dashed #1e293b', cursor: 'pointer', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 5 }}>
+                    {photo ? <img src={photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 9, color: '#1e293b' }}>Upload</span>}
                   </div>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button onClick={() => photoRef.current?.click()} style={{ flex: 1, padding: '5px', background: '#1e293b', border: '1px solid #334155', borderRadius: 5, color: '#94a3b8', fontSize: 9, cursor: 'pointer' }}>{photo ? '🔄' : '📸 Upload'}</button>
+                    <button onClick={() => photoRef.current?.click()} style={{ flex: 1, padding: '5px', background: '#1e293b', border: '1px solid #334155', borderRadius: 5, color: '#64748b', fontSize: 9, cursor: 'pointer' }}>{photo ? '🔄' : '📸'}</button>
                     {photo && <button onClick={() => setPhoto(null)} style={{ padding: '5px 7px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 5, color: '#ef4444', fontSize: 9, cursor: 'pointer' }}>✕</button>}
                   </div>
                   <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e, setPhoto)} />
                 </div>
                 {/* Logo */}
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 9, color: '#475569', marginBottom: 5, fontWeight: 600 }}>Logo</div>
-                  <div onClick={() => logoRef.current?.click()} style={{ height: 60, borderRadius: 8, background: '#0f172a', border: '1px dashed #1e293b', cursor: 'pointer', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 5 }}>
-                    {logo ? <img src={logo} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} /> : <span style={{ fontSize: 10, color: '#1e293b' }}>Click to upload</span>}
+                  <div style={{ fontSize: 9, color: '#334155', marginBottom: 5, fontWeight: 600 }}>Logo</div>
+                  <div onClick={() => logoRef.current?.click()}
+                    style={{ height: 64, borderRadius: 8, background: '#0a0f1a', border: '1px dashed #1e293b', cursor: 'pointer', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 5 }}>
+                    {logo ? <img src={logo} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} /> : <span style={{ fontSize: 9, color: '#1e293b' }}>Upload</span>}
                   </div>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button onClick={() => logoRef.current?.click()} style={{ flex: 1, padding: '5px', background: '#1e293b', border: '1px solid #334155', borderRadius: 5, color: '#94a3b8', fontSize: 9, cursor: 'pointer' }}>{logo ? '🔄' : '🏷 Upload'}</button>
+                    <button onClick={() => logoRef.current?.click()} style={{ flex: 1, padding: '5px', background: '#1e293b', border: '1px solid #334155', borderRadius: 5, color: '#64748b', fontSize: 9, cursor: 'pointer' }}>{logo ? '🔄' : '🏷'}</button>
                     {logo && <button onClick={() => setLogo(null)} style={{ padding: '5px 7px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 5, color: '#ef4444', fontSize: 9, cursor: 'pointer' }}>✕</button>}
                   </div>
                   <input ref={logoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFile(e, setLogo)} />
@@ -555,26 +600,28 @@ export default function DesignStudio({ isOpen, onClose, contentItem, campaignNam
               </div>
             </div>
 
-            {/* Text tweaks */}
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '14px 16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            {/* Text editor */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '13px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Text</div>
-                <button onClick={() => setEditing(v => !v)} style={{ fontSize: 9, fontWeight: 700, color: editing ? '#6366f1' : '#475569', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                <button onClick={() => setEditing(v => !v)} style={{ fontSize: 9, fontWeight: 700, color: editing ? '#6366f1' : '#475569', background: 'none', border: 'none', cursor: 'pointer' }}>
                   {editing ? '✓ Done' : '✏️ Edit'}
                 </button>
               </div>
               {editing ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   {[
-                    { k: 'headline', label: 'Headline', rows: 2 },
-                    { k: 'body',     label: 'Body',     rows: 2 },
-                    { k: 'cta',      label: 'CTA',      rows: 1 },
-                    { k: 'website',  label: 'Website',  rows: 1 },
+                    { k: 'brandName', label: 'Brand',    rows: 1 },
+                    { k: 'badge',     label: 'Badge',    rows: 1 },
+                    { k: 'headline',  label: 'Headline', rows: 2 },
+                    { k: 'body',      label: 'Body',     rows: 2 },
+                    { k: 'cta',       label: 'CTA',      rows: 1 },
+                    { k: 'website',   label: 'Website',  rows: 1 },
                   ].map(({ k, label, rows }) => (
                     <div key={k}>
-                      <div style={{ fontSize: 8, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>{label}</div>
-                      <textarea value={data[k]||''} onChange={e => setData(p => ({ ...p, [k]: e.target.value }))} rows={rows}
-                        style={{ width: '100%', background: '#0f172a', border: '1px solid #1e293b', borderRadius: 6, padding: '6px 8px', fontSize: 11, color: '#f1f5f9', outline: 'none', resize: 'none', boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.4 }}
+                      <div style={{ fontSize: 8, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>{label}</div>
+                      <textarea value={data[k]||''} onChange={e => setData(prev => ({ ...prev, [k]: e.target.value }))} rows={rows}
+                        style={{ width: '100%', background: '#0a0f1a', border: '1px solid #1e293b', borderRadius: 5, padding: '5px 7px', fontSize: 11, color: '#f1f5f9', outline: 'none', resize: 'none', boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.4, transition: 'border-color 0.2s' }}
                         onFocus={e => e.target.style.borderColor = '#6366f1'}
                         onBlur={e => e.target.style.borderColor = '#1e293b'}
                       />
@@ -582,12 +629,12 @@ export default function DesignStudio({ isOpen, onClose, contentItem, campaignNam
                   ))}
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <div style={{ fontSize: 11, color: '#f1f5f9', fontWeight: 600, lineHeight: 1.3 }}>{data.headline || '—'}</div>
-                  {data.body && <div style={{ fontSize: 10, color: '#64748b', lineHeight: 1.4 }}>{data.body.slice(0, 80)}...</div>}
-                  <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
-                    {data.cta && <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 20, background: activePalette.accent+'22', color: activePalette.accent, fontWeight: 700 }}>{data.cta}</span>}
-                    {data.website && <span style={{ fontSize: 9, color: '#334155' }}>{data.website}</span>}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <div style={{ fontSize: 12, color: '#f1f5f9', fontWeight: 700, lineHeight: 1.3 }}>{data.headline || '—'}</div>
+                  {data.body && <div style={{ fontSize: 10, color: '#334155', lineHeight: 1.4 }}>{data.body.slice(0, 100)}{data.body.length > 100 ? '…' : ''}</div>}
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 3 }}>
+                    {data.badge && <span style={{ fontSize: 8, padding: '2px 7px', borderRadius: 20, background: p.accent+'22', color: p.accent, fontWeight: 700 }}>{data.badge}</span>}
+                    {data.cta && <span style={{ fontSize: 8, padding: '2px 7px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', color: '#64748b' }}>{data.cta}</span>}
                   </div>
                 </div>
               )}
