@@ -15,92 +15,202 @@ const VIDEO_FORMATS  = ['YOUTUBE_VIDEO_AD', 'YOUTUBE_SHORTS'];
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.vercel.app';
 const API_URL      = import.meta.env.VITE_API_URL      || 'https://ivey-backend-production.up.railway.app';
 
-// ── Clean markdown from content for external tools ────────────────────────────
-function cleanForExternal(raw = '') {
-  return raw
+// ── Clean text for Canva (caption/copy only, no markdown) ────────────────────
+function cleanForCanva(content = '', format = '') {
+  // For visual formats (banner, flyer etc) — extract only the copy section
+  const lower = content.toLowerCase();
+  const designMarkers = ['### design', '**design suggestions', 'design suggestions:', 'design guidelines:', 'layout suggestions', 'size variations'];
+  let endIndex = content.length;
+  for (const m of designMarkers) {
+    const idx = lower.indexOf(m);
+    if (idx !== -1 && idx < endIndex) endIndex = idx;
+  }
+  const copyOnly = content.substring(0, endIndex);
+
+  return copyOnly
     .replace(/#{1,6}\s*/g, '')
     .replace(/\*\*(.*?)\*\*/g, '$1')
     .replace(/\*(.*?)\*/g, '$1')
     .replace(/>\s*/g, '')
     .replace(/---+/g, '')
-    .replace(/\(VISUAL:[^)]*\)/gi, '')
-    .replace(/\(AUDIO:[^)]*\)/gi, '')
-    .replace(/\(TEXT OVERLAY:[^)]*\)/gi, '')
+    .replace(/\[\s*[^\]]*\s*\]/g, '')
     .trim();
 }
 
-// ── Tool routing — which tools are best for each format ───────────────────────
+// ── Build smart Ideogram prompt from CAMPAIGN INFO (not the script) ───────────
+function buildImagePrompt(campaignName = '', campaignDesc = '', brand = null, format = '') {
+  const brandName = brand?.brand_name || campaignName || '';
+  const industry  = brand?.industry   || '';
+  const tagline   = brand?.tagline    || '';
+  const colors    = brand?.brand_colors || [];
+
+  // Format-specific style
+  const styleMap = {
+    YOUTUBE_VIDEO_AD:   'YouTube thumbnail, bold dramatic lighting, high contrast, cinematic, 16:9',
+    YOUTUBE_SHORTS:     'vertical social media cover, vibrant colors, eye-catching, 9:16',
+    TIKTOK:             'vertical TikTok cover, Gen Z aesthetic, vibrant, dynamic, 9:16',
+    INSTAGRAM_CAPTION:  'square Instagram post, lifestyle photography, warm natural light, 1:1',
+    FACEBOOK_POST:      'Facebook social post, warm community feel, professional',
+    LINKEDIN_POST:      'professional LinkedIn visual, corporate clean, authoritative',
+    TWITTER_POST:       'social media graphic, minimal clean design, bold',
+    BANNER_AD:          'wide horizontal banner ad, bold, clean minimal, 16:9',
+    FLYER_TEXT:         'promotional flyer, vibrant colors, clear focal point',
+    PRINT_AD:           'magazine print ad, editorial photography, luxury feel',
+    EMAIL_MARKETING:    'email header graphic, professional clean, welcoming',
+  };
+
+  const style = styleMap[format] || 'professional marketing visual, clean modern design';
+
+  // Extract key product descriptors from campaign description
+  const descWords = (campaignDesc || '')
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 4)
+    .slice(0, 6)
+    .join(', ');
+
+  const parts = [
+    style,
+    brandName ? `brand: ${brandName}` : '',
+    industry  ? `${industry} industry` : '',
+    descWords ? descWords : '',
+    tagline   ? `"${tagline}"` : '',
+    colors.length ? `brand colors: ${colors.slice(0,2).join(' and ')}` : '',
+    'photorealistic, high quality, commercial photography',
+    'professional lighting, sharp focus, no watermarks',
+  ].filter(Boolean);
+
+  return parts.join(', ');
+}
+
+// ── Format → aspect ratio for Ideogram ───────────────────────────────────────
+function getAspectRatio(format) {
+  const map = {
+    YOUTUBE_VIDEO_AD:  '16:9',
+    YOUTUBE_SHORTS:    '9:16',
+    TIKTOK:            '9:16',
+    INSTAGRAM_CAPTION: '1:1',
+    FACEBOOK_POST:     '4:5',
+    LINKEDIN_POST:     '4:3',
+    TWITTER_POST:      '16:9',
+    BANNER_AD:         '16:9',
+    FLYER_TEXT:        '3:4',
+    PRINT_AD:          '3:4',
+    EMAIL_MARKETING:   '16:9',
+  };
+  return map[format] || '1:1';
+}
+
+// ── Tool routing — per format ─────────────────────────────────────────────────
 function getToolsForFormat(format) {
-  const isVideo   = VIDEO_FORMATS.includes(format);
-  const isDesign  = ['BANNER_AD', 'PRINT_AD', 'FLYER_TEXT', 'GOOGLE_SEARCH_AD'].includes(format);
-  const isStory   = ['TIKTOK', 'YOUTUBE_SHORTS', 'INSTAGRAM_CAPTION'].includes(format);
+  const isVideoScript = VIDEO_FORMATS.includes(format) || format === 'TIKTOK';
 
-  const tools = [];
-
-  // Design tool — Canva
-  tools.push({
-    id: 'canva',
-    label: '🎨 Canva',
-    url: 'https://www.canva.com/create/',
-    color: '#7C3AED',
-    bg: 'rgba(124,58,237,0.1)',
-    border: 'rgba(124,58,237,0.25)',
-    tip: 'Paste your content into Canva to create a stunning visual',
-  });
-
-  // AI Image — Leonardo.ai (free 150 credits/day)
-  tools.push({
-    id: 'leonardo',
-    label: '🖼 AI Image',
-    url: 'https://app.leonardo.ai/',
-    color: '#f59e0b',
-    bg: 'rgba(245,158,11,0.1)',
-    border: 'rgba(245,158,11,0.25)',
-    tip: 'Use your content as a prompt in Leonardo AI to generate a free image',
-  });
-
-  // Video — HeyGen (only for video formats)
-  if (isVideo) {
-    tools.push({
-      id: 'heygen',
-      label: '🎬 HeyGen',
-      url: 'https://app.heygen.com/create',
-      color: '#ef4444',
-      bg: 'rgba(239,68,68,0.1)',
-      border: 'rgba(239,68,68,0.2)',
-      tip: 'Paste your script into HeyGen to generate an AI avatar video',
-    });
+  if (isVideoScript) {
+    // Video scripts → HeyGen ONLY. Canva and image tools make no sense here.
+    return [{
+      id:       'heygen',
+      label:    '🎬 HeyGen',
+      url:      'https://app.heygen.com/create',
+      color:    '#ef4444',
+      bg:       'rgba(239,68,68,0.1)',
+      border:   'rgba(239,68,68,0.2)',
+      copyMode: 'script',
+      tip:      'Paste your script to generate an AI avatar video — free tier available',
+    }];
   }
 
-  return tools;
+  // Written copy formats → Canva (design) + Ideogram (AI photo)
+  return [
+    {
+      id:       'canva',
+      label:    '🎨 Canva',
+      url:      'https://www.canva.com/create/',
+      color:    '#7C3AED',
+      bg:       'rgba(124,58,237,0.1)',
+      border:   'rgba(124,58,237,0.25)',
+      copyMode: 'copy',
+      tip:      'Copy your content into a Canva template to design your visual',
+    },
+    {
+      id:       'ideogram',
+      label:    '🖼 AI Image',
+      url:      'https://ideogram.ai/t/generate',
+      color:    '#f59e0b',
+      bg:       'rgba(245,158,11,0.1)',
+      border:   'rgba(245,158,11,0.25)',
+      copyMode: 'prompt',
+      tip:      '10 free images/day · Paste prompt → select aspect ratio → generate',
+    },
+  ];
 }
 
 // ── Smart Redirect Tooltip ────────────────────────────────────────────────────
-function RedirectTooltip({ tool, onConfirm, onCancel }) {
+function RedirectTooltip({ tool, prompt, aspectRatio, onConfirm, onCancel }) {
+  const isIdeogram = tool.id === 'ideogram';
   return (
     <div
       onClick={e => e.stopPropagation()}
       style={{
         position: 'absolute', top: '110%', left: 0, zIndex: 100,
-        background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 12, padding: '14px 16px', width: 280,
-        boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
+        background: '#0c1220', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 14, padding: '16px', width: 300,
+        boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
       }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#f1f5f9', marginBottom: 6 }}>
-        Ready to open {tool.label.replace(/^[^\s]+\s/, '')}
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <div style={{ width: 28, height: 28, borderRadius: 7, background: tool.bg, border: `1px solid ${tool.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>
+          {tool.label.split(' ')[0]}
+        </div>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#f1f5f9' }}>
+            {tool.label.replace(/^[^\s]+\s/, '')} ready
+          </div>
+          <div style={{ fontSize: 10, color: '#334155' }}>{tool.tip}</div>
+        </div>
       </div>
-      <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5, marginBottom: 12 }}>
-        ✓ Content copied to clipboard<br />
-        {tool.tip}
-      </div>
-      <div style={{ display: 'flex', gap: 8 }}>
+
+      {/* For Ideogram — show the generated prompt */}
+      {isIdeogram && prompt && (
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>
+            ✓ Image prompt copied to clipboard
+          </div>
+          <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, padding: '8px 10px', fontSize: 10, color: '#94a3b8', lineHeight: 1.5, maxHeight: 70, overflow: 'hidden' }}>
+            {prompt.slice(0, 160)}{prompt.length > 160 ? '…' : ''}
+          </div>
+          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 9, color: '#334155' }}>Recommended size:</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: tool.color, background: tool.bg, padding: '1px 7px', borderRadius: 20 }}>{aspectRatio}</span>
+          </div>
+        </div>
+      )}
+
+      {/* For non-Ideogram tools */}
+      {!isIdeogram && (
+        <div style={{ fontSize: 11, color: '#475569', marginBottom: 10, lineHeight: 1.5 }}>
+          ✓ Content copied to clipboard
+        </div>
+      )}
+
+      {/* Instructions for Ideogram */}
+      {isIdeogram && (
+        <div style={{ fontSize: 10, color: '#334155', marginBottom: 10, lineHeight: 1.6, background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.1)', borderRadius: 8, padding: '7px 10px' }}>
+          1. Open Ideogram<br />
+          2. Paste the prompt (Ctrl+V / Cmd+V)<br />
+          3. Select <strong style={{ color: '#f59e0b' }}>{aspectRatio}</strong> aspect ratio<br />
+          4. Click Generate
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div style={{ display: 'flex', gap: 7 }}>
         <button onClick={onConfirm}
-          style={{ flex: 1, padding: '7px', borderRadius: 7, border: 'none', background: `linear-gradient(135deg, ${tool.color}, ${tool.color}cc)`, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+          style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', background: `linear-gradient(135deg, ${tool.color}, ${tool.color}bb)`, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
           Open {tool.label.replace(/^[^\s]+\s/, '')} →
         </button>
         <button onClick={onCancel}
-          style={{ padding: '7px 12px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#475569', fontSize: 11, cursor: 'pointer' }}>
-          Cancel
+          style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.07)', background: 'transparent', color: '#334155', fontSize: 11, cursor: 'pointer' }}>
+          ✕
         </button>
       </div>
     </div>
@@ -372,17 +482,19 @@ const StrategySection = ({ title, content, icon, defaultOpen, campaignName, onSa
 };
 
 // ─── Content Card ─────────────────────────────────────────────────────────────
-const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, campaignId, onSave, onShare, savedKeys, media, onPostToSocial, showToast }) => {
+const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, campaignId, onSave, onShare, savedKeys, media, onPostToSocial, showToast, brand, campaign }) => {
   const [activeTab, setActiveTab]   = useState('copy');
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [copied, setCopied]         = useState(false);
   const [saving, setSaving]         = useState(false);
-  const [activeTooltip, setActiveTooltip] = useState(null); // tool id
+  const [activeTooltip, setActiveTooltip] = useState(null);
+  const [tooltipPrompt, setTooltipPrompt] = useState('');
 
-  const formatName = OUTPUT_FORMATS[item.format]?.name || item.format;
-  const key        = `content_${item.format}`;
-  const isSaved    = savedKeys.has(key);
-  const tools      = getToolsForFormat(item.format);
+  const formatName  = OUTPUT_FORMATS[item.format]?.name || item.format;
+  const key         = `content_${item.format}`;
+  const isSaved     = savedKeys.has(key);
+  const tools       = getToolsForFormat(item.format);
+  const aspectRatio = getAspectRatio(item.format);
 
   const parseVisualContent = (content) => {
     if (!content) return { copy: content, design: '' };
@@ -400,19 +512,51 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
   const handleSave  = async (e) => { e.stopPropagation(); if (isSaved) return; setSaving(true); await onSave({ title: `${formatName} — ${campaignName}`, content: item.content, content_type: 'content', format: item.format, key }); setSaving(false); };
   const handleShare = (e) => { e.stopPropagation(); onShare({ title: `${formatName} — ${campaignName}`, content: item.content }); };
 
-  // Smart redirect: copy content then show tooltip
   const handleToolClick = (e, tool) => {
     e.stopPropagation();
-    const clean = cleanForExternal(item.content);
-    navigator.clipboard.writeText(clean).catch(() => {});
+    let textToCopy = '';
+
+    if (tool.copyMode === 'prompt') {
+      // Image prompt — built from CAMPAIGN INFO, not the content script
+      textToCopy = buildImagePrompt(
+        campaignName,
+        campaign?.description || '',
+        brand,
+        item.format
+      );
+      setTooltipPrompt(textToCopy);
+    } else if (tool.copyMode === 'script') {
+      // HeyGen — clean script, strip visual/audio directions
+      textToCopy = item.content
+        .replace(/#{1,6}\s*/g, '')
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/>\s*/g, '')
+        .replace(/---+/g, '')
+        .trim();
+      setTooltipPrompt('');
+    } else {
+      // Canva — clean copy only (no design guidelines section)
+      textToCopy = cleanForCanva(item.content, item.format);
+      setTooltipPrompt('');
+    }
+
+    navigator.clipboard.writeText(textToCopy).catch(() => {});
     setActiveTooltip(tool.id);
   };
 
-  // Open tool in new tab
   const handleToolConfirm = (tool) => {
     window.open(tool.url, '_blank');
     setActiveTooltip(null);
-    showToast(`✓ Content copied — paste it in ${tool.label.replace(/^[^\s]+\s/, '')}`, 'info');
+    const name = tool.label.replace(/^[^\s]+\s/, '');
+    showToast(
+      tool.id === 'ideogram'
+        ? `🖼 Image prompt copied — paste in Ideogram, select ${aspectRatio}`
+        : tool.id === 'heygen'
+          ? `🎬 Script copied — paste it in HeyGen`
+          : `✓ Content copied — paste it in ${name}`,
+      'info'
+    );
   };
 
   return (
@@ -442,6 +586,8 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
                   {activeTooltip === tool.id && (
                     <RedirectTooltip
                       tool={tool}
+                      prompt={tooltipPrompt}
+                      aspectRatio={aspectRatio}
                       onConfirm={() => handleToolConfirm(tool)}
                       onCancel={() => setActiveTooltip(null)}
                     />
@@ -555,12 +701,24 @@ const CampaignDetail = () => {
   const [shareUrl,            setShareUrl]            = useState('');
   const [sharing,             setSharing]             = useState(false);
   const [toast,               setToast]               = useState({ visible: false, message: '', type: 'success' });
+  const [brand,               setBrand]               = useState(null);
 
   const { open: openPostModal, ModalSlot: PostModalSlot } = usePostToSocial();
 
   const showToast = useCallback((message, type = 'success') => {
     setToast({ visible: true, message, type });
     setTimeout(() => setToast(t => ({ ...t, visible: false })), 3500);
+  }, []);
+
+  // Fetch brand profile for smart image prompts
+  useEffect(() => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) return;
+    const apiBase = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
+    fetch(`${apiBase}/brand/default`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(res => { if (res.brand) setBrand(res.brand); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => { fetchCampaign(); fetchMedia(); fetchSaved(); }, [id]);
@@ -753,7 +911,7 @@ const CampaignDetail = () => {
                 </h3>
                 <div className="grid md:grid-cols-2 gap-3">
                   {items.map((item, idx) => (
-                    <ContentCard key={idx} item={item} isVisualFormat={VISUAL_FORMATS.includes(format)} defaultExpanded={expandAll} campaignName={campaign.name} campaignId={id} onSave={handleSave} onShare={openShareModal} savedKeys={savedKeys} media={media} showToast={showToast} onPostToSocial={(text) => openPostModal({ platform: 'twitter', text, campaignId: id })} />
+                    <ContentCard key={idx} item={item} isVisualFormat={VISUAL_FORMATS.includes(format)} defaultExpanded={expandAll} campaignName={campaign.name} campaignId={id} onSave={handleSave} onShare={openShareModal} savedKeys={savedKeys} media={media} showToast={showToast} brand={brand} campaign={campaign} onPostToSocial={(text) => openPostModal({ platform: 'twitter', text, campaignId: id })} />
                   ))}
                 </div>
               </div>
