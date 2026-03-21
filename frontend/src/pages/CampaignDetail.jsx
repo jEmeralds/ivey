@@ -299,19 +299,55 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
   const handleSave  = async (e) => { e.stopPropagation(); if (isSaved) return; setSaving(true); await onSave({ title: `${formatName} — ${campaignName}`, content: item.content, content_type: 'content', format: item.format, key }); setSaving(false); };
   const handleShare = (e) => { e.stopPropagation(); onShare({ title: `${formatName} — ${campaignName}`, content: item.content }); };
 
-  // HeyGen — copies clean script, opens HeyGen
+  // HeyGen — extracts spoken lines only, trims to under ~400 words (≈2 min)
   const handleHeyGen = (e) => {
     e.stopPropagation();
-    const clean = item.content
+
+    const raw = item.content;
+
+    // Step 1: Remove all stage directions and visual/audio notes
+    const stripped = raw
+      .replace(/\(VISUAL:[^)]*\)/gi, '')
+      .replace(/\(AUDIO:[^)]*\)/gi, '')
+      .replace(/\(TEXT OVERLAY:[^)]*\)/gi, '')
+      .replace(/\(SCENE:[^)]*\)/gi, '')
+      .replace(/\([^)]{0,80}\)/g, '')   // any short parenthetical
+      .replace(/\[[^\]]*\]/g, '')        // [brackets]
       .replace(/#{1,6}\s*/g, '')
       .replace(/\*\*(.*?)\*\*/g, '$1')
       .replace(/\*(.*?)\*/g, '$1')
       .replace(/>\s*/g, '')
       .replace(/---+/g, '')
       .trim();
-    navigator.clipboard.writeText(clean).catch(() => {});
+
+    // Step 2: Remove section headers (Hook, Body, CTA, timestamps)
+    const lines = stripped
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => {
+        if (l.length < 8) return false;
+        if (/^(hook|body|cta|intro|outro|narrator|creator|voiceover|vo|scene|shot|cut)/i.test(l)) return false;
+        if (/^\d+-?\d*\s*sec/i.test(l)) return false;   // "0-5 sec", "30 sec"
+        if (/^(key selling|production note|hashtag|posting tip|visual note)/i.test(l)) return false;
+        if (l.endsWith(':') && l.length < 50) return false;
+        return true;
+      });
+
+    // Step 3: Trim to ~400 words max (≈ 2 min at 200 words/min speaking pace)
+    let wordCount = 0;
+    const trimmedLines = [];
+    for (const line of lines) {
+      const words = line.split(/\s+/).length;
+      if (wordCount + words > 400) break;
+      trimmedLines.push(line);
+      wordCount += words;
+    }
+
+    const finalScript = trimmedLines.join('\n\n').trim();
+
+    navigator.clipboard.writeText(finalScript).catch(() => {});
     window.open('https://app.heygen.com/create', '_blank');
-    showToast('🎬 Script copied — paste it in HeyGen to generate your video', 'info');
+    showToast(`🎬 Script copied (${wordCount} words ≈ ${Math.ceil(wordCount/200)} min) — paste in HeyGen`, 'info');
   };
 
   // DALL-E Visual
