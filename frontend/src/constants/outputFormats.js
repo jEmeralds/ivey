@@ -1,67 +1,58 @@
+// Image-first output formats
+// Each format maps directly to a DALL-E image generation with specific dimensions and style
 export const OUTPUT_FORMATS = {
-  TIKTOK: {
-    name: 'TikTok Script',
-    platform: 'TikTok',
-    description: 'Short-form video script with hooks'
-  },
-  YOUTUBE_SHORTS: {
-    name: 'YouTube Shorts',
-    platform: 'YouTube',
-    description: 'Vertical short video content'
-  },
-  INSTAGRAM_CAPTION: {
-    name: 'Instagram Caption',
-    platform: 'Instagram',
-    description: 'Engaging captions with hashtags'
-  },
-  TWITTER_POST: {
-    name: 'Twitter Post',
-    platform: 'Twitter/X',
-    description: 'Viral tweet copy'
-  },
-  FACEBOOK_POST: {
-    name: 'Facebook Post',
-    platform: 'Facebook',
-    description: 'Engaging Facebook content'
-  },
-  EMAIL_MARKETING: {
-    name: 'Email Marketing',
-    platform: 'Email',
-    description: 'Email campaign copy'
-  },
-  SMS_MESSAGE: {
-    name: 'SMS Message',
-    platform: 'SMS',
-    description: 'Short promotional text'
-  },
-  FLYER_TEXT: {
-    name: 'Flyer Text',
-    platform: 'Print',
-    description: 'Print flyer content'
-  },
   BANNER_AD: {
     name: 'Banner Ad',
-    platform: 'Display Ads',
-    description: 'Digital banner ad copy'
+    platform: 'Digital Ads',
+    description: 'Wide horizontal banner for websites and display ads',
+    width: 1200,
+    height: 628,
+    aspect: '1.91:1',
+    icon: '▬',
   },
-  PRINT_AD: {
-    name: 'Print Ad',
-    platform: 'Print',
-    description: 'Magazine/newspaper ad'
+  POSTER: {
+    name: 'Poster',
+    platform: 'Print & Digital',
+    description: 'Tall portrait poster for print or digital display',
+    width: 800,
+    height: 1100,
+    aspect: '3:4',
+    icon: '❐',
   },
-  LINKEDIN_POST: {
-    name: 'LinkedIn Post',
-    platform: 'LinkedIn',
-    description: 'Professional content'
+  FLYER: {
+    name: 'Flyer',
+    platform: 'Print & Digital',
+    description: 'Compact flyer for events and promotions',
+    width: 800,
+    height: 1000,
+    aspect: '4:5',
+    icon: '📄',
   },
-  YOUTUBE_VIDEO_AD: {
-    name: 'YouTube Video Ad',
+  INSTAGRAM_POST: {
+    name: 'Instagram Post',
+    platform: 'Instagram',
+    description: 'Square post optimised for Instagram feed',
+    width: 1080,
+    height: 1080,
+    aspect: '1:1',
+    icon: '📸',
+  },
+  INSTAGRAM_STORY: {
+    name: 'Instagram Story',
+    platform: 'Instagram / TikTok',
+    description: 'Vertical story or reel cover',
+    width: 1080,
+    height: 1920,
+    aspect: '9:16',
+    icon: '📱',
+  },
+  YOUTUBE_THUMBNAIL: {
+    name: 'YouTube Thumbnail',
     platform: 'YouTube',
-    description: 'Video ad script'
+    description: 'Bold thumbnail to maximise click-through rate',
+    width: 1280,
+    height: 720,
+    aspect: '16:9',
+    icon: '▶',
   },
-  GOOGLE_SEARCH_AD: {
-    name: 'Google Search Ad',
-    platform: 'Google Ads',
-    description: 'Search ad headlines & descriptions'
-  }
 };

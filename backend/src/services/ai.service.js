@@ -1,739 +1,324 @@
-﻿// AI Service - Handles all AI provider integrations
+﻿// AI Service — Image-first. Generates DALL-E visuals per format.
+// Captions are generated at share time via generateCaptionAI, not at campaign creation.
 import fetch from 'node-fetch';
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GEMINI_API_KEY       = process.env.GEMINI_API_KEY;
+const ANTHROPIC_API_KEY    = process.env.ANTHROPIC_API_KEY;
+const OPENAI_API_KEY       = process.env.OPENAI_API_KEY;
 const BRAVE_SEARCH_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
 
-const MARKDOWN_SYSTEM_INSTRUCTION = `You are an expert marketing strategist. Format ALL responses using clean, beautiful markdown:
-- Use ## for main section headers
-- Use ### for sub-headers
-- Use **bold** for key terms, important points, and emphasis
-- Use *italics* for supporting details or secondary emphasis
-- Use bullet points (-) for unordered lists
-- Use numbered lists (1. 2. 3.) for steps, rankings, or sequences
-- Use > blockquotes for important callouts, insights, or highlighted recommendations
-- Add a blank line between sections for readability
-- Use --- for section dividers where appropriate
-- Never output raw asterisks like ***text*** without proper markdown context
-- Structure content so it is easy to scan and read at a glance
-Your output will be rendered in a markdown viewer, so make it visually rich, well-structured, and professional.`;
+// ── Format config — mirrors outputFormats.js ──────────────────────────────────
+const FORMAT_CONFIG = {
+  BANNER_AD:         { size: '1792x1024', style: 'wide horizontal digital banner advertisement, bold composition, high contrast, clean modern design, landscape' },
+  POSTER:            { size: '1024x1792', style: 'tall portrait promotional poster, dramatic composition, bold visual, professional print quality, portrait' },
+  FLYER:             { size: '1024x1792', style: 'compact promotional flyer, vibrant eye-catching design, clear visual hierarchy, modern graphic design, portrait' },
+  INSTAGRAM_POST:    { size: '1024x1024', style: 'square Instagram feed post, lifestyle photography aesthetic, vibrant and scroll-stopping, social media optimized' },
+  INSTAGRAM_STORY:   { size: '1024x1792', style: 'vertical Instagram Story, full-bleed bold visual, mobile-first design, energetic and immersive, portrait' },
+  YOUTUBE_THUMBNAIL: { size: '1792x1024', style: 'YouTube video thumbnail, bold high-contrast cinematic composition, click-worthy, landscape' },
+};
+
+const MARKDOWN_SYSTEM = `You are an expert marketing strategist. Format responses using clean markdown with ## headers, **bold**, bullet points, and > blockquotes. Be specific and actionable.`;
 
 // ── Brand context builder ─────────────────────────────────────────────────────
 function buildBrandContext(brand) {
   if (!brand) return '';
-
   const lines = [];
-  if (brand.brand_name)      lines.push(`- Brand Name: ${brand.brand_name}`);
-  if (brand.tagline)         lines.push(`- Tagline: "${brand.tagline}"`);
-  if (brand.industry)        lines.push(`- Industry: ${brand.industry}`);
-  if (brand.target_personas) lines.push(`- Brand's Target Audience: ${brand.target_personas}`);
-  if (brand.brand_colors?.length > 0) {
-    lines.push(`- Brand Colors: ${brand.brand_colors.join(', ')} — reference these in design and tone suggestions`);
-  }
-
-  if (lines.length === 0) return '';
-
-  return `\n\n--- BRAND PROFILE ---\n${lines.join('\n')}\n\nIMPORTANT: All content must be on-brand. Use the brand name "${brand.brand_name}" naturally throughout the content. Align tone, messaging, and style with the brand's industry (${brand.industry || 'general'}) and target audience. Incorporate the tagline "${brand.tagline || ''}" where it fits naturally.\n--- END BRAND PROFILE ---\n`;
+  if (brand.brand_name)        lines.push(`Brand Name: ${brand.brand_name}`);
+  if (brand.tagline)           lines.push(`Tagline: "${brand.tagline}"`);
+  if (brand.industry)          lines.push(`Industry: ${brand.industry}`);
+  if (brand.target_personas)   lines.push(`Brand Audience: ${brand.target_personas}`);
+  if (brand.brand_colors?.length) lines.push(`Brand Colors: ${brand.brand_colors.join(', ')}`);
+  return lines.length ? `\nBRAND PROFILE:\n${lines.join('\n')}\n` : '';
 }
 
 // ── Web search ────────────────────────────────────────────────────────────────
-async function searchMarketData(campaignData) {
-  const { name, product_description, target_audience, output_formats } = campaignData;
-  console.log('🔍 Searching web for market intelligence...');
-  const searches = [];
-  try {
-    searches.push(searchWeb(`${product_description || name} marketing benchmarks engagement rates 2024`, 'benchmarks'));
-    searches.push(searchWeb(`${target_audience} demographics behavior online platforms 2024`, 'audience'));
-    searches.push(searchWeb(`${product_description || name} successful marketing campaigns examples`, 'competitors'));
-    searches.push(searchWeb(`${output_formats?.[0] || 'social media'} marketing trends best practices 2024`, 'platforms'));
-    const results = await Promise.all(searches);
-    return { benchmarks: results[0], audience: results[1], competitors: results[2], platforms: results[3] };
-  } catch (error) {
-    console.error('Web search error:', error);
-    return null;
-  }
-}
-
-async function searchWeb(query, type) {
-  console.log(`  Searching: ${query.substring(0, 60)}...`);
-  if (BRAVE_SEARCH_API_KEY) return await searchBrave(query);
-  return await searchDuckDuckGo(query);
-}
-
-async function searchBrave(query) {
-  try {
-    const response = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`, {
-      headers: { 'Accept': 'application/json', 'X-Subscription-Token': BRAVE_SEARCH_API_KEY }
-    });
-    if (!response.ok) throw new Error('Brave search failed');
-    const data = await response.json();
-    return data.web?.results?.slice(0, 5).map(r => ({ title: r.title, snippet: r.description, url: r.url })) || [];
-  } catch (error) {
-    console.error('Brave search error:', error.message);
-    return [];
-  }
-}
-
-async function searchDuckDuckGo(query) {
-  try {
-    const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
-    if (!response.ok) throw new Error('DuckDuckGo search failed');
-    const data = await response.json();
-    const results = [];
-    if (data.AbstractText) {
-      results.push({ title: data.Heading || 'Overview', snippet: data.AbstractText, url: data.AbstractURL });
-    }
-    if (data.RelatedTopics) {
-      data.RelatedTopics.slice(0, 4).forEach(topic => {
-        if (topic.Text) results.push({ title: topic.Text.split(' - ')[0], snippet: topic.Text, url: topic.FirstURL });
+async function searchWeb(query) {
+  if (BRAVE_SEARCH_API_KEY) {
+    try {
+      const res = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`, {
+        headers: { Accept: 'application/json', 'X-Subscription-Token': BRAVE_SEARCH_API_KEY }
       });
-    }
-    return results;
-  } catch (error) {
-    console.error('DuckDuckGo search error:', error.message);
-    return [];
+      if (res.ok) {
+        const d = await res.json();
+        return d.web?.results?.slice(0,5).map(r => ({ snippet: r.description })) || [];
+      }
+    } catch(e) { console.warn('Brave search error:', e.message); }
   }
+  try {
+    const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
+    if (res.ok) {
+      const d = await res.json();
+      const results = [];
+      if (d.AbstractText) results.push({ snippet: d.AbstractText });
+      d.RelatedTopics?.slice(0,4).forEach(t => { if (t.Text) results.push({ snippet: t.Text }); });
+      return results;
+    }
+  } catch(e) { console.warn('DDG error:', e.message); }
+  return [];
 }
 
 // ── AI provider calls ─────────────────────────────────────────────────────────
-async function callGeminiAPI(prompt) {
+async function callGemini(prompt) {
   if (!GEMINI_API_KEY) throw new Error('Gemini API key not configured');
-
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-  const response = await fetch(url, {
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: MARKDOWN_SYSTEM_INSTRUCTION }] },
+      systemInstruction: { parts: [{ text: MARKDOWN_SYSTEM }] },
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { temperature: 0.7, maxOutputTokens: 8192 }
     })
   });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`Gemini API error: ${error.error?.message || 'Unknown error'}`);
-  }
-
-  const data = await response.json();
-
-  console.log('Gemini API response received');
-  console.log('  - Has candidates:', !!data.candidates);
-  console.log('  - Has candidates[0]:', !!data.candidates?.[0]);
-  console.log('  - Has content:', !!data.candidates?.[0]?.content);
-  console.log('  - Parts length:', data.candidates?.[0]?.content?.parts?.length);
-
-  if (!data.candidates?.[0]?.content) {
-    console.error('Invalid Gemini response structure:', JSON.stringify(data, null, 2));
-    throw new Error('Invalid response from Gemini API');
-  }
-  if (!data.candidates[0].content.parts?.length) {
-    console.error('Gemini response has no parts (content may be blocked)');
-    if (data.promptFeedback?.blockReason) throw new Error(`Gemini blocked content: ${data.promptFeedback.blockReason}`);
-    throw new Error('Gemini response missing content parts - content may have been filtered');
-  }
-
+  if (!res.ok) { const e = await res.json(); throw new Error(`Gemini error: ${e.error?.message}`); }
+  const data = await res.json();
+  if (!data.candidates?.[0]?.content?.parts?.length) throw new Error('Gemini returned no content');
   return data.candidates[0].content.parts[0].text;
 }
 
-async function callClaudeAPI(prompt) {
-  if (!ANTHROPIC_API_KEY) throw new Error('Claude API key not configured. Please add your Anthropic API key.');
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+async function callClaude(prompt) {
+  if (!ANTHROPIC_API_KEY) throw new Error('Anthropic API key not configured');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 8192,
-      system: MARKDOWN_SYSTEM_INSTRUCTION,
-      messages: [{ role: 'user', content: prompt }]
-    })
+    headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model: 'claude-3-5-sonnet-20241022', max_tokens: 8192, system: MARKDOWN_SYSTEM, messages: [{ role: 'user', content: prompt }] })
   });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`Claude API error: ${error.error?.message || 'Unknown error'}`);
-  }
-
-  const data = await response.json();
+  if (!res.ok) { const e = await res.json(); throw new Error(`Claude error: ${e.error?.message}`); }
+  const data = await res.json();
   return data.content[0].text;
 }
 
-async function callOpenAIAPI(prompt) {
-  if (!OPENAI_API_KEY) throw new Error('OpenAI API key not configured. Please add your OpenAI API key.');
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+async function callOpenAI(prompt) {
+  if (!OPENAI_API_KEY) throw new Error('OpenAI API key not configured');
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: MARKDOWN_SYSTEM_INSTRUCTION },
-        { role: 'user', content: prompt }
-      ],
-      max_tokens: 8192,
-      temperature: 0.7
-    })
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_API_KEY}` },
+    body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: MARKDOWN_SYSTEM }, { role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.7 })
   });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
-  }
-
-  const data = await response.json();
+  if (!res.ok) { const e = await res.json(); throw new Error(`OpenAI error: ${e.error?.message}`); }
+  const data = await res.json();
   return data.choices[0].message.content;
+}
+
+function callAI(provider, prompt) {
+  switch (provider) {
+    case 'claude': return callClaude(prompt);
+    case 'openai': return callOpenAI(prompt);
+    default:       return callGemini(prompt);
+  }
 }
 
 // ── Generate marketing strategy ───────────────────────────────────────────────
 export const generateMarketingStrategyAI = async (campaignData) => {
   const { name, product_description, target_audience, output_formats, ai_provider, brand } = campaignData;
+  console.log(`\n📊 Strategy: ${name} (${ai_provider})`);
 
-  console.log(`\n🤖 Generating AI strategy for: ${name}`);
-  console.log(`   Provider: ${ai_provider}`);
-  if (brand) console.log(`   Brand: ${brand.brand_name}`);
-
-  const marketData = await searchMarketData(campaignData);
-
-  let researchContext = '';
-  if (marketData && Object.values(marketData).some(data => data?.length > 0)) {
-    researchContext = `\n\n--- MARKET RESEARCH DATA ---\n\n`;
-    if (marketData.benchmarks?.length > 0)
-      researchContext += `INDUSTRY BENCHMARKS:\n${marketData.benchmarks.map(r => `- ${r.snippet}`).join('\n')}\n\n`;
-    if (marketData.audience?.length > 0)
-      researchContext += `TARGET AUDIENCE INSIGHTS:\n${marketData.audience.map(r => `- ${r.snippet}`).join('\n')}\n\n`;
-    if (marketData.competitors?.length > 0)
-      researchContext += `COMPETITOR CAMPAIGNS & EXAMPLES:\n${marketData.competitors.map(r => `- ${r.snippet}`).join('\n')}\n\n`;
-    if (marketData.platforms?.length > 0)
-      researchContext += `PLATFORM TRENDS & BEST PRACTICES:\n${marketData.platforms.map(r => `- ${r.snippet}`).join('\n')}\n\n`;
-    researchContext += `--- END RESEARCH DATA ---\n\n`;
-    console.log('✅ Market research gathered successfully');
-  } else {
-    console.log('⚠️  No market data found, proceeding with general strategy');
-  }
+  const [benchmarks, audience] = await Promise.all([
+    searchWeb(`${product_description || name} visual marketing benchmarks 2024`),
+    searchWeb(`${target_audience} visual content preferences platforms 2024`),
+  ]);
 
   const brandContext = buildBrandContext(brand);
+  let researchContext = '';
+  if (benchmarks?.length || audience?.length) {
+    researchContext = '\nMARKET RESEARCH:\n';
+    if (benchmarks?.length) researchContext += `Benchmarks:\n${benchmarks.map(r => `- ${r.snippet}`).join('\n')}\n\n`;
+    if (audience?.length)   researchContext += `Audience:\n${audience.map(r => `- ${r.snippet}`).join('\n')}\n`;
+  }
 
-  const prompt = `You are an expert marketing strategist with access to current market research.
-${brandContext}
-${researchContext}
+  const prompt = `You are an expert visual marketing strategist.
+${brandContext}${researchContext}
 
-Campaign Details:
-- Campaign Name: ${name}
-- Product/Service: ${product_description || 'Not specified'}
-- Target Audience: ${target_audience}
-- Distribution Channels: ${output_formats?.join(', ') || 'Multiple platforms'}
+Campaign: ${name}
+Product: ${product_description}
+Audience: ${target_audience}
+Visual Formats: ${output_formats?.join(', ')}
 
-IMPORTANT: Use the market research data above to inform your recommendations. When suggesting metrics, KPIs, or benchmarks, reference actual data from the research whenever possible. If the research provides specific numbers, use those. Otherwise, provide realistic industry-standard estimates.
-
-Generate a comprehensive, data-driven marketing strategy that includes:
+Generate a comprehensive visual marketing strategy:
 
 ## 1. CAMPAIGN OBJECTIVES
-- 3-5 specific, measurable goals based on industry benchmarks from the research
+3-5 measurable goals tied to visual content
 
 ## 2. TARGET AUDIENCE ANALYSIS
-- Demographics and psychographics (use research data)
-- Pain points and desires
-- Media consumption habits (reference platform data from research)
+Demographics, psychographics, visual content preferences, platform behavior
 
-## 3. KEY MESSAGES & VALUE PROPOSITIONS
-- 3-5 core messages
-- Unique selling points
-- Emotional appeals
+## 3. VISUAL BRAND DIRECTION
+Color palette, photography style, mood and tone, typography direction
 
-## 4. CONTENT STRATEGY
-- Content pillars with percentage breakdown
-- Posting frequency based on platform best practices
-- Optimal posting times
+## 4. FORMAT STRATEGY
+For each format (${output_formats?.join(', ')}): key message, visual composition, primary CTA
 
-## 5. DISTRIBUTION PLAN
-- Platform-specific tactics for: ${output_formats?.slice(0, 5).join(', ')}
-- Organic vs paid strategy informed by research
-- Cross-promotion tactics
+## 5. CONTENT CALENDAR
+Posting frequency, campaign phases, timing
 
-## 6. BUDGET RECOMMENDATIONS
-- Allocation percentages based on industry standards
-- Cost-effective approaches
+## 6. SUCCESS METRICS
+Engagement benchmarks, click-through targets, brand awareness KPIs
 
-## 7. SUCCESS METRICS & KPIs
-- Primary metrics with realistic benchmarks from research
-- Target numbers based on similar campaigns
-- Tools for measurement
+## 7. DISTRIBUTION PLAN
+Platform tactics, paid vs organic, audience targeting
 
-## 8. TIMELINE & MILESTONES
-- Week-by-week action plan
-- Key milestones
+Focus entirely on visual content strategy. Be specific and actionable.`;
 
-## 9. COMPETITIVE INSIGHTS
-- Analysis of competitor strategies from research
-- Differentiation opportunities
-
-## 10. OPTIMIZATION RECOMMENDATIONS
-- A/B testing ideas
-- Continuous improvement tactics
-
-Be specific, actionable, and data-driven. Use proper markdown formatting throughout.`;
-
-  try {
-    let strategy;
-    switch (ai_provider) {
-      case 'gemini': strategy = await callGeminiAPI(prompt); break;
-      case 'claude': strategy = await callClaudeAPI(prompt); break;
-      case 'openai': strategy = await callOpenAIAPI(prompt); break;
-      default: throw new Error(`Unsupported AI provider: ${ai_provider}`);
-    }
-    console.log('✅ Strategy generated successfully\n');
-    return strategy;
-  } catch (error) {
-    console.error('AI strategy generation error:', error);
-    throw error;
-  }
+  const strategy = await callAI(ai_provider, prompt);
+  console.log('✅ Strategy done\n');
+  return strategy;
 };
 
-// ── Generate content ideas ────────────────────────────────────────────────────
-export const generateContentIdeasAI = async (campaignData, mediaUrls = []) => {
-  const { name, product_description, target_audience, output_formats, ai_provider, brand } = campaignData;
+// ── Generate images — PRIMARY FUNCTION ───────────────────────────────────────
+// One DALL-E image per selected format. Replaces generateContentIdeasAI.
+export const generateImagesAI = async (campaignData, referenceImageUrl = null) => {
+  if (!OPENAI_API_KEY) throw new Error('OpenAI API key not configured');
 
-  console.log(`\n🎨 Generating content for: ${name}`);
-  console.log(`   Formats: ${output_formats?.length || 0} selected`);
-  console.log(`   Provider: ${ai_provider}`);
-  if (brand) console.log(`   Brand: ${brand.brand_name}`);
-
-  let mediaContext = '';
-  if (mediaUrls?.length > 0) {
-    mediaContext = `\n\nUPLOADED MEDIA:\nThe campaign has ${mediaUrls.length} media file(s) uploaded (product images/videos). Consider these visuals when creating content - reference the product's appearance, colors, and key visual elements in your content suggestions.\n`;
-  }
+  const { name, product_description, target_audience, output_formats, brand } = campaignData;
+  console.log(`\n🎨 Generating images: ${name}`);
+  console.log(`   Formats: ${output_formats?.join(', ')}`);
 
   const brandContext = buildBrandContext(brand);
+  const brandColorHint = brand?.brand_colors?.length ? `Use brand colors: ${brand.brand_colors.join(', ')}.` : '';
 
-  const formatPrompts = {
-    'TIKTOK': `Create a viral 30-second TikTok script for **"${name}"**.
-${brandContext}
-**Product:** ${product_description}
-**Target Audience:** ${target_audience}${mediaContext}
-
-Structure your response as follows:
-
-## Hook (0-3 sec)
-[Attention-grabbing opening line]
-
-## Body (3-25 sec)
-[Main content with product showcase - include visual cues and text overlay suggestions]
-
-## CTA (25-30 sec)
-[Strong call to action]
-
----
-
-## Production Notes
-- **Trending sound suggestions**
-- **Visual cues and transitions**
-- **Text overlays**
-- **Recommended hashtags**`,
-
-    'INSTAGRAM_CAPTION': `Write an engaging Instagram caption for **"${name}"**.
-${brandContext}
-**Product:** ${product_description}
-**Target Audience:** ${target_audience}${mediaContext}
-
-## Caption
-[Write the full caption here with hook, body, and CTA]
-
-## Hashtags
-[List 15-20 relevant hashtags]
-
-## Posting Tips
-- Best time to post
-- Suggested image/video style`,
-
-    'YOUTUBE_VIDEO_AD': `Create a 60-second YouTube video ad script for **"${name}"**.
-${brandContext}
-**Product:** ${product_description}
-**Target Audience:** ${target_audience}${mediaContext}
-
-## Script
-
-**0-5 SEC — Hook**
-[Grab attention immediately]
-
-**5-15 SEC — Problem**
-[Pain point the audience faces]
-
-**15-40 SEC — Solution**
-[How the product solves it with visual directions]
-
-**40-50 SEC — Social Proof**
-[Features and credibility]
-
-**50-60 SEC — CTA**
-[Strong call to action]
-
----
-
-## Key Selling Points
-[List the main product benefits to highlight]`,
-
-    'FACEBOOK_POST': `Write a Facebook post for **"${name}"**.
-${brandContext}
-**Product:** ${product_description}
-**Target Audience:** ${target_audience}${mediaContext}
-
-## Post Content
-[Write the full post - conversational, story-driven, 2-3 paragraphs]
-
-## Hashtags
-[3-5 relevant hashtags]
-
-## Engagement Tips
-- Suggested question to boost comments
-- Best time to post`,
-
-    'TWITTER_POST': `Create 3 Twitter/X post variations for **"${name}"**.
-${brandContext}
-**Product:** ${product_description}
-**Target Audience:** ${target_audience}${mediaContext}
-
-## Variation 1 — Direct Benefit
-[Tweet under 280 characters]
-
-## Variation 2 — Problem/Solution
-[Tweet under 280 characters]
-
-## Variation 3 — Social Proof / FOMO
-[Tweet under 280 characters]
-
----
-
-> Each tweet includes relevant hashtags (2-3) and a clear CTA.`,
-
-    'LINKEDIN_POST': `Write a professional LinkedIn post for **"${name}"**.
-${brandContext}
-**Product:** ${product_description}
-**Target Audience:** ${target_audience}${mediaContext}
-
-## Post Content
-[Professional but engaging hook, industry insight, solution, CTA]
-
-## Hashtags
-[3-5 professional hashtags]
-
-## Engagement Strategy
-- Best time to post on LinkedIn
-- Suggested follow-up comment to pin`,
-
-    'YOUTUBE_SHORTS': `Create a YouTube Shorts script (60 seconds) for **"${name}"**.
-${brandContext}
-**Product:** ${product_description}
-**Target Audience:** ${target_audience}${mediaContext}
-
-## Script
-
-**0-3 SEC — Hook**
-[Stop the scroll — bold opening]
-
-**3-45 SEC — Content**
-[Fast-paced delivery with visual cues and text overlays]
-
-**45-60 SEC — CTA**
-[Subscribe prompt + call to action]
-
----
-
-## Production Notes
-- Pacing and editing style
-- Text overlay suggestions
-- Music/sound recommendation`,
-
-    'BANNER_AD': `Design banner ad copy for **"${name}"**.
-${brandContext}
-**Product:** ${product_description}
-**Target Audience:** ${target_audience}${mediaContext}
-
-## Ad Copy
-
-**Main Headline** *(5-7 words)*
-[Powerful headline]
-
-**Subheadline** *(10-15 words)*
-[Benefit-focused subheadline]
-
-**CTA Button Text** *(2-4 words)*
-[Action-oriented button text]
-
----
-
-## Design Suggestions
-- **Color palette:** [suggestions]
-- **Imagery style:** [suggestions]
-- **Font style:** [suggestions]
-
-## Size Variations
-- 728x90 (Leaderboard)
-- 300x250 (Medium Rectangle)
-- 160x600 (Wide Skyscraper)`,
-
-    'GOOGLE_SEARCH_AD': `Write Google Search Ad copy for **"${name}"**.
-${brandContext}
-**Product:** ${product_description}
-**Target Audience:** ${target_audience}${mediaContext}
-
-## Ad Variation 1
-- **Headline 1** *(max 30 chars):*
-- **Headline 2** *(max 30 chars):*
-- **Headline 3** *(max 30 chars):*
-- **Description 1** *(max 90 chars):*
-- **Description 2** *(max 90 chars):*
-
-## Ad Variation 2
-- **Headline 1** *(max 30 chars):*
-- **Headline 2** *(max 30 chars):*
-- **Headline 3** *(max 30 chars):*
-- **Description 1** *(max 90 chars):*
-- **Description 2** *(max 90 chars):*
-
-## Ad Variation 3
-- **Headline 1** *(max 30 chars):*
-- **Headline 2** *(max 30 chars):*
-- **Headline 3** *(max 30 chars):*
-- **Description 1** *(max 90 chars):*
-- **Description 2** *(max 90 chars):*
-
----
-
-## Display URL Suggestions
-- [path1/path2 suggestions]`,
-
-    'FLYER_TEXT': `Create flyer content for **"${name}"**.
-${brandContext}
-**Product:** ${product_description}
-**Target Audience:** ${target_audience}${mediaContext}
-
-## Headline
-[Attention-grabbing main headline]
-
-## Key Benefits
-1. [Benefit 1]
-2. [Benefit 2]
-3. [Benefit 3]
-4. [Benefit 4]
-5. [Benefit 5]
-
-## Special Offer
-[Promotion or offer text]
-
-## Call to Action
-[Clear next step]
-
-## Contact / Location
-[Placeholder for contact info]
-
----
-
-## Layout Suggestions
-- [Design and placement recommendations]`,
-
-    'PRINT_AD': `Write print advertisement copy for **"${name}"**.
-${brandContext}
-**Product:** ${product_description}
-**Target Audience:** ${target_audience}${mediaContext}
-
-## Headline
-[Powerful, memorable headline]
-
-## Body Copy
-[3-4 sentences, benefit-focused, magazine-quality]
-
-## Tagline
-[Memorable brand slogan]
-
-## Call to Action
-[Clear next step]
-
----
-
-## Visual Concept
-- **Image area:** [description]
-- **Layout:** [headline placement, image balance]
-- **Tone:** [visual style guidance]`,
-
-    'EMAIL_MARKETING': `Create an email marketing campaign for **"${name}"**.
-${brandContext}
-**Product:** ${product_description}
-**Target Audience:** ${target_audience}${mediaContext}
-
-## Email Details
-
-**Subject Line** *(max 50 chars):*
-[High open-rate subject line]
-
-**Preview Text** *(max 100 chars):*
-[Compelling preview text]
-
----
-
-## Email Body
-
-### Opening
-[Personalized, engaging hook]
-
-### Main Value Section
-[Core message and product benefit]
-
-### Social Proof / Features
-[Credibility and key features]
-
-### Call to Action
-**[CTA Button Text]** → [URL placeholder]
-
----
-
-*P.S. [Urgency or bonus line]*
-
----
-
-## Campaign Notes
-- Best send time
-- A/B test suggestion for subject line`,
-  };
-
-  try {
-    const generatedContent = [];
-
-    for (const format of output_formats || []) {
-      const prompt = formatPrompts[format];
-
-      if (!prompt) {
-        console.log(`⚠️  No prompt template for format: ${format}`);
-        continue;
-      }
-
-      console.log(`  Generating: ${format}...`);
-
-      if (generatedContent.length > 0) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-
-      let content;
-      switch (ai_provider) {
-        case 'gemini': content = await callGeminiAPI(prompt); break;
-        case 'claude': content = await callClaudeAPI(prompt); break;
-        case 'openai': content = await callOpenAIAPI(prompt); break;
-        default: throw new Error(`Unsupported AI provider: ${ai_provider}`);
-      }
-
-      generatedContent.push({ format, content, generated_at: new Date().toISOString() });
-    }
-
-    console.log(`✅ Generated ${generatedContent.length} pieces of content\n`);
-    return generatedContent;
-  } catch (error) {
-    console.error('Content generation error:', error);
-    throw error;
-  }
-};
-
-// ── Generate visual (DALL-E) ──────────────────────────────────────────────────
-export const generateVisualAI = async ({ campaignName, productDescription, targetAudience, format, adCopy, referenceImageUrl }) => {
-  if (!OPENAI_API_KEY) throw new Error('OpenAI API key not configured. DALL-E requires an OpenAI key.');
-
-  console.log(`\n🎨 Generating visual for: ${campaignName} — ${format}`);
-
-  const formatStyles = {
-    'TIKTOK':            'vertical social media video thumbnail, bold colors, Gen-Z aesthetic, energetic and dynamic',
-    'INSTAGRAM_CAPTION': 'square social media post, lifestyle photography style, Instagram aesthetic, vibrant',
-    'FACEBOOK_POST':     'social media post visual, engaging, community-focused, warm and approachable',
-    'TWITTER_POST':      'social media graphic, clean minimal design, bold statement visual',
-    'LINKEDIN_POST':     'professional business visual, corporate aesthetic, clean and authoritative',
-    'YOUTUBE_VIDEO_AD':  'YouTube video thumbnail, bold text overlay, high contrast, cinematic',
-    'YOUTUBE_SHORTS':    'vertical video thumbnail, bold colors, dynamic composition, modern',
-    'BANNER_AD':         'professional digital banner advertisement, wide horizontal format, bold typography, clean modern design',
-    'PRINT_AD':          'high-quality print advertisement, magazine-style layout, professional photography aesthetic',
-    'FLYER_TEXT':        'eye-catching promotional flyer, vibrant colors, clear hierarchy, modern graphic design',
-    'GOOGLE_SEARCH_AD':  'clean minimal digital ad visual, professional, corporate style',
-    'EMAIL_MARKETING':   'email header graphic, professional, clean layout, business aesthetic',
-    'SMS_MESSAGE':       'clean minimal promotional graphic, bold offer text, mobile-optimized design',
-  };
-
-  const styleGuide = formatStyles[format] || 'professional marketing visual, clean modern design';
-  const copySnippet = adCopy
-    ? adCopy.replace(/[#*>\-]/g, '').split('\n').find(l => l.trim().length > 10)?.trim().slice(0, 80) || ''
-    : '';
-
-  // Step 1: Vision analysis if reference image provided
+  // Analyse reference image if provided
   let productVisualDescription = '';
   if (referenceImageUrl) {
-    console.log('   🔍 Analyzing reference image with GPT-4o Vision...');
+    console.log('   🔍 Analysing reference image...');
     try {
-      const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      const vRes = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_API_KEY}` },
         body: JSON.stringify({
-          model: 'gpt-4o',
-          max_tokens: 300,
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'image_url', image_url: { url: referenceImageUrl, detail: 'low' } },
-              { type: 'text', text: 'Describe this product/image in 2-3 sentences focusing on: colors, visual style, key elements, and aesthetic. Be specific and concise. This description will be used to generate a marketing visual that matches this product.' }
-            ]
-          }]
+          model: 'gpt-4o', max_tokens: 200,
+          messages: [{ role: 'user', content: [
+            { type: 'image_url', image_url: { url: referenceImageUrl, detail: 'low' } },
+            { type: 'text', text: 'Describe this product in 2-3 sentences: colors, visual style, key elements, aesthetic. Be specific.' }
+          ]}]
         })
       });
-      if (visionResponse.ok) {
-        const visionData = await visionResponse.json();
-        productVisualDescription = visionData.choices?.[0]?.message?.content || '';
-        console.log(`   ✅ Vision description: ${productVisualDescription.slice(0, 80)}...`);
+      if (vRes.ok) {
+        const vd = await vRes.json();
+        productVisualDescription = vd.choices?.[0]?.message?.content || '';
+        console.log(`   ✅ Vision: ${productVisualDescription.slice(0, 60)}...`);
       }
-    } catch (err) {
-      console.warn('   ⚠️ Vision analysis failed, proceeding without reference:', err.message);
+    } catch(e) { console.warn('   ⚠️ Vision failed:', e.message); }
+  }
+
+  const results = [];
+
+  for (const format of output_formats || []) {
+    const config = FORMAT_CONFIG[format];
+    if (!config) { console.warn(`⚠️ No config for: ${format}`); continue; }
+
+    console.log(`   Generating ${format} (${config.size})...`);
+    if (results.length > 0) await new Promise(r => setTimeout(r, 1500));
+
+    const dallePrompt = [
+      `${config.style}.`,
+      `Marketing campaign: "${name}".`,
+      `Product: ${product_description?.slice(0, 120) || name}.`,
+      `Audience: ${target_audience?.slice(0, 80) || 'general'}.`,
+      brand?.brand_name ? `Brand: ${brand.brand_name}.` : '',
+      brandColorHint,
+      productVisualDescription ? `Product visual reference: ${productVisualDescription}.` : '',
+      'Photorealistic, high quality, commercial advertising aesthetic. No text, no words, no typography in the image. Professional lighting.',
+    ].filter(Boolean).join(' ');
+
+    try {
+      const res = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify({ model: 'dall-e-3', prompt: dallePrompt, n: 1, size: config.size, quality: 'standard', response_format: 'url' })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        console.error(`   ✗ ${format}:`, err.error?.message);
+        results.push({ format, error: err.error?.message || 'Generation failed' });
+        continue;
+      }
+      const data = await res.json();
+      console.log(`   ✅ ${format} done`);
+      results.push({ format, imageUrl: data.data[0].url, revisedPrompt: data.data[0].revised_prompt, size: config.size, generatedAt: new Date().toISOString() });
+    } catch(e) {
+      console.error(`   ✗ ${format}:`, e.message);
+      results.push({ format, error: e.message });
     }
   }
 
-  // Step 2: Build DALL-E prompt
-  const dallePrompt = [
-    `${styleGuide} for a marketing campaign called "${campaignName}".`,
-    `Product/service: ${productDescription?.slice(0, 100) || campaignName}.`,
-    `Target audience: ${targetAudience?.slice(0, 60) || 'general audience'}.`,
-    copySnippet ? `Key message: "${copySnippet}".` : '',
-    productVisualDescription ? `Product visual reference: ${productVisualDescription}` : '',
-    'Style: photorealistic, high quality, commercial advertising aesthetic. No text or typography in the image. Professional lighting.'
-  ].filter(Boolean).join(' ');
+  console.log(`✅ ${results.filter(r => r.imageUrl).length}/${output_formats?.length} images done\n`);
+  return results;
+};
 
-  console.log(`   Prompt: ${dallePrompt.slice(0, 100)}...`);
+// ── Generate caption — called at share time ───────────────────────────────────
+// platform: 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'tiktok'
+export const generateCaptionAI = async ({ campaignName, productDescription, targetAudience, format, platform, brand, ai_provider = 'gemini' }) => {
+  const brandContext = buildBrandContext(brand);
 
-  // Step 3: Call DALL-E 3
-  const response = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
-    body: JSON.stringify({
-      model: 'dall-e-3',
-      prompt: dallePrompt,
-      n: 1,
-      size: '1024x1024',
-      quality: 'standard',
-      response_format: 'url'
-    })
-  });
+  const platformGuides = {
+    twitter:   'Twitter/X: max 280 characters, punchy hook, 2-3 hashtags, clear CTA',
+    instagram: 'Instagram: 150-300 chars, emoji-friendly, 10-15 hashtags, conversational tone',
+    facebook:  'Facebook: 2-3 sentences, story-driven, end with a question to boost comments, 3-5 hashtags',
+    linkedin:  'LinkedIn: professional tone, insight-led, 3-5 hashtags, thought leadership angle',
+    tiktok:    'TikTok: short punchy text, energetic, trending hashtags, call to duet or stitch',
+  };
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`DALL-E error: ${error.error?.message || 'Image generation failed'}`);
+  const guide = platformGuides[platform] || 'Social media: engaging, clear CTA, relevant hashtags';
+
+  const prompt = `Write a social media caption.
+${brandContext}
+Platform rules: ${guide}
+Campaign: ${campaignName}
+Product/Service: ${productDescription}
+Target Audience: ${targetAudience}
+Visual format this caption accompanies: ${format}
+
+Output ONLY the caption text ready to copy and paste. No explanations, no options, no markdown headers. Just the caption and hashtags.`;
+
+  console.log(`\n💬 Generating ${platform} caption for ${format}...`);
+  const caption = await callAI(ai_provider, prompt);
+  console.log('✅ Caption done\n');
+  return caption;
+};
+
+// ── generateVisualAI — kept for legacy /generate-visual endpoint ──────────────
+export const generateVisualAI = async ({ campaignName, productDescription, targetAudience, format, adCopy, referenceImageUrl, isThumbnail }) => {
+  if (!OPENAI_API_KEY) throw new Error('OpenAI API key not configured');
+
+  console.log(`\n🎨 Visual: ${campaignName} — ${format}`);
+
+  const config = FORMAT_CONFIG[format] || { size: '1024x1024', style: 'professional marketing visual, clean modern design' };
+
+  let productVisualDescription = '';
+  if (referenceImageUrl) {
+    try {
+      const vRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify({ model: 'gpt-4o', max_tokens: 300, messages: [{ role: 'user', content: [
+          { type: 'image_url', image_url: { url: referenceImageUrl, detail: 'low' } },
+          { type: 'text', text: 'Describe this product in 2-3 sentences: colors, style, key elements.' }
+        ]}]})
+      });
+      if (vRes.ok) { const vd = await vRes.json(); productVisualDescription = vd.choices?.[0]?.message?.content || ''; }
+    } catch(e) { console.warn('Vision failed:', e.message); }
   }
 
-  const data = await response.json();
-  console.log('✅ Visual generated successfully');
+  const copySnippet = adCopy ? adCopy.replace(/[#*>\-]/g,'').split('\n').find(l => l.trim().length > 10)?.trim().slice(0,80) || '' : '';
 
-  return {
-    imageUrl:      data.data[0].url,
-    revisedPrompt: data.data[0].revised_prompt,
-    usedReference: !!productVisualDescription,
-    format,
-    generatedAt:   new Date().toISOString()
-  };
+  const dallePrompt = [
+    isThumbnail ? 'YouTube thumbnail, bold high-contrast cinematic, landscape.' : `${config.style}.`,
+    `Campaign: "${campaignName}". Product: ${productDescription?.slice(0,100) || campaignName}.`,
+    `Audience: ${targetAudience?.slice(0,60) || 'general'}.`,
+    copySnippet ? `Context: "${copySnippet}".` : '',
+    productVisualDescription ? `Product visual: ${productVisualDescription}.` : '',
+    'Photorealistic, commercial advertising. No text or typography. Professional lighting.',
+  ].filter(Boolean).join(' ');
+
+  const res = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_API_KEY}` },
+    body: JSON.stringify({ model: 'dall-e-3', prompt: dallePrompt, n: 1, size: isThumbnail ? '1792x1024' : config.size, quality: 'standard', response_format: 'url' })
+  });
+
+  if (!res.ok) { const e = await res.json(); throw new Error(`DALL-E error: ${e.error?.message}`); }
+  const data = await res.json();
+  console.log('✅ Visual done');
+
+  return { imageUrl: data.data[0].url, revisedPrompt: data.data[0].revised_prompt, usedReference: !!productVisualDescription, format, generatedAt: new Date().toISOString() };
 };
