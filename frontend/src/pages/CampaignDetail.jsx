@@ -63,7 +63,7 @@ const ShareModal = ({ isOpen, onClose, onShare, isLoading, shareUrl }) => {
 // ─── Visual Modal (DALL-E) ────────────────────────────────────────────────────
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://edfdzytusmcjuwhjxtwn.supabase.co';
 
-const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onGenerate, media }) => {
+const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onGenerate, media, isThumbnail }) => {
   const [selectedRefId, setSelectedRefId] = useState(null);
   const [step, setStep] = useState('pick');
 
@@ -76,32 +76,43 @@ const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onGe
   const imageMedia = media?.filter(m => m.file_type?.startsWith('image/')) || [];
   const getMediaUrl = (fp) => `${SUPABASE_URL}/storage/v1/object/public/campaign-media/${fp}`;
 
+  const title      = isThumbnail ? '🖼 Generate Thumbnail' : '🎨 AI Generated Visual';
+  const subtitle   = isThumbnail ? `YouTube Thumbnail · 16:9 · Powered by DALL-E 3` : `${formatName} · Powered by DALL-E 3`;
+  const genLabel   = isThumbnail ? '🖼 Generate Thumbnail' : '✨ Generate with AI Only';
+  const genRefLabel= isThumbnail ? '🖼 Generate with Reference Photo' : '🎨 Generate with Reference';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
           <div>
-            <h2 className="text-base font-bold text-white">🎨 AI Generated Visual</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{formatName} · Powered by DALL-E 3</p>
+            <h2 className="text-base font-bold text-white">{title}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 flex items-center justify-center text-sm transition-all">✕</button>
         </div>
         <div className="p-6">
           {step === 'pick' && !isLoading && (
             <div className="space-y-5">
+              {isThumbnail && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
+                  <p className="text-xs text-amber-300 font-medium">📐 Thumbnail specs: 1280×720px (16:9)</p>
+                  <p className="text-xs text-amber-200/60 mt-1">DALL-E will generate a bold, high-contrast thumbnail optimised for YouTube click-through</p>
+                </div>
+              )}
               <div>
-                <p className="text-sm font-medium text-white mb-1">Choose a reference image <span className="text-gray-400 font-normal">(optional)</span></p>
-                <p className="text-xs text-gray-400">GPT-4o will analyze your photo and guide DALL-E to match your product</p>
+                <p className="text-sm font-medium text-white mb-1">Reference image <span className="text-gray-400 font-normal">(optional)</span></p>
+                <p className="text-xs text-gray-400">Use your product photo to guide the AI</p>
               </div>
               <div className="grid grid-cols-3 gap-2 max-h-52 overflow-y-auto">
                 <div onClick={() => setSelectedRefId(null)} className={`aspect-square rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center gap-1 ${selectedRefId === null ? 'border-emerald-400 bg-emerald-500/10' : 'border-gray-700 bg-gray-800 hover:border-gray-500'}`}>
                   <span className="text-2xl">✨</span>
                   <span className="text-xs text-gray-400 text-center">AI only</span>
                 </div>
-                {imageMedia.map(item => (
-                  <div key={item.id} onClick={() => setSelectedRefId(item.id)} className={`aspect-square rounded-xl overflow-hidden border-2 cursor-pointer transition-all relative ${selectedRefId === item.id ? 'border-amber-400 shadow-lg shadow-amber-500/20 scale-[1.03]' : 'border-gray-700 hover:border-gray-500'}`}>
-                    <img src={getMediaUrl(item.file_path)} alt={item.file_name} className="w-full h-full object-cover" />
-                    {selectedRefId === item.id && (
+                {imageMedia.map(m => (
+                  <div key={m.id} onClick={() => setSelectedRefId(m.id)} className={`aspect-square rounded-xl overflow-hidden border-2 cursor-pointer transition-all relative ${selectedRefId === m.id ? 'border-amber-400 shadow-lg shadow-amber-500/20 scale-[1.03]' : 'border-gray-700 hover:border-gray-500'}`}>
+                    <img src={getMediaUrl(m.file_path)} alt={m.file_name} className="w-full h-full object-cover" />
+                    {selectedRefId === m.id && (
                       <div className="absolute inset-0 bg-amber-400/20 flex items-center justify-center">
                         <div className="w-7 h-7 bg-amber-400 rounded-full flex items-center justify-center shadow-lg">
                           <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
@@ -113,11 +124,12 @@ const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onGe
               </div>
               {imageMedia.length === 0 && (
                 <div className="text-center py-3 bg-gray-800/50 rounded-xl border border-gray-700">
-                  <p className="text-xs text-gray-400">No images uploaded yet — upload product photos in the Media section to use as reference</p>
+                  <p className="text-xs text-gray-400">Upload product photos in the Media section to use as reference</p>
                 </div>
               )}
-              <button onClick={() => { setStep('result'); onGenerate(selectedRefId); }} className="w-full py-3 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-semibold hover:from-amber-500 hover:to-amber-700 transition-all shadow-lg text-sm">
-                {selectedRefId ? '🎨 Generate with Reference' : '✨ Generate with AI Only'}
+              <button onClick={() => { setStep('result'); onGenerate(selectedRefId); }}
+                className="w-full py-3 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-semibold hover:from-amber-500 hover:to-amber-700 transition-all shadow-lg text-sm">
+                {selectedRefId ? genRefLabel : genLabel}
               </button>
             </div>
           )}
@@ -128,8 +140,8 @@ const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onGe
                 <div className="absolute inset-0 rounded-full border-4 border-t-amber-400 animate-spin" />
               </div>
               <div className="text-center">
-                <p className="text-white font-medium">Generating your visual...</p>
-                <p className="text-gray-400 text-sm mt-1">DALL-E 3 is creating a unique image</p>
+                <p className="text-white font-medium">{isThumbnail ? 'Generating thumbnail...' : 'Generating visual...'}</p>
+                <p className="text-gray-400 text-sm mt-1">DALL-E 3 is creating your image</p>
               </div>
             </div>
           )}
@@ -139,7 +151,7 @@ const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onGe
                 <p className="text-red-400 text-sm">{error}</p>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => setStep('pick')} className="flex-1 px-4 py-2.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl text-sm hover:bg-gray-700 transition-all">← Change Reference</button>
+                <button onClick={() => setStep('pick')} className="flex-1 px-4 py-2.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl text-sm hover:bg-gray-700 transition-all">← Back</button>
                 <button onClick={() => onGenerate(selectedRefId)} className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm hover:bg-red-700 transition-all">🔄 Try Again</button>
               </div>
             </div>
@@ -147,15 +159,216 @@ const VisualModal = ({ isOpen, onClose, imageUrl, isLoading, format, error, onGe
           {imageUrl && !isLoading && step === 'result' && (
             <div className="space-y-4">
               <div className="rounded-xl overflow-hidden border border-gray-700">
-                <img src={imageUrl} alt={`AI generated visual for ${formatName}`} className="w-full object-cover" />
+                <img src={imageUrl} alt="Generated visual" className="w-full object-cover" />
               </div>
+              {isThumbnail && (
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-2.5">
+                  <p className="text-xs text-blue-300">💡 Upload this thumbnail when publishing your video on YouTube</p>
+                </div>
+              )}
               <div className="flex gap-2">
-                <a href={imageUrl} target="_blank" rel="noopener noreferrer" download className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-all">⬇️ Download</a>
-                <button onClick={() => setStep('pick')} className="px-4 py-2.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl text-sm hover:bg-gray-700 transition-all">🔄 Regenerate</button>
+                <a href={imageUrl} target="_blank" rel="noopener noreferrer" download
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-all">
+                  ⬇️ Download
+                </a>
+                <button onClick={() => setStep('pick')}
+                  className="px-4 py-2.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl text-sm hover:bg-gray-700 transition-all">
+                  🔄 Regenerate
+                </button>
               </div>
               <p className="text-xs text-gray-500 text-center">Generated by DALL-E 3 · For marketing use</p>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Social Publish Modal ─────────────────────────────────────────────────────
+const SocialPublishModal = ({ isOpen, onClose, content, format, imageUrl, videoUrl, campaignName, onPostToSocial, onCreateShareLink }) => {
+  const [tab, setTab]       = useState('social'); // social | link
+  const [copied, setCopied] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  const formatName = OUTPUT_FORMATS[format]?.name || format || 'Content';
+
+  const handleCopyLink = async () => {
+    if (shareUrl) {
+      navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      return;
+    }
+    setCreating(true);
+    try {
+      const url = await onCreateShareLink();
+      setShareUrl(url);
+      navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+    finally { setCreating(false); }
+  };
+
+  const PLATFORMS = [
+    { id: 'twitter', label: 'Twitter / X', icon: '𝕏', color: '#000', bg: 'rgba(0,0,0,0.15)', border: 'rgba(255,255,255,0.1)', available: true },
+    { id: 'instagram', label: 'Instagram', icon: '📸', color: '#E1306C', bg: 'rgba(225,48,108,0.1)', border: 'rgba(225,48,108,0.25)', available: false },
+    { id: 'facebook', label: 'Facebook', icon: '📘', color: '#1877F2', bg: 'rgba(24,119,242,0.1)', border: 'rgba(24,119,242,0.25)', available: false },
+    { id: 'linkedin', label: 'LinkedIn', icon: '💼', color: '#0A66C2', bg: 'rgba(10,102,194,0.1)', border: 'rgba(10,102,194,0.25)', available: false },
+    { id: 'tiktok', label: 'TikTok', icon: '🎵', color: '#ff0050', bg: 'rgba(255,0,80,0.1)', border: 'rgba(255,0,80,0.25)', available: false },
+  ];
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+          <div>
+            <h2 className="text-base font-bold text-white">📤 Publish Content</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{formatName} · {campaignName}</p>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 flex items-center justify-center text-sm">✕</button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-gray-700">
+          {[{ id: 'social', label: '📡 Post to Social' }, { id: 'link', label: '🔗 Share Link' }].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`flex-1 px-4 py-3 text-xs font-medium transition-all ${tab === t.id ? 'text-emerald-400 border-b-2 border-emerald-400 bg-emerald-500/5' : 'text-gray-400 hover:text-gray-200'}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-6">
+          {tab === 'social' && (
+            <div className="space-y-3">
+              <p className="text-xs text-gray-400 mb-4">Choose a platform to post your content directly</p>
+
+              {/* Media preview */}
+              {(imageUrl || videoUrl) && (
+                <div className="mb-4 rounded-xl overflow-hidden border border-gray-700 bg-gray-800">
+                  {imageUrl && <img src={imageUrl} alt="Visual" className="w-full h-28 object-cover" />}
+                  {videoUrl && !imageUrl && (
+                    <div className="w-full h-28 flex items-center justify-center gap-2 text-gray-400">
+                      <span className="text-2xl">🎬</span>
+                      <span className="text-sm">Video attached</span>
+                    </div>
+                  )}
+                  <div className="px-3 py-2">
+                    <p className="text-xs text-gray-500 truncate">{imageUrl ? 'Generated visual attached' : 'Video attached'}</p>
+                  </div>
+                </div>
+              )}
+
+              {PLATFORMS.map(p => (
+                <div key={p.id} className="relative">
+                  <button
+                    onClick={() => p.available && onPostToSocial({ platform: p.id, content, imageUrl, videoUrl })}
+                    disabled={!p.available}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left"
+                    style={{ background: p.available ? p.bg : 'rgba(255,255,255,0.02)', border: `1px solid ${p.available ? p.border : 'rgba(255,255,255,0.05)'}`, opacity: p.available ? 1 : 0.5, cursor: p.available ? 'pointer' : 'not-allowed' }}>
+                    <span className="text-xl w-8 text-center flex-shrink-0">{p.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-white">{p.label}</div>
+                      {!p.available && <div className="text-xs text-gray-500">Coming soon — pending platform approval</div>}
+                    </div>
+                    {p.available && <span className="text-xs font-semibold" style={{ color: p.color }}>Post →</span>}
+                    {!p.available && <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded-full">Soon</span>}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {tab === 'link' && (
+            <div className="space-y-4">
+              <p className="text-xs text-gray-400">Generate a public link — anyone can view the content without logging in</p>
+              <div className="bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 min-h-[48px] flex items-center">
+                {shareUrl
+                  ? <span className="text-xs text-emerald-300 font-mono truncate flex-1">{shareUrl}</span>
+                  : <span className="text-xs text-gray-500">Click Generate to create your share link</span>}
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleCopyLink} disabled={creating}
+                  className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-all">
+                  {creating ? '⏳ Generating...' : copied ? '✅ Copied!' : shareUrl ? '📋 Copy Link' : '🔗 Generate & Copy'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Video Import Modal ───────────────────────────────────────────────────────
+const VideoImportModal = ({ isOpen, onClose, onImport, formatName }) => {
+  const [url, setUrl]       = useState('');
+  const [error, setError]   = useState('');
+  const [saving, setSaving] = useState('');
+
+  const handleImport = async () => {
+    if (!url.trim()) { setError('Please paste a video URL'); return; }
+    const isValid = url.startsWith('http') && (
+      url.includes('heygen') || url.includes('d-id') || url.includes('synthesia') ||
+      url.includes('.mp4') || url.includes('vimeo') || url.includes('youtube') ||
+      url.includes('drive.google') || url.includes('dropbox') || url.includes('storage')
+    );
+    if (!isValid) { setError('Please paste a valid video URL from HeyGen, D-ID, or a direct .mp4 link'); return; }
+    setSaving(true);
+    await onImport(url.trim());
+    setSaving(false);
+    setUrl('');
+    setError('');
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+          <div>
+            <h2 className="text-base font-bold text-white">📥 Import Video</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{formatName} · Link your generated video back to IVey</p>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 flex items-center justify-center text-sm">✕</button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 space-y-2">
+            <p className="text-xs font-semibold text-blue-300">How to get your video URL:</p>
+            <ol className="text-xs text-blue-200/70 space-y-1 list-decimal list-inside">
+              <li>Generate your video on HeyGen, D-ID, or Synthesia</li>
+              <li>Once rendered, click Share or Download</li>
+              <li>Copy the video link or direct .mp4 URL</li>
+              <li>Paste it below</li>
+            </ol>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-300 block mb-2">Video URL</label>
+            <input
+              type="url"
+              value={url}
+              onChange={e => { setUrl(e.target.value); setError(''); }}
+              placeholder="https://app.heygen.com/share/... or direct .mp4 URL"
+              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 transition-colors"
+            />
+            {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="flex-1 py-2.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl text-sm hover:bg-gray-700 transition-all">Cancel</button>
+            <button onClick={handleImport} disabled={saving || !url.trim()}
+              className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-all">
+              {saving ? '⏳ Saving...' : '📥 Import Video'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -269,19 +482,23 @@ const StrategySection = ({ title, content, icon, defaultOpen, campaignName, onSa
 
 // ─── Content Card ─────────────────────────────────────────────────────────────
 const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, campaignId, onSave, onShare, savedKeys, media, onPostToSocial, showToast }) => {
-  const [activeTab, setActiveTab]       = useState('copy');
-  const [isExpanded, setIsExpanded]     = useState(defaultExpanded);
-  const [copied, setCopied]             = useState(false);
-  const [saving, setSaving]             = useState(false);
-  const [visualModal, setVisualModal]   = useState(false);
-  const [imageUrl, setImageUrl]         = useState(null);
-  const [imageLoading, setImageLoading] = useState(false);
-  const [imageError, setImageError]     = useState(null);
+  const [activeTab, setActiveTab]         = useState('copy');
+  const [isExpanded, setIsExpanded]       = useState(defaultExpanded);
+  const [copied, setCopied]               = useState(false);
+  const [saving, setSaving]               = useState(false);
+  const [visualModal, setVisualModal]     = useState(false);
+  const [publishModal, setPublishModal]   = useState(false);
+  const [importModal, setImportModal]     = useState(false);
+  const [imageUrl, setImageUrl]           = useState(null);
+  const [videoUrl, setVideoUrl]           = useState(null);
+  const [imageLoading, setImageLoading]   = useState(false);
+  const [imageError, setImageError]       = useState(null);
 
-  const formatName = OUTPUT_FORMATS[item.format]?.name || item.format;
-  const key        = `content_${item.format}`;
-  const isSaved    = savedKeys.has(key);
-  const isVideo    = VIDEO_FORMATS.includes(item.format);
+  const formatName  = OUTPUT_FORMATS[item.format]?.name || item.format;
+  const key         = `content_${item.format}`;
+  const isSaved     = savedKeys.has(key);
+  const isVideo     = VIDEO_FORMATS.includes(item.format);
+  const isThumbnail = isVideo; // visual button on video = thumbnail only
 
   const parseVisualContent = (content) => {
     if (!content) return { copy: content, design: '' };
@@ -297,22 +514,18 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
 
   const handleCopy  = (text, e) => { e?.stopPropagation(); navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   const handleSave  = async (e) => { e.stopPropagation(); if (isSaved) return; setSaving(true); await onSave({ title: `${formatName} — ${campaignName}`, content: item.content, content_type: 'content', format: item.format, key }); setSaving(false); };
-  const handleShare = (e) => { e.stopPropagation(); onShare({ title: `${formatName} — ${campaignName}`, content: item.content }); };
 
-  // HeyGen — extracts spoken lines only, trims to under ~400 words (≈2 min)
+  // HeyGen — extract spoken lines only, trim to free plan limit
   const handleHeyGen = (e) => {
     e.stopPropagation();
-
     const raw = item.content;
-
-    // Step 1: Remove all stage directions and visual/audio notes
     const stripped = raw
       .replace(/\(VISUAL:[^)]*\)/gi, '')
       .replace(/\(AUDIO:[^)]*\)/gi, '')
       .replace(/\(TEXT OVERLAY:[^)]*\)/gi, '')
       .replace(/\(SCENE:[^)]*\)/gi, '')
-      .replace(/\([^)]{0,80}\)/g, '')   // any short parenthetical
-      .replace(/\[[^\]]*\]/g, '')        // [brackets]
+      .replace(/\([^)]{0,80}\)/g, '')
+      .replace(/\[[^\]]*\]/g, '')
       .replace(/#{1,6}\s*/g, '')
       .replace(/\*\*(.*?)\*\*/g, '$1')
       .replace(/\*(.*?)\*/g, '$1')
@@ -320,20 +533,15 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
       .replace(/---+/g, '')
       .trim();
 
-    // Step 2: Remove section headers (Hook, Body, CTA, timestamps)
-    const lines = stripped
-      .split('\n')
-      .map(l => l.trim())
-      .filter(l => {
-        if (l.length < 8) return false;
-        if (/^(hook|body|cta|intro|outro|narrator|creator|voiceover|vo|scene|shot|cut)/i.test(l)) return false;
-        if (/^\d+-?\d*\s*sec/i.test(l)) return false;   // "0-5 sec", "30 sec"
-        if (/^(key selling|production note|hashtag|posting tip|visual note)/i.test(l)) return false;
-        if (l.endsWith(':') && l.length < 50) return false;
-        return true;
-      });
+    const lines = stripped.split('\n').map(l => l.trim()).filter(l => {
+      if (l.length < 8) return false;
+      if (/^(hook|body|cta|intro|outro|narrator|creator|voiceover|vo|scene|shot|cut)/i.test(l)) return false;
+      if (/^\d+-?\d*\s*sec/i.test(l)) return false;
+      if (/^(key selling|production note|hashtag|posting tip|visual note)/i.test(l)) return false;
+      if (l.endsWith(':') && l.length < 50) return false;
+      return true;
+    });
 
-    // Step 3: Trim to ~400 words max (≈ 2 min at 200 words/min speaking pace)
     let wordCount = 0;
     const trimmedLines = [];
     for (const line of lines) {
@@ -343,14 +551,12 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
       wordCount += words;
     }
 
-    const finalScript = trimmedLines.join('\n\n').trim();
-
-    navigator.clipboard.writeText(finalScript).catch(() => {});
+    navigator.clipboard.writeText(trimmedLines.join('\n\n').trim()).catch(() => {});
     window.open('https://app.heygen.com/create', '_blank');
     showToast(`🎬 Script copied (${wordCount} words ≈ ${Math.ceil(wordCount/200)} min) — paste in HeyGen`, 'info');
   };
 
-  // DALL-E Visual
+  // DALL-E Visual / Thumbnail
   const handleGenerateVisual = async (refId) => {
     setVisualModal(true);
     setImageUrl(null);
@@ -361,16 +567,39 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
       const res = await fetch(`${API_URL}/campaigns/${campaignId}/generate-visual`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ format: item.format, adCopy: item.content, referenceMediaId: refId || null })
+        body: JSON.stringify({
+          format: item.format,
+          adCopy: item.content,
+          referenceMediaId: refId || null,
+          isThumbnail,
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to generate visual');
       setImageUrl(data.imageUrl);
     } catch (err) {
-      setImageError(err.message || 'Failed to generate visual. Please try again.');
+      setImageError(err.message || 'Failed to generate. Please try again.');
     } finally {
       setImageLoading(false);
     }
+  };
+
+  // Video URL import
+  const handleVideoImport = async (url) => {
+    setVideoUrl(url);
+    showToast('📥 Video imported successfully!', 'success');
+  };
+
+  // Share → open publish modal
+  const handleShare = (e) => {
+    e.stopPropagation();
+    setPublishModal(true);
+  };
+
+  // Create share link (called from publish modal)
+  const handleCreateShareLink = async () => {
+    const data = await onShare({ title: `${formatName} — ${campaignName}`, content: item.content, returnUrl: true });
+    return data;
   };
 
   return (
@@ -393,12 +622,23 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
                 </button>
               )}
 
-              {/* 🎨 DALL-E Visual — all formats */}
+              {/* 🖼 Thumbnail (video) / 🎨 Visual (other) */}
               <button onClick={(e) => { e.stopPropagation(); handleGenerateVisual(null); }}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 text-xs font-medium transition-all"
-                title="Generate AI image with DALL-E 3">
-                🎨 Visual
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all"
+                style={{ background: isThumbnail ? 'rgba(99,102,241,0.1)' : 'rgba(245,158,11,0.1)', color: isThumbnail ? '#818cf8' : '#f59e0b', border: `1px solid ${isThumbnail ? 'rgba(99,102,241,0.25)' : 'rgba(245,158,11,0.25)'}` }}
+                title={isThumbnail ? 'Generate YouTube thumbnail with DALL-E 3' : 'Generate AI image with DALL-E 3'}>
+                {isThumbnail ? '🖼 Thumbnail' : '🎨 Visual'}
               </button>
+
+              {/* 📥 Import Video — video formats only */}
+              {isVideo && (
+                <button onClick={(e) => { e.stopPropagation(); setImportModal(true); }}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all"
+                  style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)' }}
+                  title="Import your generated video back into IVey">
+                  📥 Import Video
+                </button>
+              )}
 
               {/* 𝕏 Post to Twitter */}
               {onPostToSocial && (
@@ -417,11 +657,11 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
                 {saving ? '⏳' : isSaved ? '✅' : '🔖'}
               </button>
 
-              {/* 🔗 Share */}
+              {/* 📤 Publish/Share */}
               <button onClick={handleShare}
                 className="w-7 h-7 rounded-md bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 flex items-center justify-center text-xs transition-all"
-                title="Share">
-                🔗
+                title="Publish or share">
+                📤
               </button>
 
               {/* 📋 Copy */}
@@ -448,12 +688,14 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
                 <ReactMarkdown>{activeTab === 'design' && design ? design : copy}</ReactMarkdown>
               </div>
             </div>
+
+            {/* Generated thumbnail / visual inline preview */}
             {imageUrl && (
               <div className="px-5 pb-4">
-                <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 cursor-pointer" onClick={() => setVisualModal(true)}>
-                  <img src={imageUrl} alt="Generated visual" className="w-full h-32 object-cover" />
+                <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+                  <img src={imageUrl} alt={isThumbnail ? 'Generated thumbnail' : 'Generated visual'} className="w-full object-cover" />
                   <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
-                    <span className="text-xs text-gray-500">AI Generated · DALL-E 3</span>
+                    <span className="text-xs text-gray-500">{isThumbnail ? '🖼 Thumbnail · DALL-E 3' : '🎨 Visual · DALL-E 3'}</span>
                     <div className="flex gap-2">
                       <a href={imageUrl} target="_blank" rel="noopener noreferrer" download onClick={e => e.stopPropagation()} className="text-xs text-emerald-500 hover:text-emerald-400">⬇️ Download</a>
                       <button onClick={(e) => { e.stopPropagation(); handleGenerateVisual(null); }} className="text-xs text-amber-500 hover:text-amber-400">🔄 New</button>
@@ -462,16 +704,64 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
                 </div>
               </div>
             )}
+
+            {/* Imported video preview */}
+            {videoUrl && (
+              <div className="px-5 pb-4">
+                <div className="rounded-xl overflow-hidden border border-emerald-500/30 bg-emerald-500/5">
+                  <div className="px-4 py-3 flex items-center gap-3">
+                    <span className="text-2xl">🎬</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-emerald-400">Video imported</p>
+                      <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:text-gray-200 truncate block">{videoUrl}</a>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs px-2.5 py-1 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Open</a>
+                      <button onClick={() => setVideoUrl(null)} className="text-xs px-2.5 py-1 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600">Remove</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
-      <VisualModal isOpen={visualModal} onClose={() => setVisualModal(false)} imageUrl={imageUrl} isLoading={imageLoading} format={item.format} error={imageError} onGenerate={handleGenerateVisual} media={media} />
+
+      {/* Modals */}
+      <VisualModal
+        isOpen={visualModal}
+        onClose={() => setVisualModal(false)}
+        imageUrl={imageUrl}
+        isLoading={imageLoading}
+        format={item.format}
+        error={imageError}
+        onGenerate={handleGenerateVisual}
+        media={media}
+        isThumbnail={isThumbnail}
+      />
+      <SocialPublishModal
+        isOpen={publishModal}
+        onClose={() => setPublishModal(false)}
+        content={item.content}
+        format={item.format}
+        imageUrl={imageUrl}
+        videoUrl={videoUrl}
+        campaignName={campaignName}
+        onPostToSocial={({ platform, content }) => { onPostToSocial && onPostToSocial(content); setPublishModal(false); }}
+        onCreateShareLink={handleCreateShareLink}
+      />
+      <VideoImportModal
+        isOpen={importModal}
+        onClose={() => setImportModal(false)}
+        onImport={handleVideoImport}
+        formatName={formatName}
+      />
     </>
   );
 };
 
 // ─── Parse Strategy ───────────────────────────────────────────────────────────
-const parseStrategy = (strategy) => {
+function parseStrategy(strategy) {
   if (!strategy) return [];
   const text = typeof strategy === 'string' ? strategy : JSON.stringify(strategy, null, 2);
   const patterns = [
@@ -498,7 +788,7 @@ const parseStrategy = (strategy) => {
   });
   if (sections.length === 0) sections.push({ title: 'Marketing Strategy', icon: '📊', content: text });
   return sections;
-};
+}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 const CampaignDetail = () => {
@@ -579,7 +869,16 @@ const CampaignDetail = () => {
     catch { showToast('Failed to delete', 'error'); }
   };
 
-  const openShareModal = ({ title, content, savedId = null }) => { setShareUrl(''); setShareModal({ open: true, title, content, savedId }); };
+  const openShareModal = async ({ title, content, savedId = null, returnUrl = false }) => {
+    if (returnUrl) {
+      try {
+        const data = await createShareLink({ title, content, expires_in_days: 7 });
+        return `${FRONTEND_URL}/shared/${data.share_token}`;
+      } catch { return null; }
+    }
+    setShareUrl('');
+    setShareModal({ open: true, title, content, savedId });
+  };
 
   const handleCreateShare = async (expiryDays) => {
     setSharing(true);
