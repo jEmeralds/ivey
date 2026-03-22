@@ -379,12 +379,12 @@ const VideoImportModal = ({ isOpen, onClose, onImport, formatName }) => {
 const SavedLibrary = ({ savedItems, onDelete, onShare }) => {
   const [filter, setFilter] = useState('all');
   const [preview, setPreview] = useState(null);
-  const filtered = savedItems.filter(item => {
+  const filtered = savedItems.filter(savedItem => {
     if (filter === 'all') return true;
-    if (filter === 'videos')     return item.content_type === 'video_import';
-    if (filter === 'images')     return ['generated_image','generated_thumbnail'].includes(item.content_type);
-    if (filter === 'strategy')   return item.content_type?.includes('strategy');
-    if (filter === 'content')    return item.content_type === 'content';
+    if (filter === 'videos')     return savedItem.content_type === 'video_import';
+    if (filter === 'images')     return ['generated_image','generated_thumbnail'].includes(savedItem.content_type);
+    if (filter === 'strategy')   return savedItem.content_type?.includes('strategy');
+    if (filter === 'content')    return savedItem.content_type === 'content';
     return true;
   });
   if (savedItems.length === 0) return null;
@@ -402,71 +402,71 @@ const SavedLibrary = ({ savedItems, onDelete, onShare }) => {
             ))}
           </div>
         </div>
-        {filtered.map(item => (
-          <div key={item.id} className="border-b border-gray-800 last:border-0">
+        {filtered.map(savedItem => (
+          <div key={savedItem.id} className="border-b border-gray-800 last:border-0">
             {/* Image items — show thumbnail inline */}
-            {['generated_image','generated_thumbnail'].includes(item.content_type) ? (
+            {['generated_image','generated_thumbnail'].includes(savedItem.content_type) ? (
               <div className="px-6 py-4 flex items-start gap-3 hover:bg-gray-800/50 transition-all group">
                 <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-700 flex-shrink-0 bg-gray-800">
-                  <img src={item.content} alt={item.title} className="w-full h-full object-cover" />
+                  <img src={savedItem.content} alt={savedItem.title} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-white truncate">{item.title}</div>
+                  <div className="text-sm font-medium text-white truncate">{savedItem.title}</div>
                   <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
-                    <span>{item.content_type === 'generated_thumbnail' ? '🖼 Thumbnail' : '🎨 AI Image'} · DALL-E 3</span>
+                    <span>{savedItem.content_type === 'generated_thumbnail' ? '🖼 Thumbnail' : '🎨 AI Image'} · DALL-E 3</span>
                     <span className="w-1 h-1 rounded-full bg-gray-600 inline-block" />
-                    <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                    <span>{new Date(savedItem.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
-                  <a href={item.content} target="_blank" rel="noopener noreferrer" download
+                  <a href={savedItem.content} target="_blank" rel="noopener noreferrer" download
                     className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center text-sm transition-all" title="Download">⬇️</a>
-                  <button onClick={() => onDelete(item.id)}
+                  <button onClick={() => onDelete(savedItem.id)}
                     className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center text-sm transition-all" title="Delete">🗑️</button>
                 </div>
               </div>
-            ) : item.content_type === 'video_import' ? (
+            ) : savedItem.content_type === 'video_import' ? (
               /* Video items */
               <div className="px-6 py-4 flex items-start gap-3 hover:bg-gray-800/50 transition-all group">
                 <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center text-base flex-shrink-0">🎬</div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-white truncate">{item.title}</div>
+                  <div className="text-sm font-medium text-white truncate">{savedItem.title}</div>
                   <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
                     <span>Imported Video</span>
                     <span className="w-1 h-1 rounded-full bg-gray-600 inline-block" />
-                    <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                    <span>{new Date(savedItem.created_at).toLocaleDateString()}</span>
                   </div>
-                  <a href={item.content} target="_blank" rel="noopener noreferrer"
+                  <a href={savedItem.content} target="_blank" rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}
                     className="text-xs text-emerald-400 hover:text-emerald-300 truncate block mt-1">
-                    🔗 {item.content.slice(0, 55)}...
+                    🔗 {savedItem.content.slice(0, 55)}...
                   </a>
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
-                  <a href={item.content} target="_blank" rel="noopener noreferrer"
+                  <a href={savedItem.content} target="_blank" rel="noopener noreferrer"
                     className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center text-sm transition-all" title="Open video">▶</a>
-                  <button onClick={() => onDelete(item.id)}
+                  <button onClick={() => onDelete(savedItem.id)}
                     className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center text-sm transition-all" title="Delete">🗑️</button>
                 </div>
               </div>
             ) : (
               /* Text content items */
-              <div onClick={() => setPreview(item)} className="px-6 py-4 flex items-start gap-3 hover:bg-gray-800/50 transition-all group cursor-pointer">
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0 ${item.content_type === 'content' ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
-                  {item.content_type === 'content' ? '🎨' : '📊'}
+              <div onClick={() => setPreview(savedItem)} className="px-6 py-4 flex items-start gap-3 hover:bg-gray-800/50 transition-all group cursor-pointer">
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0 ${savedItem.content_type === 'content' ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
+                  {savedItem.content_type === 'content' ? '🎨' : '📊'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-white truncate">{item.title}</div>
+                  <div className="text-sm font-medium text-white truncate">{savedItem.title}</div>
                   <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
-                    <span className="capitalize">{item.content_type?.replace('_', ' ')}</span>
+                    <span className="capitalize">{savedItem.content_type?.replace('_', ' ')}</span>
                     <span className="w-1 h-1 rounded-full bg-gray-600 inline-block" />
-                    <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                    <span>{new Date(savedItem.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0" onClick={e => e.stopPropagation()}>
-                  <button onClick={() => onShare({ title: item.title, content: item.content, savedId: item.id })}
+                  <button onClick={() => onShare({ title: savedItem.title, content: savedItem.content, savedId: savedItem.id })}
                     className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center text-sm transition-all" title="Share">🔗</button>
-                  <button onClick={() => onDelete(item.id)}
+                  <button onClick={() => onDelete(savedItem.id)}
                     className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center text-sm transition-all" title="Delete">🗑️</button>
                 </div>
               </div>
