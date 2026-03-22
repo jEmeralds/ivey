@@ -1,196 +1,187 @@
-// backend/src/routes/brand.routes.js
-// Multi-brand version — full CRUD
-
 import express from 'express';
 import { auth } from '../middleware/auth.middleware.js';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '../config/supabase.js';
 
 const router = express.Router();
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY
-);
+router.use(auth);
 
-// ── GET /api/brand ─────────────────────────────────────────────────────────────
-// Returns ALL brands for the user
-router.get('/', auth, async (req, res) => {
-  const userId = req.userId;
-
-  const { data, error } = await supabase
-    .from('brand_profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .order('is_default', { ascending: false })
-    .order('created_at', { ascending: true });
-
-  if (error) return res.status(500).json({ error: error.message });
-
-  res.json({ brands: data || [] });
-});
-
-// ── GET /api/brand/default ─────────────────────────────────────────────────────
-// Returns the default brand (used by AI injection)
-router.get('/default', auth, async (req, res) => {
-  const userId = req.userId;
-
-  const { data, error } = await supabase
-    .from('brand_profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('is_default', true)
-    .single();
-
-  if (error && error.code !== 'PGRST116') {
-    return res.status(500).json({ error: error.message });
-  }
-
-  res.json({ brand: data || null });
-});
-
-// ── POST /api/brand ────────────────────────────────────────────────────────────
-// Create a new brand profile
-router.post('/', auth, async (req, res) => {
-  const userId = req.userId;
-  const { brand_name, tagline, industry, brand_colors, target_personas } = req.body;
-
-  if (!brand_name?.trim()) {
-    return res.status(400).json({ error: 'Brand name is required' });
-  }
-
-  // Check how many brands user already has
-  const { count } = await supabase
-    .from('brand_profiles')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId);
-
-  // First brand is always default
-  const isFirst = (count || 0) === 0;
-
-  const { data, error } = await supabase
-    .from('brand_profiles')
-    .insert({
-      user_id:         userId,
-      brand_name:      brand_name.trim(),
-      tagline:         tagline?.trim() || null,
-      industry:        industry?.trim() || null,
-      brand_colors:    brand_colors || [],
-      target_personas: target_personas?.trim() || null,
-      is_default:      isFirst,
-    })
-    .select()
-    .single();
-
-  if (error) return res.status(500).json({ error: error.message });
-
-  res.status(201).json({ brand: data, message: 'Brand created.' });
-});
-
-// ── PUT /api/brand/:id ─────────────────────────────────────────────────────────
-// Update an existing brand profile
-router.put('/:id', auth, async (req, res) => {
-  const userId = req.userId;
-  const { id } = req.params;
-  const { brand_name, tagline, industry, brand_colors, target_personas } = req.body;
-
-  if (!brand_name?.trim()) {
-    return res.status(400).json({ error: 'Brand name is required' });
-  }
-
-  const { data, error } = await supabase
-    .from('brand_profiles')
-    .update({
-      brand_name:      brand_name.trim(),
-      tagline:         tagline?.trim() || null,
-      industry:        industry?.trim() || null,
-      brand_colors:    brand_colors || [],
-      target_personas: target_personas?.trim() || null,
-      updated_at:      new Date().toISOString(),
-    })
-    .eq('id', id)
-    .eq('user_id', userId)  // ownership check
-    .select()
-    .single();
-
-  if (error) return res.status(500).json({ error: error.message });
-
-  res.json({ brand: data, message: 'Brand updated.' });
-});
-
-// ── DELETE /api/brand/:id ──────────────────────────────────────────────────────
-router.delete('/:id', auth, async (req, res) => {
-  const userId = req.userId;
-  const { id } = req.params;
-
-  // Don't allow deleting the only brand
-  const { count } = await supabase
-    .from('brand_profiles')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId);
-
-  if ((count || 0) <= 1) {
-    return res.status(400).json({ error: 'Cannot delete your only brand profile.' });
-  }
-
-  // Check if this is the default brand
-  const { data: target } = await supabase
-    .from('brand_profiles')
-    .select('is_default')
-    .eq('id', id)
-    .eq('user_id', userId)
-    .single();
-
-  const { error } = await supabase
-    .from('brand_profiles')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', userId);
-
-  if (error) return res.status(500).json({ error: error.message });
-
-  // If deleted brand was the default, promote the oldest remaining brand
-  if (target?.is_default) {
-    const { data: remaining } = await supabase
+// ── GET /api/brand — get all brands for user ──────────────────────────────────
+router.get('/', async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
       .from('brand_profiles')
-      .select('id')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: true })
-      .limit(1);
+      .select('*')
+      .eq('user_id', req.userId)
+      .order('created_at', { ascending: false });
 
-    if (remaining?.[0]) {
-      await supabase
-        .from('brand_profiles')
-        .update({ is_default: true })
-        .eq('id', remaining[0].id);
-    }
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ brands: data || [] });
+  } catch (e) {
+    res.status(500).json({ error: 'Server error' });
   }
-
-  res.json({ message: 'Brand deleted.' });
 });
 
-// ── PATCH /api/brand/:id/set-default ──────────────────────────────────────────
-// Sets one brand as default, clears default on all others
-router.patch('/:id/set-default', auth, async (req, res) => {
-  const userId = req.userId;
-  const { id } = req.params;
+// ── GET /api/brand/default — get default brand ────────────────────────────────
+router.get('/default', async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('brand_profiles')
+      .select('*')
+      .eq('user_id', req.userId)
+      .eq('is_default', true)
+      .single();
 
-  // Clear all defaults for this user
-  await supabase
-    .from('brand_profiles')
-    .update({ is_default: false })
-    .eq('user_id', userId);
+    if (error && error.code !== 'PGRST116') return res.status(500).json({ error: error.message });
 
-  // Set the new default
-  const { data, error } = await supabase
-    .from('brand_profiles')
-    .update({ is_default: true })
-    .eq('id', id)
-    .eq('user_id', userId)
-    .select()
-    .single();
+    // Fallback: return first brand if no default
+    if (!data) {
+      const { data: first } = await supabaseAdmin
+        .from('brand_profiles')
+        .select('*')
+        .eq('user_id', req.userId)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .single();
+      return res.json({ brand: first || null });
+    }
 
-  if (error) return res.status(500).json({ error: error.message });
+    res.json({ brand: data });
+  } catch (e) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
-  res.json({ brand: data, message: 'Default brand updated.' });
+// ── POST /api/brand — create new brand ───────────────────────────────────────
+router.post('/', async (req, res) => {
+  try {
+    const userId = req.userId;
+    const {
+      brand_name, tagline, industry, brand_story,
+      brand_colors, photography_style, visual_mood,
+      brand_voice, words_always, words_never,
+      target_personas, pain_points, audience_desires,
+      default_video_length, preferred_platforms, is_default,
+    } = req.body;
+
+    if (!brand_name?.trim()) return res.status(400).json({ error: 'Brand name is required' });
+
+    // If this is set as default, unset all others
+    if (is_default) {
+      await supabaseAdmin
+        .from('brand_profiles')
+        .update({ is_default: false })
+        .eq('user_id', userId);
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('brand_profiles')
+      .insert([{
+        user_id:              userId,
+        brand_name:           brand_name.trim(),
+        tagline:              tagline?.trim()        || null,
+        industry:             industry               || null,
+        brand_story:          brand_story?.trim()    || null,
+        brand_colors:         brand_colors           || [],
+        photography_style:    photography_style      || null,
+        visual_mood:          visual_mood            || [],
+        brand_voice:          brand_voice            || null,
+        words_always:         words_always           || [],
+        words_never:          words_never            || [],
+        target_personas:      target_personas?.trim()|| null,
+        pain_points:          pain_points?.trim()    || null,
+        audience_desires:     audience_desires?.trim()|| null,
+        default_video_length: default_video_length   ?? 60,
+        preferred_platforms:  preferred_platforms    || [],
+        is_default:           is_default             ?? false,
+        updated_at:           new Date().toISOString(),
+      }])
+      .select()
+      .single();
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.status(201).json({ brand: data, message: 'Brand profile created' });
+  } catch (e) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── PUT /api/brand/:id — update brand ────────────────────────────────────────
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+    const {
+      brand_name, tagline, industry, brand_story,
+      brand_colors, photography_style, visual_mood,
+      brand_voice, words_always, words_never,
+      target_personas, pain_points, audience_desires,
+      default_video_length, preferred_platforms, is_default,
+    } = req.body;
+
+    if (!brand_name?.trim()) return res.status(400).json({ error: 'Brand name is required' });
+
+    // Verify ownership
+    const { data: existing } = await supabaseAdmin
+      .from('brand_profiles').select('id').eq('id', id).eq('user_id', userId).single();
+    if (!existing) return res.status(404).json({ error: 'Brand not found' });
+
+    // If setting as default, unset others
+    if (is_default) {
+      await supabaseAdmin
+        .from('brand_profiles')
+        .update({ is_default: false })
+        .eq('user_id', userId)
+        .neq('id', id);
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('brand_profiles')
+      .update({
+        brand_name:           brand_name.trim(),
+        tagline:              tagline?.trim()         || null,
+        industry:             industry                || null,
+        brand_story:          brand_story?.trim()     || null,
+        brand_colors:         brand_colors            || [],
+        photography_style:    photography_style       || null,
+        visual_mood:          visual_mood             || [],
+        brand_voice:          brand_voice             || null,
+        words_always:         words_always            || [],
+        words_never:          words_never             || [],
+        target_personas:      target_personas?.trim() || null,
+        pain_points:          pain_points?.trim()     || null,
+        audience_desires:     audience_desires?.trim()|| null,
+        default_video_length: default_video_length    ?? 60,
+        preferred_platforms:  preferred_platforms     || [],
+        is_default:           is_default              ?? false,
+        updated_at:           new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ brand: data, message: 'Brand profile updated' });
+  } catch (e) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── DELETE /api/brand/:id — delete brand ─────────────────────────────────────
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { error } = await supabaseAdmin
+      .from('brand_profiles')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', req.userId);
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ message: 'Brand profile deleted' });
+  } catch (e) {
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 export default router;

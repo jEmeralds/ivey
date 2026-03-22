@@ -16,6 +16,8 @@ import Pricing from './pages/Pricing';
 import ChatWidget from './components/ChatWidget';
 import Support from './pages/Support';
 import SocialAdminDashboard from './pages/SocialAdminDashboard';
+import BrandPage from './pages/BrandPage';
+
 
 function App() {
   return (
@@ -40,6 +42,7 @@ function App() {
               <Route path="/campaign/:id" element={<CampaignDetail />} />
               <Route path="/shared/:token" element={<SharedContent />} />
               <Route path="*" element={<Home />} />
+              <Route path="/brand" element={<BrandPage />} />
             </Routes>
           </main>
           <ChatWidget />
