@@ -381,8 +381,10 @@ const SavedLibrary = ({ savedItems, onDelete, onShare }) => {
   const [preview, setPreview] = useState(null);
   const filtered = savedItems.filter(item => {
     if (filter === 'all') return true;
-    if (filter === 'strategy') return item.content_type?.includes('strategy');
-    if (filter === 'content') return item.content_type === 'content';
+    if (filter === 'videos')     return item.content_type === 'video_import';
+    if (filter === 'images')     return ['generated_image','generated_thumbnail'].includes(item.content_type);
+    if (filter === 'strategy')   return item.content_type?.includes('strategy');
+    if (filter === 'content')    return item.content_type === 'content';
     return true;
   });
   if (savedItems.length === 0) return null;
@@ -394,29 +396,81 @@ const SavedLibrary = ({ savedItems, onDelete, onShare }) => {
             <span className="text-base font-bold text-white">🗂️ Saved Library</span>
             <span className="bg-emerald-500/20 text-emerald-300 text-xs font-semibold px-2 py-0.5 rounded-full">{savedItems.length} saved</span>
           </div>
-          <div className="flex gap-1">
-            {['all', 'strategy', 'content'].map(tab => (
+          <div className="flex gap-1 flex-wrap">
+            {['all', 'content', 'images', 'videos', 'strategy'].map(tab => (
               <button key={tab} onClick={() => setFilter(tab)} className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-all ${filter === tab ? 'bg-emerald-500/20 text-emerald-300' : 'text-gray-400 hover:text-gray-200'}`}>{tab}</button>
             ))}
           </div>
         </div>
         {filtered.map(item => (
-          <div key={item.id} onClick={() => setPreview(item)} className="px-6 py-4 border-b border-gray-800 last:border-0 flex items-start gap-3 hover:bg-gray-800/50 transition-all group cursor-pointer">
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0 ${item.content_type === 'content' ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
-              {item.content_type === 'content' ? '🎨' : '📊'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-white truncate">{item.title}</div>
-              <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
-                <span className="capitalize">{item.content_type?.replace('_', ' ')}</span>
-                <span className="w-1 h-1 rounded-full bg-gray-600 inline-block" />
-                <span>{new Date(item.created_at).toLocaleDateString()}</span>
+          <div key={item.id} className="border-b border-gray-800 last:border-0">
+            {/* Image items — show thumbnail inline */}
+            {['generated_image','generated_thumbnail'].includes(item.content_type) ? (
+              <div className="px-6 py-4 flex items-start gap-3 hover:bg-gray-800/50 transition-all group">
+                <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-700 flex-shrink-0 bg-gray-800">
+                  <img src={item.content} alt={item.title} className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-white truncate">{item.title}</div>
+                  <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
+                    <span>{item.content_type === 'generated_thumbnail' ? '🖼 Thumbnail' : '🎨 AI Image'} · DALL-E 3</span>
+                    <span className="w-1 h-1 rounded-full bg-gray-600 inline-block" />
+                    <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                  <a href={item.content} target="_blank" rel="noopener noreferrer" download
+                    className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center text-sm transition-all" title="Download">⬇️</a>
+                  <button onClick={() => onDelete(item.id)}
+                    className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center text-sm transition-all" title="Delete">🗑️</button>
+                </div>
               </div>
-            </div>
-            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all" onClick={e => e.stopPropagation()}>
-              <button onClick={() => onShare({ title: item.title, content: item.content, savedId: item.id })} className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center text-sm transition-all" title="Share">🔗</button>
-              <button onClick={() => onDelete(item.id)} className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center text-sm transition-all" title="Delete">🗑️</button>
-            </div>
+            ) : item.content_type === 'video_import' ? (
+              /* Video items */
+              <div className="px-6 py-4 flex items-start gap-3 hover:bg-gray-800/50 transition-all group">
+                <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center text-base flex-shrink-0">🎬</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-white truncate">{item.title}</div>
+                  <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
+                    <span>Imported Video</span>
+                    <span className="w-1 h-1 rounded-full bg-gray-600 inline-block" />
+                    <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <a href={item.content} target="_blank" rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    className="text-xs text-emerald-400 hover:text-emerald-300 truncate block mt-1">
+                    🔗 {item.content.slice(0, 55)}...
+                  </a>
+                </div>
+                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                  <a href={item.content} target="_blank" rel="noopener noreferrer"
+                    className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center text-sm transition-all" title="Open video">▶</a>
+                  <button onClick={() => onDelete(item.id)}
+                    className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center text-sm transition-all" title="Delete">🗑️</button>
+                </div>
+              </div>
+            ) : (
+              /* Text content items */
+              <div onClick={() => setPreview(item)} className="px-6 py-4 flex items-start gap-3 hover:bg-gray-800/50 transition-all group cursor-pointer">
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0 ${item.content_type === 'content' ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
+                  {item.content_type === 'content' ? '🎨' : '📊'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-white truncate">{item.title}</div>
+                  <div className="text-xs text-gray-400 flex items-center gap-2 mt-0.5">
+                    <span className="capitalize">{item.content_type?.replace('_', ' ')}</span>
+                    <span className="w-1 h-1 rounded-full bg-gray-600 inline-block" />
+                    <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0" onClick={e => e.stopPropagation()}>
+                  <button onClick={() => onShare({ title: item.title, content: item.content, savedId: item.id })}
+                    className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center text-sm transition-all" title="Share">🔗</button>
+                  <button onClick={() => onDelete(item.id)}
+                    className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center text-sm transition-all" title="Delete">🗑️</button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -556,7 +610,7 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
     showToast(`🎬 Script copied (${wordCount} words ≈ ${Math.ceil(wordCount/200)} min) — paste in HeyGen`, 'info');
   };
 
-  // DALL-E Visual / Thumbnail
+  // DALL-E Visual / Thumbnail — auto-saves URL to library so it persists
   const handleGenerateVisual = async (refId) => {
     setVisualModal(true);
     setImageUrl(null);
@@ -576,7 +630,19 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to generate visual');
+
       setImageUrl(data.imageUrl);
+
+      // Auto-save the image URL to saved_content so it persists across refreshes
+      const label = isThumbnail ? '🖼 Thumbnail' : '🎨 Visual';
+      await onSave({
+        title:        `${label} — ${formatName} — ${campaignName}`,
+        content:      data.imageUrl,
+        content_type: isThumbnail ? 'generated_thumbnail' : 'generated_image',
+        format:       item.format,
+        key:          `img_${item.format}_${Date.now()}`,
+      });
+
     } catch (err) {
       setImageError(err.message || 'Failed to generate. Please try again.');
     } finally {
@@ -584,10 +650,60 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
     }
   };
 
-  // Video URL import
+  // Video URL import — persists via saved_content table
   const handleVideoImport = async (url) => {
+    // Save to library so it persists across refreshes
+    await onSave({
+      title:        `🎬 Video — ${formatName} — ${campaignName}`,
+      content:      url,
+      content_type: 'video_import',
+      format:       item.format,
+      key:          `video_${item.format}_${Date.now()}`,
+    });
     setVideoUrl(url);
-    showToast('📥 Video imported successfully!', 'success');
+    showToast('📥 Video imported and saved to your library!', 'success');
+  };
+
+  // Clean raw content for social posting — strips markdown, stage directions, section headers
+  const getCleanSocialText = () => {
+    const raw = item.content;
+
+    // For video formats — extract only spoken/narration lines
+    if (isVideo) {
+      const lines = raw
+        .replace(/\(VISUAL:[^)]*\)/gi, '')
+        .replace(/\(AUDIO:[^)]*\)/gi, '')
+        .replace(/\(TEXT OVERLAY:[^)]*\)/gi, '')
+        .replace(/\([^)]{0,80}\)/g, '')
+        .replace(/\[[^\]]*\]/g, '')
+        .replace(/#{1,6}\s*/g, '')
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => {
+          if (l.length < 8) return false;
+          if (/^(hook|body|cta|intro|outro|narrator|creator|voiceover|scene|shot)/i.test(l)) return false;
+          if (/^\d+-?\d*\s*sec/i.test(l)) return false;
+          if (l.endsWith(':') && l.length < 50) return false;
+          return true;
+        })
+        .slice(0, 3); // Just the hook lines for social
+      return lines.join('\n\n').slice(0, 280);
+    }
+
+    // For all other formats — strip markdown, keep clean copy
+    return raw
+      .replace(/#{1,6}\s*/g, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/>\s*/g, '')
+      .replace(/---+/g, '')
+      .replace(/\[\s*[^\]]*\s*\]/g, '')
+      // Remove design guidelines section
+      .split(/design (suggestions|guidelines|notes)/i)[0]
+      .trim()
+      .slice(0, 280); // Twitter character limit
   };
 
   // Share → open publish modal
@@ -640,12 +756,12 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
                 </button>
               )}
 
-              {/* 𝕏 Post to Twitter */}
+              {/* 𝕏 Post to Twitter — sends clean text, no markdown or stage directions */}
               {onPostToSocial && (
-                <button onClick={(e) => { e.stopPropagation(); onPostToSocial(item.content); }}
+                <button onClick={(e) => { e.stopPropagation(); onPostToSocial(getCleanSocialText()); }}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all"
                   style={{ background: 'rgba(0,0,0,0.15)', color: '#94a3b8' }}
-                  title="Post to Twitter">
+                  title="Post clean content to Twitter">
                   𝕏 Post
                 </button>
               )}
@@ -760,8 +876,81 @@ const ContentCard = ({ item, isVisualFormat, defaultExpanded, campaignName, camp
   );
 };
 
+  const formatName = OUTPUT_FORMATS[item.format]?.name || item.format;
+  const key        = `content_${item.format}`;
+  const isSaved    = savedKeys.has(key);
+  const isVideo    = VIDEO_FORMATS.includes(item.format);
+
+  const parseVisualContent = (content) => {
+    if (!content) return { copy: content, design: '' };
+    const lower = content.toLowerCase();
+    const markers = ['### design suggestions', '### design', '**design suggestions**', 'design suggestions:', 'design guidelines:'];
+    let splitIndex = -1;
+    for (const m of markers) { const idx = lower.indexOf(m); if (idx !== -1 && (splitIndex === -1 || idx < splitIndex)) splitIndex = idx; }
+    if (splitIndex !== -1) return { copy: content.substring(0, splitIndex).trim(), design: content.substring(splitIndex).trim() };
+    return { copy: content, design: '' };
+  };
+
+  const { copy, design } = isVisualFormat ? parseVisualContent(item.content) : { copy: item.content, design: '' };
+
+  const handleCopy  = (text, e) => { e?.stopPropagation(); navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  const handleSave  = async (e) => { e.stopPropagation(); if (isSaved) return; setSaving(true); await onSave({ title: `${formatName} — ${campaignName}`, content: item.content, content_type: 'content', format: item.format, key }); setSaving(false); };
+  const handleShare = (e) => { e.stopPropagation(); onShare({ title: `${formatName} — ${campaignName}`, content: item.content }); };
+
+  // HeyGen — extracts spoken lines only, trims to under ~400 words (≈2 min)
+  const handleHeyGen = (e) => {
+    e.stopPropagation();
+
+    const raw = item.content;
+
+    // Step 1: Remove all stage directions and visual/audio notes
+    const stripped = raw
+      .replace(/\(VISUAL:[^)]*\)/gi, '')
+      .replace(/\(AUDIO:[^)]*\)/gi, '')
+      .replace(/\(TEXT OVERLAY:[^)]*\)/gi, '')
+      .replace(/\(SCENE:[^)]*\)/gi, '')
+      .replace(/\([^)]{0,80}\)/g, '')   // any short parenthetical
+      .replace(/\[[^\]]*\]/g, '')        // [brackets]
+      .replace(/#{1,6}\s*/g, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/>\s*/g, '')
+      .replace(/---+/g, '')
+      .trim();
+
+    // Step 2: Remove section headers (Hook, Body, CTA, timestamps)
+    const lines = stripped
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => {
+        if (l.length < 8) return false;
+        if (/^(hook|body|cta|intro|outro|narrator|creator|voiceover|vo|scene|shot|cut)/i.test(l)) return false;
+        if (/^\d+-?\d*\s*sec/i.test(l)) return false;   // "0-5 sec", "30 sec"
+        if (/^(key selling|production note|hashtag|posting tip|visual note)/i.test(l)) return false;
+        if (l.endsWith(':') && l.length < 50) return false;
+        return true;
+      });
+
+    // Step 3: Trim to ~400 words max (≈ 2 min at 200 words/min speaking pace)
+    let wordCount = 0;
+    const trimmedLines = [];
+    for (const line of lines) {
+      const words = line.split(/\s+/).length;
+      if (wordCount + words > 400) break;
+      trimmedLines.push(line);
+      wordCount += words;
+    }
+
+    const finalScript = trimmedLines.join('\n\n').trim();
+
+    navigator.clipboard.writeText(finalScript).catch(() => {});
+    window.open('https://app.heygen.com/create', '_blank');
+    showToast(`🎬 Script copied (${wordCount} words ≈ ${Math.ceil(wordCount/200)} min) — paste in HeyGen`, 'info');
+  };
+
+
 // ─── Parse Strategy ───────────────────────────────────────────────────────────
-function parseStrategy(strategy) {
+const parseStrategy = (strategy) => {
   if (!strategy) return [];
   const text = typeof strategy === 'string' ? strategy : JSON.stringify(strategy, null, 2);
   const patterns = [
@@ -788,7 +977,7 @@ function parseStrategy(strategy) {
   });
   if (sections.length === 0) sections.push({ title: 'Marketing Strategy', icon: '📊', content: text });
   return sections;
-}
+};
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 const CampaignDetail = () => {
