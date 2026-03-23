@@ -20,15 +20,79 @@ const FORMAT_CONFIG = {
 const MARKDOWN_SYSTEM = `You are an expert marketing strategist. Format responses using clean markdown with ## headers, **bold**, bullet points, and > blockquotes. Be specific and actionable.`;
 
 // ── Brand context builder ─────────────────────────────────────────────────────
+// Injects the full brand profile into AI prompts — identity, visual theme,
+// voice/tone, audience insights, and content defaults
 function buildBrandContext(brand) {
   if (!brand) return '';
   const lines = [];
-  if (brand.brand_name)        lines.push(`Brand Name: ${brand.brand_name}`);
-  if (brand.tagline)           lines.push(`Tagline: "${brand.tagline}"`);
-  if (brand.industry)          lines.push(`Industry: ${brand.industry}`);
-  if (brand.target_personas)   lines.push(`Brand Audience: ${brand.target_personas}`);
-  if (brand.brand_colors?.length) lines.push(`Brand Colors: ${brand.brand_colors.join(', ')}`);
-  return lines.length ? `\nBRAND PROFILE:\n${lines.join('\n')}\n` : '';
+
+  // Identity
+  if (brand.brand_name)    lines.push(`Brand Name: ${brand.brand_name}`);
+  if (brand.tagline)       lines.push(`Tagline: "${brand.tagline}"`);
+  if (brand.industry)      lines.push(`Industry: ${brand.industry}`);
+  if (brand.brand_story)   lines.push(`Brand Story: ${brand.brand_story}`);
+
+  // Visual theme
+  if (brand.brand_colors?.length)    lines.push(`Brand Colors: ${brand.brand_colors.join(', ')} — use these throughout`);
+  if (brand.photography_style)       lines.push(`Photography Style: ${brand.photography_style} — apply this aesthetic to all visuals`);
+  if (brand.visual_mood?.length)     lines.push(`Visual Mood: ${brand.visual_mood.join(', ')} — this is the feeling all content should evoke`);
+
+  // Voice and tone
+  if (brand.brand_voice)             lines.push(`Brand Voice: ${brand.brand_voice}`);
+  if (brand.words_always?.length)    lines.push(`Words to always use: ${brand.words_always.join(', ')}`);
+  if (brand.words_never?.length)     lines.push(`Words to never use: ${brand.words_never.join(', ')}`);
+
+  // Audience
+  if (brand.target_personas)         lines.push(`Primary Audience: ${brand.target_personas}`);
+  if (brand.pain_points)             lines.push(`Audience Pain Points: ${brand.pain_points}`);
+  if (brand.audience_desires)        lines.push(`Audience Desires: ${brand.audience_desires}`);
+
+  if (lines.length === 0) return '';
+
+  return `\n--- BRAND PROFILE ---
+${lines.join('\n')}
+IMPORTANT: Every piece of content must reflect this brand identity. Use the brand voice, colors, and aesthetic consistently. Address the audience's pain points and speak to their desires.
+--- END BRAND PROFILE ---\n`;
+}
+
+// ── Build DALL-E visual style from brand ─────────────────────────────────────
+// Translates brand profile fields into DALL-E style language
+function buildVisualStyleFromBrand(brand) {
+  if (!brand) return '';
+  const parts = [];
+
+  // Photography style → DALL-E aesthetic
+  const photoStyleMap = {
+    lifestyle:    'lifestyle photography, natural light, real people and environments, warm and authentic',
+    studio:       'studio photography, controlled lighting, clean backgrounds, precise and polished',
+    documentary:  'documentary style, candid shots, raw and authentic, photojournalistic',
+    bold_graphic: 'bold graphic design, strong geometric shapes, flat design aesthetic, high contrast',
+    minimalist:   'minimalist photography, generous white space, simple composition, refined and elegant',
+  };
+  if (brand.photography_style && photoStyleMap[brand.photography_style]) {
+    parts.push(photoStyleMap[brand.photography_style]);
+  }
+
+  // Visual mood → atmosphere
+  const moodMap = {
+    Warm:       'warm golden tones, inviting atmosphere',
+    Cool:       'cool blue tones, fresh and crisp',
+    Minimal:    'minimal composition, clean and uncluttered',
+    Vibrant:    'vibrant saturated colors, energetic',
+    Dark:       'dark moody atmosphere, dramatic shadows',
+    Earthy:     'earthy natural tones, organic materials',
+    Luxurious:  'luxury aesthetic, premium materials, opulent',
+    Playful:    'playful and fun, bright colors, dynamic',
+    Bold:       'bold strong visuals, commanding presence',
+    Soft:       'soft pastel tones, gentle and delicate',
+    Industrial: 'industrial aesthetic, raw materials, urban',
+    Natural:    'natural organic feel, nature-inspired',
+  };
+  brand.visual_mood?.forEach(mood => {
+    if (moodMap[mood]) parts.push(moodMap[mood]);
+  });
+
+  return parts.join(', ');
 }
 
 // ── Web search ────────────────────────────────────────────────────────────────
@@ -174,7 +238,8 @@ export const generateImagesAI = async (campaignData, referenceImageUrl = null) =
   console.log(`   Formats: ${output_formats?.join(', ')}`);
 
   const brandContext = buildBrandContext(brand);
-  const brandColorHint = brand?.brand_colors?.length ? `Use brand colors: ${brand.brand_colors.join(', ')}.` : '';
+  const brandColorHint  = brand?.brand_colors?.length ? `Use brand colors: ${brand.brand_colors.join(', ')}.` : '';
+  const brandVisualStyle = buildVisualStyleFromBrand(brand);
 
   // Analyse reference image if provided
   let productVisualDescription = '';
@@ -211,6 +276,7 @@ export const generateImagesAI = async (campaignData, referenceImageUrl = null) =
 
     const dallePrompt = [
       `${config.style}.`,
+      brandVisualStyle ? `Brand visual style: ${brandVisualStyle}.` : '',
       `Marketing campaign: "${name}".`,
       `Product: ${product_description?.slice(0, 120) || name}.`,
       `Audience: ${target_audience?.slice(0, 80) || 'general'}.`,
@@ -260,8 +326,12 @@ export const generateCaptionAI = async ({ campaignName, productDescription, targ
 
   const guide = platformGuides[platform] || 'Social media: engaging, clear CTA, relevant hashtags';
 
+  const brandVoice = brand?.brand_voice
+    ? `\nBrand Voice: ${brand.brand_voice}. Words to use: ${brand.words_always?.join(', ') || 'none'}. Words to avoid: ${brand.words_never?.join(', ') || 'none'}.`
+    : '';
+
   const prompt = `Write a social media caption.
-${brandContext}
+${brandContext}${brandVoice}
 Platform rules: ${guide}
 Campaign: ${campaignName}
 Product/Service: ${productDescription}
@@ -371,9 +441,12 @@ export const generateVideoScriptAI = async ({ campaignName, productDescription, 
 
   const brandVoiceGuide = brand ? `
 Brand Voice: ${brand.brand_voice || 'conversational'}
+Brand Tone/Mood: ${brand.visual_mood?.join(', ') || 'not specified'}
 Words to use: ${brand.words_always?.join(', ') || 'none specified'}
 Words to avoid: ${brand.words_never?.join(', ') || 'none specified'}
-Photography/visual style: ${brand.photography_style || 'lifestyle'}` : '';
+Audience Pain Points: ${brand.pain_points || 'not specified'}
+Audience Desires: ${brand.audience_desires || 'not specified'}
+Photography/Visual style: ${brand.photography_style || 'lifestyle'}` : '';
 
   const prompt = `You are an expert video scriptwriter. Write a complete, production-ready video script.
 
