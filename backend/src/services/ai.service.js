@@ -322,3 +322,84 @@ export const generateVisualAI = async ({ campaignName, productDescription, targe
 
   return { imageUrl: data.data[0].url, revisedPrompt: data.data[0].revised_prompt, usedReference: !!productVisualDescription, format, generatedAt: new Date().toISOString() };
 };
+
+// ── Generate video script ─────────────────────────────────────────────────────
+// duration_seconds: how long the video should be
+// brand: full brand profile with voice, tone, style etc.
+export const generateVideoScriptAI = async ({ campaignName, productDescription, targetAudience, durationSeconds, brand, ai_provider = 'gemini' }) => {
+  const wordCount = Math.round(durationSeconds * 130 / 60);
+  const duration  = durationSeconds < 60
+    ? `${durationSeconds} seconds`
+    : `${Math.floor(durationSeconds / 60)} minute${Math.floor(durationSeconds / 60) > 1 ? 's' : ''}${durationSeconds % 60 > 0 ? ` ${durationSeconds % 60} seconds` : ''}`;
+
+  const brandContext = buildBrandContext(brand);
+
+  // Build structure based on duration
+  let structure = '';
+  if (durationSeconds <= 30) {
+    structure = `Structure:
+- Hook (0–3s): Immediately grab attention — bold statement, question, or surprising visual
+- CTA (3–${durationSeconds}s): Drive one clear action`;
+  } else if (durationSeconds <= 90) {
+    structure = `Structure:
+- Hook (0–5s): Stop the scroll immediately
+- Problem (5–30s): Name the pain point your audience feels
+- Solution (30–${Math.round(durationSeconds * 0.8)}s): Show how ${campaignName} solves it
+- CTA (${Math.round(durationSeconds * 0.8)}–${durationSeconds}s): One clear call to action`;
+  } else if (durationSeconds <= 180) {
+    structure = `Structure:
+- Hook (0–10s): Bold opening that stops the viewer
+- Problem (10–40s): Build the pain point with empathy
+- Solution (40–${Math.round(durationSeconds * 0.7)}s): Demonstrate the product clearly
+- Social Proof (${Math.round(durationSeconds * 0.7)}–${Math.round(durationSeconds * 0.88)}s): Credibility and results
+- CTA (${Math.round(durationSeconds * 0.88)}–${durationSeconds}s): Clear next step`;
+  } else if (durationSeconds <= 300) {
+    structure = `Structure:
+- Hook (0–15s): Compelling opening
+- Problem (15–60s): Deep dive into audience pain points
+- Solution (60–${Math.round(durationSeconds * 0.65)}s): Full product demonstration
+- Social Proof (${Math.round(durationSeconds * 0.65)}–${Math.round(durationSeconds * 0.85)}s): Results and testimonials
+- CTA (${Math.round(durationSeconds * 0.85)}–${durationSeconds}s): Offer and next steps`;
+  } else {
+    structure = `Structure:
+- Hook & Promise (0–30s): Bold statement of what the viewer will gain
+- Context (30–120s): Background, problem, and why it matters
+- Core Content (120–${Math.round(durationSeconds * 0.65)}s): Main value, chapters, demonstration
+- Proof (${Math.round(durationSeconds * 0.65)}–${Math.round(durationSeconds * 0.85)}s): Evidence, testimonials, data
+- CTA (${Math.round(durationSeconds * 0.85)}–${durationSeconds}s): Clear next steps and offer`;
+  }
+
+  const brandVoiceGuide = brand ? `
+Brand Voice: ${brand.brand_voice || 'conversational'}
+Words to use: ${brand.words_always?.join(', ') || 'none specified'}
+Words to avoid: ${brand.words_never?.join(', ') || 'none specified'}
+Photography/visual style: ${brand.photography_style || 'lifestyle'}` : '';
+
+  const prompt = `You are an expert video scriptwriter. Write a complete, production-ready video script.
+
+Campaign: ${campaignName}
+Product/Service: ${productDescription}
+Target Audience: ${targetAudience}
+Duration: ${duration} (exactly ${durationSeconds} seconds)
+Target word count: ~${wordCount} words (spoken at 130 words/minute)
+${brandContext}${brandVoiceGuide}
+
+${structure}
+
+SCRIPT FORMAT RULES:
+- Write every word that will be SPOKEN by the presenter/narrator
+- Each scene starts with a timestamp e.g. [0:00–0:05]
+- After the timestamp, add a brief VISUAL NOTE in (parentheses) — what the camera shows
+- Then write the exact spoken words on a new line
+- Keep sentences short and punchy — this is spoken, not read
+- No markdown headers, no bullet points in the spoken text
+- The spoken words must flow naturally when read aloud
+- End with a strong, specific CTA — tell them exactly what to do
+
+Write the full script now. Start immediately with [0:00].`;
+
+  console.log(`\n🎬 Generating ${duration} video script for: ${campaignName}`);
+  const script = await callAI(ai_provider, prompt);
+  console.log('✅ Video script done\n');
+  return script;
+};

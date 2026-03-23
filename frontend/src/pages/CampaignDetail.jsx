@@ -4,7 +4,7 @@ import {
   getCampaignById, generateIdeas, generateStrategy, getCampaignMedia,
   saveContent, getSavedContent, deleteSavedContent,
 } from '../services/api';
-import { OUTPUT_FORMATS } from '../constants/outputFormats';
+import { OUTPUT_FORMATS, isVideoFormat, isImageFormat } from '../constants/outputFormats';
 import MediaUpload from '../components/MediaUpload';
 import ReactMarkdown from 'react-markdown';
 
@@ -151,6 +151,185 @@ const ShareModal = ({ isOpen, onClose, imageUrl, format, campaignId, campaignNam
               className="flex items-center justify-center gap-2 w-full py-2.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl text-sm hover:bg-gray-700 transition-all">
               ⬇️ Download Image
             </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Video Script Card ────────────────────────────────────────────────────────
+const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
+  const [script,        setScript]        = useState('');
+  const [generating,    setGenerating]    = useState(false);
+  const [videoUrl,      setVideoUrl]      = useState('');
+  const [importing,     setImporting]     = useState(false);
+  const [importInput,   setImportInput]   = useState('');
+  const [copied,        setCopied]        = useState(false);
+  const [saved,         setSaved]         = useState(false);
+  const [expanded,      setExpanded]      = useState(false);
+
+  const duration = campaign.video_duration || 60;
+  const wordCount = Math.round(duration * 130 / 60);
+  const fmtDur = (s) => s < 60 ? `${s}s` : `${Math.floor(s/60)}m${s%60>0?` ${s%60}s`:''}`;
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setScript('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/campaigns/${campaignId}/generate-script`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ duration_seconds: duration }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to generate script');
+      setScript(data.script);
+      setExpanded(true);
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleCopyScript = () => {
+    // Strip markdown for clean HeyGen paste
+    const clean = script
+      .replace(/#{1,6}\s*/g, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .trim();
+    navigator.clipboard.writeText(clean);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+    showToast('📋 Clean script copied — paste it in HeyGen', 'info');
+  };
+
+  const handleHeyGen = () => {
+    handleCopyScript();
+    window.open('https://app.heygen.com/create', '_blank');
+  };
+
+  const handleImport = async () => {
+    if (!importInput.trim()) return;
+    setImporting(true);
+    try {
+      await onSave({
+        title:        `🎬 Video — ${campaign.name}`,
+        content:      importInput.trim(),
+        content_type: 'video_import',
+        format:       'VIDEO_SCRIPT',
+        key:          `video_script_${Date.now()}`,
+      });
+      setVideoUrl(importInput.trim());
+      setImportInput('');
+      showToast('📥 Video imported and saved!', 'success');
+    } catch { showToast('Failed to import video', 'error'); }
+    finally { setImporting(false); }
+  };
+
+  const handleSaveScript = async () => {
+    if (!script || saved) return;
+    await onSave({
+      title:        `📝 Script (${fmtDur(duration)}) — ${campaign.name}`,
+      content:      script,
+      content_type: 'video_script',
+      format:       'VIDEO_SCRIPT',
+      key:          `script_${Date.now()}`,
+    });
+    setSaved(true);
+  };
+
+  return (
+    <div className="bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center text-lg flex-shrink-0">🎬</div>
+          <div>
+            <div className="font-bold text-white text-sm">Video Script</div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              {fmtDur(duration)} · ~{wordCount} words · Ready for HeyGen
+            </div>
+          </div>
+        </div>
+        <button onClick={handleGenerate} disabled={generating}
+          className="flex items-center gap-1.5 px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 rounded-lg text-xs font-bold transition-all disabled:opacity-50">
+          {generating ? (
+            <><svg className="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg> Generating...</>
+          ) : script ? '🔄 Regenerate' : '✨ Generate Script'}
+        </button>
+      </div>
+
+      {/* Script output */}
+      {script && (
+        <div className="border-b border-gray-800">
+          <button onClick={() => setExpanded(!expanded)}
+            className="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-800/40 transition-all">
+            <span className="text-xs font-semibold text-gray-400">
+              {expanded ? 'Hide script' : 'View script'}
+            </span>
+            <span className={`text-gray-500 text-xs transition-transform ${expanded ? 'rotate-180' : ''}`}>▼</span>
+          </button>
+          {expanded && (
+            <div className="px-5 pb-4">
+              <div className="bg-gray-800/50 rounded-xl p-4 max-h-96 overflow-y-auto">
+                <pre className="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed font-mono">{script}</pre>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button onClick={handleCopyScript}
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${copied ? 'bg-amber-500 text-gray-900' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
+                  {copied ? '✅ Copied!' : '📋 Copy Clean Script'}
+                </button>
+                <button onClick={handleSaveScript} disabled={saved}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border ${saved ? 'bg-amber-500/20 border-amber-500/40 text-amber-400' : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'}`}>
+                  {saved ? '✅' : '🔖 Save'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* HeyGen + Import */}
+      <div className="p-5 space-y-4">
+        {/* Step 1 — HeyGen */}
+        <div>
+          <p className="text-xs font-semibold text-gray-400 mb-2">Step 1 — Produce the video</p>
+          <button onClick={handleHeyGen} disabled={!script}
+            className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg">
+            🎬 Copy Script & Open HeyGen
+          </button>
+          {!script && <p className="text-xs text-gray-600 mt-1.5 text-center">Generate the script first</p>}
+        </div>
+
+        {/* Step 2 — Import */}
+        <div>
+          <p className="text-xs font-semibold text-gray-400 mb-2">Step 2 — Import your video</p>
+          {videoUrl ? (
+            <div className="flex items-center gap-3 p-3 bg-emerald-900/20 border border-emerald-700/40 rounded-xl">
+              <span className="text-emerald-400 text-lg flex-shrink-0">✅</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-emerald-300">Video imported</p>
+                <a href={videoUrl} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-emerald-500 hover:text-emerald-400 truncate block mt-0.5">
+                  {videoUrl.slice(0, 50)}...
+                </a>
+              </div>
+              <button onClick={() => setVideoUrl('')} className="text-gray-500 hover:text-gray-300 text-xs flex-shrink-0">✕</button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input value={importInput} onChange={e => setImportInput(e.target.value)}
+                placeholder="Paste your HeyGen video URL here..."
+                className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 text-white text-xs rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none placeholder-gray-600" />
+              <button onClick={handleImport} disabled={!importInput.trim() || importing}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 flex-shrink-0">
+                {importing ? '⏳' : '📥 Import'}
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -423,6 +602,7 @@ const CampaignDetail = () => {
         output_formats:  Array.isArray(raw.output_formats) ? raw.output_formats : [],
         status:          String(raw.status || ''),
         created_at:      raw.created_at,
+        video_duration:  raw.video_duration || null,
         generated_content: Array.isArray(raw.generated_content) ? raw.generated_content : [],
       });
       // Load any previously generated images
@@ -608,6 +788,18 @@ const CampaignDetail = () => {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Video Script Card — shown if campaign has VIDEO_SCRIPT format */}
+        {campaign.output_formats?.includes('VIDEO_SCRIPT') && (
+          <div className="mb-6">
+            <VideoScriptCard
+              campaignId={id}
+              campaign={campaign}
+              showToast={showToast}
+              onSave={handleSave}
+            />
           </div>
         )}
 

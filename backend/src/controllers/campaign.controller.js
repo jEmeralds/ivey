@@ -86,7 +86,7 @@ export const getCampaignById = async (req, res) => {
 export const createCampaign = async (req, res) => {
   try {
     const userId = req.userId;
-    const { name, description, targetAudience, aiProvider, outputFormats, brandName, websiteUrl, brandProfileId } = req.body;
+    const { name, description, targetAudience, aiProvider, outputFormats, brandName, websiteUrl, brandProfileId, videoDuration } = req.body;
 
     if (!name || !description || !targetAudience || !outputFormats || outputFormats.length === 0) {
       return res.status(400).json({ error: 'All fields are required' });
@@ -110,6 +110,7 @@ export const createCampaign = async (req, res) => {
         ai_provider:         aiProvider || 'openai',
         output_formats:      outputFormats,
         brand_profile_id:    brandProfileId || null,
+        video_duration:      videoDuration || null,
       }])
       .select()
       .single();
@@ -330,5 +331,48 @@ export const generateVisual = async (req, res) => {
     if (error.message?.includes('billing') || error.message?.includes('quota')) return res.status(402).json({ error: 'OpenAI billing limit reached.' });
     if (error.message?.includes('content_policy') || error.message?.includes('safety')) return res.status(422).json({ error: 'Image blocked by content policy.' });
     res.status(500).json({ error: error.message || 'Failed to generate visual' });
+  }
+};
+
+// ── Generate video script ─────────────────────────────────────────────────────
+// POST /api/campaigns/:id/generate-script
+export const generateVideoScript = async (req, res) => {
+  try {
+    const { id }     = req.params;
+    const userId     = req.userId;
+    const { duration_seconds, ai_provider } = req.body;
+
+    const { data: campaign, error: campaignError } = await supabaseAdmin
+      .from('campaigns').select('*').eq('id', id).eq('user_id', userId).single();
+
+    if (campaignError || !campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+    const brand = await getBrandForCampaign(campaign, userId);
+
+    // Duration: from request body, or campaign stored value, or brand default, or 60s
+    const durationSeconds = duration_seconds
+      || campaign.video_duration
+      || brand?.default_video_length
+      || 60;
+
+    const { generateVideoScriptAI } = await import('../services/ai.service.js');
+
+    const script = await generateVideoScriptAI({
+      campaignName:       campaign.name,
+      productDescription: campaign.product_description,
+      targetAudience:     campaign.target_audience,
+      durationSeconds,
+      brand,
+      ai_provider:        ai_provider || campaign.ai_provider || 'gemini',
+    });
+
+    res.json({
+      script,
+      duration_seconds: durationSeconds,
+      word_count: Math.round(durationSeconds * 130 / 60),
+    });
+  } catch (error) {
+    console.error('Generate script error:', error);
+    res.status(500).json({ error: error.message || 'Failed to generate script' });
   }
 };

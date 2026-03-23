@@ -10,6 +10,7 @@ import {
   generateMarketingStrategy,
   generateVisual,
   generateCaption,
+  generateVideoScript,
 } from '../controllers/campaign.controller.js';
 
 const router = express.Router();
@@ -24,6 +25,7 @@ router.delete('/:id',                  deleteCampaign);
 router.post('/:id/generate',           generateIdeas);
 router.post('/:id/generate-strategy',  generateMarketingStrategy);
 router.post('/:id/generate-visual',    generateVisual);
-router.post('/:id/caption',            generateCaption);  // ← caption at share time
+router.post('/:id/caption',            generateCaption);
+router.post('/:id/generate-script',    generateVideoScript);  // ← video script
 
 export default router;
