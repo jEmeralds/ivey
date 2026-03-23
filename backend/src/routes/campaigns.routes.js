@@ -9,20 +9,21 @@ import {
   generateIdeas,
   generateMarketingStrategy,
   generateVisual,
+  generateCaption,
 } from '../controllers/campaign.controller.js';
 
 const router = express.Router();
 
-// All routes require authentication
 router.use(authenticateToken);
 
-router.get('/',           getCampaigns);
-router.get('/:id',        getCampaignById);
-router.post('/',          createCampaign);
-router.put('/:id',        updateCampaign);
-router.delete('/:id',     deleteCampaign);
-router.post('/:id/generate',          generateIdeas);
-router.post('/:id/generate-strategy', generateMarketingStrategy);
-router.post('/:id/generate-visual',   generateVisual);   // â† NEW
+router.get('/',                        getCampaigns);
+router.get('/:id',                     getCampaignById);
+router.post('/',                       createCampaign);
+router.put('/:id',                     updateCampaign);
+router.delete('/:id',                  deleteCampaign);
+router.post('/:id/generate',           generateIdeas);
+router.post('/:id/generate-strategy',  generateMarketingStrategy);
+router.post('/:id/generate-visual',    generateVisual);
+router.post('/:id/caption',            generateCaption);  // ← caption at share time
 
 export default router;
