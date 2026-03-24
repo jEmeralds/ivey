@@ -36,13 +36,18 @@ function Sparkline({ data, color = '#6366f1', isDark }) {
   );
 }
 
-// ── Post/Upload Modal (always dark — it's a modal overlay, intentional) ───────
-function PostModal({ platform, prefillText, campaignId, onClose, onPosted }) {
+// ── Post Modal ────────────────────────────────────────────────────────────────
+// prefillText  — text to pre-populate the post textarea
+// prefillImage — image URL (DALL-E generated) to attach to the post
+function PostModal({ platform, prefillText, prefillImage, campaignId, onClose, onPosted }) {
   const [tab,      setTab]      = useState('post');
   const [text,     setText]     = useState(prefillText || '');
-  const [caption,  setCaption]  = useState('');
+  const [caption,  setCaption]  = useState(prefillText || '');
   const [files,    setFiles]    = useState([]);
-  const [previews, setPreviews] = useState([]);
+  const [previews, setPreviews] = useState(
+    // Pre-populate preview with DALL-E image URL if provided
+    prefillImage ? [{ url: prefillImage, type: 'image/url', isUrl: true }] : []
+  );
   const [posting,  setPosting]  = useState(false);
   const [error,    setError]    = useState('');
   const [success,  setSuccess]  = useState(null);
@@ -51,10 +56,17 @@ function PostModal({ platform, prefillText, campaignId, onClose, onPosted }) {
   const charLimit = platform === 'twitter' ? 280 : 2200;
   const remaining = charLimit - (tab === 'post' ? text : caption).length;
 
+  // If prefillImage is provided, default to upload tab so user sees the image
+  useEffect(() => {
+    if (prefillImage) setTab('upload');
+  }, [prefillImage]);
+
   const handleFiles = (e) => {
     const selected = Array.from(e.target.files).slice(0, 4);
     setFiles(selected);
-    setPreviews(selected.map(f => ({ url: URL.createObjectURL(f), type: f.type })));
+    // Keep prefill image previews + add new ones
+    const newPreviews = selected.map(f => ({ url: URL.createObjectURL(f), type: f.type, isUrl: false }));
+    setPreviews(prefillImage ? [{ url: prefillImage, type: 'image/url', isUrl: true }, ...newPreviews] : newPreviews);
   };
 
   const handlePost = async () => {
@@ -74,12 +86,15 @@ function PostModal({ platform, prefillText, campaignId, onClose, onPosted }) {
   };
 
   const handleUpload = async () => {
-    if (!files.length && !caption.trim()) return setError('Add media or caption');
     setPosting(true); setError('');
     try {
       const form = new FormData();
       form.append('caption', caption.slice(0, charLimit));
       if (campaignId) form.append('campaignId', campaignId);
+      // If we have a DALL-E image URL, send it as imageUrl so backend can fetch it
+      if (prefillImage && files.length === 0) {
+        form.append('imageUrl', prefillImage);
+      }
       files.forEach(f => form.append('media', f));
       const res = await fetch(`${API_BASE}/social/${platform}/upload`, {
         method: 'POST',
@@ -97,22 +112,31 @@ function PostModal({ platform, prefillText, campaignId, onClose, onPosted }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
       onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ background: '#0c1420', border: '1px solid #1e293b', borderRadius: 18, width: '100%', maxWidth: 500, margin: '0 16px', overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6)' }}>
+      <div style={{ background: '#0c1420', border: '1px solid #1e293b', borderRadius: 18, width: '100%', maxWidth: 520, margin: '0 16px', overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.6)' }}>
+
+        {/* Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 30, height: 30, borderRadius: 8, background: p.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: '#fff' }}>{p.icon}</div>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Post to {p.name}</span>
+            <div>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Post to {p.name}</span>
+              {prefillText && <div style={{ fontSize: 10, color: '#10b981', marginTop: 1 }}>✓ Pre-filled with campaign content</div>}
+            </div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#475569', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
         </div>
+
+        {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '1px solid #1e293b' }}>
-          {[{ id: 'post', label: '✏️ Write Post' }, { id: 'upload', label: '📎 Upload Media' }].map(t => (
+          {[{ id: 'post', label: '✏️ Write Post' }, { id: 'upload', label: '📎 Post with Media' }].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               style={{ flex: 1, padding: '10px 0', background: 'transparent', border: 'none', borderBottom: tab === t.id ? `2px solid ${p.color}` : '2px solid transparent', color: tab === t.id ? '#f1f5f9' : '#475569', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
               {t.label}
+              {t.id === 'upload' && prefillImage && <span style={{ marginLeft: 5, fontSize: 9, color: '#10b981', background: 'rgba(16,185,129,0.12)', padding: '1px 5px', borderRadius: 8 }}>image ready</span>}
             </button>
           ))}
         </div>
+
         <div style={{ padding: 20 }}>
           {success ? (
             <div style={{ textAlign: 'center', padding: '24px 0' }}>
@@ -124,44 +148,73 @@ function PostModal({ platform, prefillText, campaignId, onClose, onPosted }) {
             </div>
           ) : tab === 'post' ? (
             <>
-              <textarea value={text} onChange={e => setText(e.target.value)} placeholder="What's on your mind?" maxLength={charLimit} rows={5}
-                style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#f1f5f9', resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.6 }} />
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
-                <span style={{ fontSize: 11, color: remaining < 20 ? '#ef4444' : '#475569' }}>{remaining} remaining</span>
-                {error && <span style={{ fontSize: 11, color: '#ef4444', maxWidth: 200, textAlign: 'right' }}>{error}</span>}
+              {/* Character count indicator */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 10, color: '#475569' }}>Compose your post</span>
+                <span style={{ fontSize: 10, color: remaining < 20 ? '#ef4444' : '#475569' }}>{remaining} / {charLimit}</span>
+              </div>
+              <textarea value={text} onChange={e => setText(e.target.value)} placeholder="What's on your mind?" maxLength={charLimit} rows={6}
+                style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#f1f5f9', resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.6 }}
+                autoFocus />
+              {error && <div style={{ marginTop: 8, fontSize: 11, color: '#ef4444', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 7, padding: '6px 10px' }}>{error}</div>}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 12, gap: 8 }}>
+                <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, background: 'transparent', border: '1px solid #334155', color: '#64748b', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
                 <button onClick={handlePost} disabled={posting || !text.trim() || remaining < 0}
-                  style={{ padding: '8px 22px', borderRadius: 8, background: p.color, border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: posting ? 'not-allowed' : 'pointer', opacity: posting ? 0.6 : 1 }}>
+                  style={{ padding: '8px 22px', borderRadius: 8, background: p.color, border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: posting ? 'not-allowed' : 'pointer', opacity: posting || !text.trim() ? 0.5 : 1 }}>
                   {posting ? 'Posting...' : 'Post Now'}
                 </button>
               </div>
             </>
           ) : (
             <>
-              <div onClick={() => fileRef.current.click()} style={{ width: '100%', minHeight: 100, borderRadius: 10, background: '#1e293b', border: '2px dashed #334155', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, overflow: 'hidden' }}>
-                {previews.length ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: previews.length > 1 ? '1fr 1fr' : '1fr', gap: 4, width: '100%', padding: 4 }}>
-                    {previews.map((pv, i) => (
-                      pv.type.startsWith('video')
-                        ? <video key={i} src={pv.url} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 6 }} />
-                        : <img key={i} src={pv.url} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 6 }} />
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: 20 }}>
-                    <div style={{ fontSize: 28, opacity: 0.3, marginBottom: 6 }}>📎</div>
-                    <div style={{ fontSize: 11, color: '#475569' }}>Click to add photos or videos (max 4)</div>
-                  </div>
+              {/* Media area */}
+              <div style={{ position: 'relative', marginBottom: 12 }}>
+                <div onClick={() => fileRef.current.click()}
+                  style={{ width: '100%', minHeight: 120, borderRadius: 10, background: '#1e293b', border: previews.length ? '1px solid #334155' : '2px dashed #334155', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  {previews.length ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: previews.length > 1 ? '1fr 1fr' : '1fr', gap: 4, width: '100%', padding: 4 }}>
+                      {previews.map((pv, i) => (
+                        <div key={i} style={{ position: 'relative' }}>
+                          {pv.type.startsWith('video')
+                            ? <video src={pv.url} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6 }} />
+                            : <img src={pv.url} alt="" style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6 }} />
+                          }
+                          {pv.isUrl && (
+                            <div style={{ position: 'absolute', top: 4, left: 4, background: 'rgba(16,185,129,0.85)', borderRadius: 5, padding: '2px 6px', fontSize: 9, color: '#fff', fontWeight: 700 }}>AI Generated</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: 24 }}>
+                      <div style={{ fontSize: 28, opacity: 0.3, marginBottom: 6 }}>📎</div>
+                      <div style={{ fontSize: 11, color: '#475569' }}>Click to add photos or videos</div>
+                      <div style={{ fontSize: 10, color: '#334155', marginTop: 3 }}>Max 4 files · JPG, PNG, MP4</div>
+                    </div>
+                  )}
+                </div>
+                {previews.length > 0 && (
+                  <button onClick={e => { e.stopPropagation(); setFiles([]); setPreviews(prefillImage ? [{ url: prefillImage, type: 'image/url', isUrl: true }] : []); }}
+                    style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
                 )}
               </div>
               <input ref={fileRef} type="file" accept="image/*,video/*" multiple style={{ display: 'none' }} onChange={handleFiles} />
+
+              {/* Caption */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 10, color: '#475569' }}>Caption</span>
+                <span style={{ fontSize: 10, color: remaining < 20 ? '#ef4444' : '#475569' }}>{remaining} / {charLimit}</span>
+              </div>
               <textarea value={caption} onChange={e => setCaption(e.target.value)} placeholder="Write a caption..." maxLength={charLimit} rows={3}
                 style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: '#f1f5f9', resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', marginBottom: 10 }} />
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 11, color: remaining < 20 ? '#ef4444' : '#475569' }}>{remaining} remaining</span>
-                {error && <span style={{ fontSize: 11, color: '#ef4444' }}>{error}</span>}
-                <button onClick={handleUpload} disabled={posting}
+
+              {error && <div style={{ marginBottom: 10, fontSize: 11, color: '#ef4444', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 7, padding: '6px 10px' }}>{error}</div>}
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+                <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, background: 'transparent', border: '1px solid #334155', color: '#64748b', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
+                <button onClick={handleUpload} disabled={posting || (previews.length === 0 && !caption.trim())}
                   style={{ padding: '8px 22px', borderRadius: 8, background: p.color, border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: posting ? 'not-allowed' : 'pointer', opacity: posting ? 0.6 : 1 }}>
-                  {posting ? 'Uploading...' : 'Upload & Post'}
+                  {posting ? 'Posting...' : previews.length > 0 ? 'Post with Media' : 'Post'}
                 </button>
               </div>
             </>
@@ -208,7 +261,7 @@ function PostItem({ post, pm, card, border, textPri, textMut, onRetry, onDelete 
 
 // ── Analytics Panel ───────────────────────────────────────────────────────────
 export function AnalyticsPanel() {
-  const isDark = useDarkMode(); // ← reactive
+  const isDark = useDarkMode();
   const [stats,   setStats]   = useState(null);
   const [posts,   setPosts]   = useState([]);
   const [filter,  setFilter]  = useState('all');
@@ -217,23 +270,16 @@ export function AnalyticsPanel() {
   useEffect(() => {
     Promise.all([
       fetch(`${API_BASE}/social/posts/stats`, { headers: { Authorization: `Bearer ${getToken()}` } }).then(r => r.json()),
-      fetch(`${API_BASE}/social/posts?limit=20`,  { headers: { Authorization: `Bearer ${getToken()}` } }).then(r => r.json()),
-    ]).then(([s, p]) => {
-      setStats(s);
-      setPosts(p.posts || []);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+      fetch(`${API_BASE}/social/posts?limit=20`, { headers: { Authorization: `Bearer ${getToken()}` } }).then(r => r.json()),
+    ]).then(([s, p]) => { setStats(s); setPosts(p.posts || []); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
   const handleRetry = async (postId) => {
     try {
-      const res = await fetch(`${API_BASE}/social/posts/${postId}/retry`, {
-        method: 'POST', headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await fetch(`${API_BASE}/social/posts/${postId}/retry`, { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` } });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: 'published', platform_url: data.url } : p));
-      setStats(prev => prev ? { ...prev, published: (prev.published || 0) + 1, failed: Math.max(0, (prev.failed || 0) - 1) } : prev);
     } catch (err) { alert('Retry failed: ' + err.message); }
   };
 
@@ -241,71 +287,58 @@ export function AnalyticsPanel() {
     const post = posts.find(p => p.id === postId);
     if (!window.confirm('Delete this post?' + (post?.status === 'published' ? ' This will also delete it from Twitter.' : ''))) return;
     try {
-      const res = await fetch(`${API_BASE}/social/posts/${postId}`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await fetch(`${API_BASE}/social/posts/${postId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` } });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setPosts(prev => prev.filter(p => p.id !== postId));
-      setStats(prev => prev ? { ...prev, total: Math.max(0, (prev.total || 0) - 1) } : prev);
     } catch (err) { alert('Delete failed: ' + err.message); }
   };
 
   const filtered = filter === 'all' ? posts : posts.filter(p => p.platform === filter);
-
-  // ← Reactive theme tokens
-  const bg      = isDark ? '#080e1a' : '#f8fafc';
-  const card    = isDark ? '#0f172a' : '#ffffff';
-  const border  = isDark ? '#1e293b' : '#e2e8f0';
+  const bg = isDark ? '#080e1a' : '#f8fafc';
+  const card = isDark ? '#0f172a' : '#ffffff';
+  const border = isDark ? '#1e293b' : '#e2e8f0';
   const textPri = isDark ? '#f1f5f9' : '#0f172a';
   const textMut = isDark ? '#475569' : '#64748b';
 
   if (loading) return <div style={{ padding: 20, color: textMut, fontSize: 12 }}>Loading analytics...</div>;
 
   return (
-    <div style={{ background: bg, borderRadius: 14, padding: 20, transition: 'background 0.2s, color 0.2s' }}>
-      {/* Stats row */}
+    <div style={{ background: bg, borderRadius: 14, padding: 20 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
-          { label: 'Total Posts', value: stats?.total || 0,     color: '#6366f1' },
-          { label: 'Published',   value: stats?.published || 0, color: '#10b981' },
-          { label: 'Failed',      value: stats?.failed || 0,    color: '#ef4444' },
+          { label: 'Total Posts', value: stats?.total || 0, color: '#6366f1' },
+          { label: 'Published', value: stats?.published || 0, color: '#10b981' },
+          { label: 'Failed', value: stats?.failed || 0, color: '#ef4444' },
           ...Object.entries(stats?.byPlatform || {}).map(([p, c]) => ({ label: PLATFORM_META[p]?.name || p, value: c, color: PLATFORM_META[p]?.color || '#475569' })),
         ].map((s, i) => (
-          <div key={i} style={{ background: card, border: `1px solid ${border}`, borderRadius: 10, padding: '12px 14px', transition: 'background 0.2s' }}>
+          <div key={i} style={{ background: card, border: `1px solid ${border}`, borderRadius: 10, padding: '12px 14px' }}>
             <div style={{ fontSize: 20, fontWeight: 900, color: s.color }}>{s.value}</div>
             <div style={{ fontSize: 10, color: textMut, marginTop: 2 }}>{s.label}</div>
           </div>
         ))}
       </div>
-
-      {/* Sparkline */}
       {stats?.byDay?.length > 0 && (
-        <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 10, padding: '14px 16px', marginBottom: 16, transition: 'background 0.2s' }}>
+        <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
           <div style={{ fontSize: 10, color: textMut, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Posts — last 14 days</div>
           <Sparkline data={stats.byDay} color="#6366f1" isDark={isDark} />
         </div>
       )}
-
-      {/* Filters */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         {['all', ...Object.keys(stats?.byPlatform || {})].map(p => (
           <button key={p} onClick={() => setFilter(p)}
-            style={{ padding: '4px 12px', borderRadius: 20, border: `1px solid ${filter === p ? (PLATFORM_META[p]?.color || '#6366f1') : border}`, background: filter === p ? ((PLATFORM_META[p]?.color || '#6366f1') + '18') : 'transparent', color: filter === p ? (PLATFORM_META[p]?.color || '#6366f1') : textMut, fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize', transition: 'all 0.2s' }}>
+            style={{ padding: '4px 12px', borderRadius: 20, border: `1px solid ${filter === p ? (PLATFORM_META[p]?.color || '#6366f1') : border}`, background: filter === p ? ((PLATFORM_META[p]?.color || '#6366f1') + '18') : 'transparent', color: filter === p ? (PLATFORM_META[p]?.color || '#6366f1') : textMut, fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize' }}>
             {p === 'all' ? `All (${posts.length})` : `${PLATFORM_META[p]?.name || p} (${stats.byPlatform[p]})`}
           </button>
         ))}
       </div>
-
-      {/* Post list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
         {filtered.length === 0
           ? <div style={{ fontSize: 12, color: textMut, textAlign: 'center', padding: 20 }}>No posts yet</div>
           : filtered.map(post => {
               const pm = PLATFORM_META[post.platform] || {};
               return <PostItem key={post.id} post={post} pm={pm} card={card} border={border} textPri={textPri} textMut={textMut} onRetry={handleRetry} onDelete={handleDelete} />;
-            })
-        }
+            })}
       </div>
     </div>
   );
@@ -313,7 +346,7 @@ export function AnalyticsPanel() {
 
 // ── Main SocialConnect ────────────────────────────────────────────────────────
 export default function SocialConnect() {
-  const isDark = useDarkMode(); // ← reactive, no more prop
+  const isDark = useDarkMode();
   const [connections,   setConnections]   = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [connecting,    setConnecting]    = useState(null);
@@ -373,8 +406,6 @@ export default function SocialConnect() {
   };
 
   const getConn = (pid) => connections.find(c => c.platform === pid);
-
-  // ← Reactive theme tokens
   const surface = isDark ? '#0f172a' : '#ffffff';
   const rowBg   = isDark ? '#080e1a' : '#f8fafc';
   const border  = isDark ? '#1e293b' : '#e2e8f0';
@@ -383,14 +414,14 @@ export default function SocialConnect() {
 
   return (
     <>
-      <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 24, transition: 'background 0.2s, border-color 0.2s' }}>
+      <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}>
         <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {PLATFORMS.map(platform => {
             const conn   = getConn(platform.id);
             const isConn = !!conn;
             const isBusy = connecting === platform.id || disconnecting === platform.id;
             return (
-              <div key={platform.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', borderRadius: 11, border: `1px solid ${isConn ? platform.color + '33' : border}`, background: isConn ? platform.color + '08' : rowBg, transition: 'all 0.2s' }}>
+              <div key={platform.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', borderRadius: 11, border: `1px solid ${isConn ? platform.color + '33' : border}`, background: isConn ? platform.color + '08' : rowBg }}>
                 <div style={{ width: 36, height: 36, borderRadius: 9, background: platform.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: '#fff', flexShrink: 0, boxShadow: isConn ? `0 0 0 3px ${platform.color}33` : 'none' }}>
                   {platform.icon}
                 </div>
@@ -436,7 +467,14 @@ export default function SocialConnect() {
       </div>
 
       {postModal && (
-        <PostModal platform={postModal.platform} prefillText={postModal.prefillText} campaignId={postModal.campaignId} onClose={() => setPostModal(null)} onPosted={() => showToast('✅ Posted and logged!')} />
+        <PostModal
+          platform={postModal.platform}
+          prefillText={postModal.prefillText}
+          prefillImage={postModal.prefillImage}
+          campaignId={postModal.campaignId}
+          onClose={() => setPostModal(null)}
+          onPosted={() => showToast('✅ Posted and logged!')}
+        />
       )}
 
       {toast && (
@@ -449,12 +487,19 @@ export default function SocialConnect() {
 }
 
 // ── usePostToSocial hook ──────────────────────────────────────────────────────
+// Now accepts prefillImage (DALL-E URL) alongside prefillText
 export function usePostToSocial() {
   const [modal, setModal] = useState(null);
-  const open  = ({ platform, text, campaignId }) => setModal({ platform, prefillText: text, campaignId });
+  const open  = ({ platform, text, imageUrl, campaignId }) => setModal({ platform, prefillText: text, prefillImage: imageUrl, campaignId });
   const close = () => setModal(null);
   const ModalSlot = modal ? (
-    <PostModal platform={modal.platform} prefillText={modal.prefillText} campaignId={modal.campaignId} onClose={close} />
+    <PostModal
+      platform={modal.platform}
+      prefillText={modal.prefillText}
+      prefillImage={modal.prefillImage}
+      campaignId={modal.campaignId}
+      onClose={close}
+    />
   ) : null;
   return { open, ModalSlot };
 }
