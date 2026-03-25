@@ -1,7 +1,4 @@
 // backend/src/routes/social.routes.js
-// Social OAuth + posting + upload + analytics
-// npm install twitter-api-v2 multer (backend)
-
 import express from 'express';
 import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
@@ -25,32 +22,22 @@ const oauthStateStore = new Map();
 async function logPost({ userId, campaignId, platform, contentText, mediaUrls, caption, platformPostId, platformUrl, postType, source, status, errorMessage }) {
   try {
     await supabase.from('social_posts').insert({
-      user_id: userId,
-      campaign_id: campaignId || null,
-      platform,
-      content_text: contentText || null,
-      media_urls: mediaUrls || null,
-      caption: caption || null,
-      platform_post_id: platformPostId || null,
-      platform_url: platformUrl || null,
-      post_type: postType || 'text',
-      source: source || 'ivey',
-      status: status || 'published',
-      error_message: errorMessage || null,
-      posted_at: new Date().toISOString(),
+      user_id: userId, campaign_id: campaignId || null, platform,
+      content_text: contentText || null, media_urls: mediaUrls || null,
+      caption: caption || null, platform_post_id: platformPostId || null,
+      platform_url: platformUrl || null, post_type: postType || 'text',
+      source: source || 'ivey', status: status || 'published',
+      error_message: errorMessage || null, posted_at: new Date().toISOString(),
     });
-  } catch (e) {
-    console.error('Failed to log post:', e.message);
-  }
+  } catch (e) { console.error('Failed to log post:', e.message); }
 }
 
+// OAuth 2.0 client — used for text-only tweets via connected account
 async function getTwitterClient(userId) {
   const { data: conn } = await supabase
     .from('social_connections')
     .select('access_token, refresh_token, token_expiry')
-    .eq('user_id', userId)
-    .eq('platform', 'twitter')
-    .single();
+    .eq('user_id', userId).eq('platform', 'twitter').single();
   if (!conn) return null;
   const { TwitterApi } = await import('twitter-api-v2');
   let accessToken = conn.access_token;
@@ -59,8 +46,7 @@ async function getTwitterClient(userId) {
     const refreshed = await base.refreshOAuth2Token(conn.refresh_token);
     accessToken = refreshed.accessToken;
     await supabase.from('social_connections').update({
-      access_token: refreshed.accessToken,
-      refresh_token: refreshed.refreshToken,
+      access_token: refreshed.accessToken, refresh_token: refreshed.refreshToken,
       token_expiry: refreshed.expiresIn ? new Date(Date.now() + refreshed.expiresIn * 1000).toISOString() : null,
       updated_at: new Date().toISOString(),
     }).eq('user_id', userId).eq('platform', 'twitter');
@@ -80,11 +66,8 @@ router.get('/connections', auth, async (req, res) => {
 
 // ── DELETE /api/social/disconnect/:platform ───────────────────────────────────
 router.delete('/disconnect/:platform', auth, async (req, res) => {
-  const { error } = await supabase
-    .from('social_connections')
-    .delete()
-    .eq('user_id', req.userId)
-    .eq('platform', req.params.platform);
+  const { error } = await supabase.from('social_connections').delete()
+    .eq('user_id', req.userId).eq('platform', req.params.platform);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: `Disconnected from ${req.params.platform}` });
 });
@@ -137,7 +120,7 @@ router.get('/twitter/callback', async (req, res) => {
   }
 });
 
-// ── POST /api/social/twitter/post — text tweet ────────────────────────────────
+// ── POST /api/social/twitter/post — text-only tweet ───────────────────────────
 router.post('/twitter/post', auth, async (req, res) => {
   const { text, campaignId } = req.body;
   if (!text?.trim()) return res.status(400).json({ error: 'text is required' });
@@ -159,57 +142,67 @@ router.post('/twitter/post', auth, async (req, res) => {
 });
 
 // ── POST /api/social/twitter/upload — tweet with media ───────────────────────
-// Uses OAuth 1.0a for media upload (Twitter v1 requirement) + v2 for posting
+// Uses OAuth 1.0a for BOTH media upload AND posting the tweet
+// Also handles imageUrl (DALL-E generated image) sent as form field
 router.post('/twitter/upload', auth, upload.array('media', 4), async (req, res) => {
-  const { caption, campaignId } = req.body;
+  const { caption, campaignId, imageUrl } = req.body;
   const files = req.files || [];
   let status = 'failed'; let platformPostId = null; let platformUrl = null; let errorMessage = null;
   try {
     const { TwitterApi } = await import('twitter-api-v2');
 
-    // For media upload we need OAuth 1.0a — requires TWITTER_API_KEY env vars
     const hasV1Creds = process.env.TWITTER_API_KEY && process.env.TWITTER_API_SECRET &&
                        process.env.TWITTER_ACCESS_TOKEN && process.env.TWITTER_ACCESS_SECRET;
 
-    if (files.length > 0 && !hasV1Creds) {
+    if (!hasV1Creds) {
       return res.status(400).json({
-        error: 'Media upload requires Twitter API v1 credentials. Please add TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET to your environment variables.'
+        error: 'Media upload requires Twitter API v1 credentials (TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET).'
       });
     }
 
+    // OAuth 1.0a client — handles both media upload AND tweeting
+    const v1Client = new TwitterApi({
+      appKey:       process.env.TWITTER_API_KEY,
+      appSecret:    process.env.TWITTER_API_SECRET,
+      accessToken:  process.env.TWITTER_ACCESS_TOKEN,
+      accessSecret: process.env.TWITTER_ACCESS_SECRET,
+    });
+
     const mediaIds = [];
-    if (files.length > 0 && hasV1Creds) {
-      // v1 client for media upload
-      const v1Client = new TwitterApi({
-        appKey:    process.env.TWITTER_API_KEY,
-        appSecret: process.env.TWITTER_API_SECRET,
-        accessToken:  process.env.TWITTER_ACCESS_TOKEN,
-        accessSecret: process.env.TWITTER_ACCESS_SECRET,
-      });
-      for (const file of files) {
-        const mediaId = await v1Client.v1.uploadMedia(file.buffer, { mimeType: file.mimetype });
+
+    // Upload files from multipart form
+    for (const file of files) {
+      const mediaId = await v1Client.v1.uploadMedia(file.buffer, { mimeType: file.mimetype });
+      mediaIds.push(mediaId);
+    }
+
+    // If no files but imageUrl provided — fetch DALL-E image and upload it
+    if (files.length === 0 && imageUrl) {
+      try {
+        const imgRes = await fetch(imageUrl);
+        if (!imgRes.ok) throw new Error('Failed to fetch image URL');
+        const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+        const contentType = imgRes.headers.get('content-type') || 'image/png';
+        const mediaId = await v1Client.v1.uploadMedia(imgBuffer, { mimeType: contentType });
         mediaIds.push(mediaId);
+      } catch (imgErr) {
+        console.warn('Image URL fetch failed, posting without media:', imgErr.message);
       }
     }
 
-    // v2 OAuth 2.0 client for posting the tweet
-    const v2Client = await getTwitterClient(req.userId);
-    if (!v2Client) return res.status(404).json({ error: 'Twitter not connected' });
-
-    const tweetPayload = { text: (caption || '').slice(0, 280) };
-    if (mediaIds.length) tweetPayload.media = { media_ids: mediaIds };
-
-    const tweet = await v2Client.v2.tweet(tweetPayload);
-    platformPostId = tweet.data.id;
-    platformUrl = `https://twitter.com/i/web/status/${tweet.data.id}`;
+    // Post tweet using OAuth 1.0a v1 — includes media if any
+    const tweetText = (caption || '').slice(0, 280);
+    const tweet = await v1Client.v1.tweet(tweetText, mediaIds.length ? { media_ids: mediaIds } : undefined);
+    platformPostId = tweet.id_str;
+    platformUrl = `https://twitter.com/i/web/status/${platformPostId}`;
     status = 'published';
-    res.json({ success: true, tweet_id: tweet.data.id, url: platformUrl });
+    res.json({ success: true, tweet_id: platformPostId, url: platformUrl });
   } catch (err) {
     errorMessage = err.message;
     console.error('Twitter upload error:', err);
     res.status(500).json({ error: err.message || 'Failed to upload' });
   } finally {
-    await logPost({ userId: req.userId, campaignId, platform: 'twitter', contentText: caption, postType: files.length ? 'image' : 'text', source: 'upload', status, platformPostId, platformUrl, errorMessage });
+    await logPost({ userId: req.userId, campaignId, platform: 'twitter', contentText: caption, postType: files.length || imageUrl ? 'image' : 'text', source: 'upload', status, platformPostId, platformUrl, errorMessage });
   }
 });
 
@@ -304,15 +297,12 @@ router.get('/tiktok/callback', async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════════
-// ANALYTICS — user's own posts
+// ANALYTICS
 // ════════════════════════════════════════════════════════════════════════════════
 router.get('/posts', auth, async (req, res) => {
   const { platform, limit = 50, offset = 0 } = req.query;
-  let query = supabase
-    .from('social_posts')
-    .select('*', { count: 'exact' })
-    .eq('user_id', req.userId)
-    .order('posted_at', { ascending: false })
+  let query = supabase.from('social_posts').select('*', { count: 'exact' })
+    .eq('user_id', req.userId).order('posted_at', { ascending: false })
     .range(Number(offset), Number(offset) + Number(limit) - 1);
   if (platform && platform !== 'all') query = query.eq('platform', platform);
   const { data, error, count } = await query;
@@ -321,14 +311,10 @@ router.get('/posts', auth, async (req, res) => {
 });
 
 router.get('/posts/stats', auth, async (req, res) => {
-  const { data, error } = await supabase
-    .from('social_posts')
-    .select('platform, status, post_type, posted_at')
-    .eq('user_id', req.userId);
+  const { data, error } = await supabase.from('social_posts').select('platform, status, post_type, posted_at').eq('user_id', req.userId);
   if (error) return res.status(500).json({ error: error.message });
   const posts = data || [];
-  const byPlatform = {};
-  const byDay = {};
+  const byPlatform = {}; const byDay = {};
   posts.forEach(p => {
     byPlatform[p.platform] = (byPlatform[p.platform] || 0) + 1;
     const day = p.posted_at?.slice(0, 10);
@@ -343,18 +329,10 @@ router.get('/posts/stats', auth, async (req, res) => {
   });
 });
 
-
-// ── POST /api/social/posts/:id/retry ─────────────────────────────────────────
 router.post('/posts/:id/retry', auth, async (req, res) => {
-  const { data: post, error } = await supabase
-    .from('social_posts')
-    .select('*')
-    .eq('id', req.params.id)
-    .eq('user_id', req.userId)
-    .single();
+  const { data: post, error } = await supabase.from('social_posts').select('*').eq('id', req.params.id).eq('user_id', req.userId).single();
   if (error || !post) return res.status(404).json({ error: 'Post not found' });
   if (post.status === 'published') return res.status(400).json({ error: 'Post already published' });
-
   let status = 'failed'; let platformPostId = null; let platformUrl = null; let errorMessage = null;
   try {
     if (post.platform === 'twitter') {
@@ -369,16 +347,7 @@ router.post('/posts/:id/retry', auth, async (req, res) => {
     } else {
       return res.status(400).json({ error: `Retry not yet supported for ${post.platform}` });
     }
-
-    // Update the existing post record
-    await supabase.from('social_posts').update({
-      status,
-      platform_post_id: platformPostId,
-      platform_url: platformUrl,
-      error_message: null,
-      posted_at: new Date().toISOString(),
-    }).eq('id', req.params.id);
-
+    await supabase.from('social_posts').update({ status, platform_post_id: platformPostId, platform_url: platformUrl, error_message: null, posted_at: new Date().toISOString() }).eq('id', req.params.id);
     res.json({ success: true, url: platformUrl });
   } catch (err) {
     errorMessage = err.message;
@@ -387,56 +356,27 @@ router.post('/posts/:id/retry', auth, async (req, res) => {
   }
 });
 
-// ── DELETE /api/social/posts/:id ──────────────────────────────────────────────
 router.delete('/posts/:id', auth, async (req, res) => {
-  const { data: post, error } = await supabase
-    .from('social_posts')
-    .select('*')
-    .eq('id', req.params.id)
-    .eq('user_id', req.userId)
-    .single();
+  const { data: post, error } = await supabase.from('social_posts').select('*').eq('id', req.params.id).eq('user_id', req.userId).single();
   if (error || !post) return res.status(404).json({ error: 'Post not found' });
-
   let platformDeleted = false;
-
-  // Attempt to delete from social platform
   try {
     if (post.platform === 'twitter' && post.platform_post_id && post.status === 'published') {
       const client = await getTwitterClient(req.userId);
-      if (client) {
-        await client.v2.deleteTweet(post.platform_post_id);
-        platformDeleted = true;
-      }
+      if (client) { await client.v2.deleteTweet(post.platform_post_id); platformDeleted = true; }
     }
-  } catch (err) {
-    console.error('Platform delete error:', err.message);
-    // Continue to delete from our DB even if platform delete fails
-  }
-
-  // Delete from IVey database
+  } catch (err) { console.error('Platform delete error:', err.message); }
   await supabase.from('social_posts').delete().eq('id', req.params.id);
-
-  res.json({
-    success: true,
-    platformDeleted,
-    message: platformDeleted
-      ? 'Deleted from IVey and Twitter'
-      : post.status === 'published'
-        ? 'Deleted from IVey (platform deletion failed — may need manual removal)'
-        : 'Deleted from IVey',
-  });
+  res.json({ success: true, platformDeleted, message: platformDeleted ? 'Deleted from IVey and Twitter' : 'Deleted from IVey' });
 });
 
 // ════════════════════════════════════════════════════════════════════════════════
-// ADMIN — all users' posts
+// ADMIN
 // ════════════════════════════════════════════════════════════════════════════════
 router.get('/admin/posts', auth, requireAdmin, async (req, res) => {
   const { platform, limit = 100, offset = 0 } = req.query;
-  let query = supabase
-    .from('social_posts')
-    .select('*, users(name, email)', { count: 'exact' })
-    .order('posted_at', { ascending: false })
-    .range(Number(offset), Number(offset) + Number(limit) - 1);
+  let query = supabase.from('social_posts').select('*, users(name, email)', { count: 'exact' })
+    .order('posted_at', { ascending: false }).range(Number(offset), Number(offset) + Number(limit) - 1);
   if (platform && platform !== 'all') query = query.eq('platform', platform);
   const { data, error, count } = await query;
   if (error) return res.status(500).json({ error: error.message });
@@ -444,14 +384,10 @@ router.get('/admin/posts', auth, requireAdmin, async (req, res) => {
 });
 
 router.get('/admin/stats', auth, requireAdmin, async (req, res) => {
-  const { data, error } = await supabase
-    .from('social_posts')
-    .select('platform, status, post_type, posted_at, user_id');
+  const { data, error } = await supabase.from('social_posts').select('platform, status, post_type, posted_at, user_id');
   if (error) return res.status(500).json({ error: error.message });
   const posts = data || [];
-  const byPlatform = {};
-  const byDay = {};
-  const byUser = {};
+  const byPlatform = {}; const byDay = {}; const byUser = {};
   posts.forEach(p => {
     byPlatform[p.platform] = (byPlatform[p.platform] || 0) + 1;
     const day = p.posted_at?.slice(0, 10);
