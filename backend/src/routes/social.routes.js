@@ -190,10 +190,18 @@ router.post('/twitter/upload', auth, upload.array('media', 4), async (req, res) 
       }
     }
 
-    // Post tweet using OAuth 1.0a v1 — includes media if any
+    // Post tweet — v1 if media, v2 if text only
     const tweetText = (caption || '').slice(0, 280);
-    const tweet = await v1Client.v1.tweet(tweetText, mediaIds.length ? { media_ids: mediaIds } : undefined);
-    platformPostId = tweet.id_str;
+    let tweet;
+    if (mediaIds.length > 0) {
+      // v1 required for media_ids
+      const tweetRes = await v1Client.v1.tweet(tweetText, { media_ids: mediaIds });
+      platformPostId = tweetRes.id_str;
+    } else {
+      // No media — use v2 which works on free tier
+      const tweetRes = await v1Client.v2.tweet(tweetText);
+      platformPostId = tweetRes.data.id;
+    }
     platformUrl = `https://twitter.com/i/web/status/${platformPostId}`;
     status = 'published';
     res.json({ success: true, tweet_id: platformPostId, url: platformUrl });
@@ -403,6 +411,64 @@ router.get('/admin/stats', auth, requireAdmin, async (req, res) => {
     byDay: Object.entries(byDay).sort((a, b) => a[0].localeCompare(b[0])).slice(-30),
     topUsers: Object.entries(byUser).sort((a, b) => b[1] - a[1]).slice(0, 10),
   });
+});
+
+// ── POST /api/social/upload-to-storage ────────────────────────────────────────
+// Uploads an image (file upload OR remote URL) to Supabase Storage.
+// Returns a public URL that Twitter can render as a card in tweets.
+// This avoids Twitter v1.1 media upload which requires the $100/mo Basic plan.
+router.post('/upload-to-storage', auth, upload.single('image'), async (req, res) => {
+  const userId = req.userId;
+  let fileBuffer, mimeType, fileName;
+
+  try {
+    if (req.file) {
+      // Case 1: direct file upload from PostModal
+      fileBuffer = req.file.buffer;
+      mimeType   = req.file.mimetype;
+      fileName   = req.file.originalname || 'upload.jpg';
+    } else if (req.body.imageUrl) {
+      // Case 2: DALL-E / remote URL — fetch and re-upload
+      const { imageUrl } = req.body;
+      const response = await fetch(imageUrl);
+      if (!response.ok) throw new Error('Failed to fetch remote image');
+      const arrayBuffer = await response.arrayBuffer();
+      fileBuffer = Buffer.from(arrayBuffer);
+      mimeType   = response.headers.get('content-type') || 'image/png';
+      fileName   = `dalle-${Date.now()}.png`;
+    } else {
+      return res.status(400).json({ error: 'Provide either an image file or imageUrl' });
+    }
+
+    const ext        = fileName.split('.').pop() || 'jpg';
+    const storagePath = `social-media/${userId}/${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('ivey-media')
+      .upload(storagePath, fileBuffer, { contentType: mimeType, upsert: false });
+
+    if (uploadError) {
+      // Bucket may not exist — try creating it and retry once
+      if (uploadError.message?.includes('not found') || uploadError.statusCode === 404) {
+        await supabase.storage.createBucket('ivey-media', { public: true });
+        const { error: retryError } = await supabase.storage
+          .from('ivey-media')
+          .upload(storagePath, fileBuffer, { contentType: mimeType, upsert: false });
+        if (retryError) throw new Error(retryError.message);
+      } else {
+        throw new Error(uploadError.message);
+      }
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('ivey-media')
+      .getPublicUrl(storagePath);
+
+    res.json({ publicUrl, storagePath });
+  } catch (err) {
+    console.error('Storage upload error:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to upload image' });
+  }
 });
 
 export default router;

@@ -88,21 +88,41 @@ function PostModal({ platform, prefillText, prefillImage, campaignId, onClose, o
   const handleUpload = async () => {
     setPosting(true); setError('');
     try {
-      const form = new FormData();
-      form.append('caption', caption.slice(0, charLimit));
-      if (campaignId) form.append('campaignId', campaignId);
-      // If we have a DALL-E image URL, send it as imageUrl so backend can fetch it
-      if (prefillImage && files.length === 0) {
-        form.append('imageUrl', prefillImage);
+      // ── Step 1: Upload image to Supabase Storage ──────────────────────────
+      // Twitter free tier doesn't support v1.1 media upload (needs $100/mo Basic).
+      // Instead we upload to Supabase Storage and append the public URL to the tweet.
+      // Twitter will auto-render the image as a card.
+      let mediaPublicUrl = null;
+
+      const storageForm = new FormData();
+      if (files.length > 0) {
+        storageForm.append('image', files[0]);
+      } else if (prefillImage) {
+        storageForm.append('imageUrl', prefillImage);
       }
-      files.forEach(f => form.append('media', f));
-      const res = await fetch(`${API_BASE}/social/${platform}/upload`, {
+
+      if (files.length > 0 || prefillImage) {
+        const storageRes = await fetch(`${API_BASE}/social/upload-to-storage`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${getToken()}` },
+          body: storageForm,
+        });
+        const storageData = await storageRes.json();
+        if (!storageRes.ok) throw new Error(storageData.error || 'Failed to upload image to storage');
+        mediaPublicUrl = storageData.publicUrl;
+      }
+
+      // ── Step 2: Post as text tweet with image URL appended ────────────────
+      const tweetText = caption.slice(0, charLimit);
+      const fullText  = mediaPublicUrl ? `${tweetText}\n\n${mediaPublicUrl}`.slice(0, 280) : tweetText;
+
+      const res = await fetch(`${API_BASE}/social/${platform}/post`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}` },
-        body: form,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ text: fullText, campaignId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to upload');
+      if (!res.ok) throw new Error(data.error || 'Failed to post');
       setSuccess(data);
       onPosted?.();
     } catch (err) { setError(err.message); }
