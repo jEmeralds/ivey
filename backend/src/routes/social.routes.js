@@ -413,6 +413,119 @@ router.get('/admin/stats', auth, requireAdmin, async (req, res) => {
   });
 });
 
+// ── GET /api/social/card ──────────────────────────────────────────────────────
+// Serves a server-rendered HTML page with Open Graph + Twitter Card meta tags.
+// Twitter's crawler reads these tags and renders a native image card in the feed.
+// Usage: append https://ivey-production.up.railway.app/api/social/card?img=<url>&title=<text>
+// to a tweet — Twitter will crawl the URL and show the image as a card.
+router.get('/card', (req, res) => {
+  const { img, title, description } = req.query;
+
+  if (!img) return res.status(400).send('Missing img parameter');
+
+  const imageUrl   = decodeURIComponent(img);
+  const cardTitle  = decodeURIComponent(title || 'IVey — AI Marketing Content');
+  const cardDesc   = decodeURIComponent(description || 'Created with IVey AI marketing platform');
+  const cardUrl    = `${BACKEND_URL}/api/social/card?img=${encodeURIComponent(imageUrl)}&title=${encodeURIComponent(cardTitle)}`;
+
+  // Escape any quotes/HTML in user-supplied strings to prevent XSS
+  const safe = (str) => str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  // Cache for 1 hour — Twitter crawler will re-check periodically
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${safe(cardTitle)}</title>
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content="${safe(cardUrl)}" />
+  <meta property="og:title"       content="${safe(cardTitle)}" />
+  <meta property="og:description" content="${safe(cardDesc)}" />
+  <meta property="og:image"       content="${safe(imageUrl)}" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="${safe(cardTitle)}" />
+  <meta name="twitter:description" content="${safe(cardDesc)}" />
+  <meta name="twitter:image"       content="${safe(imageUrl)}" />
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0c1420;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #e2e8f0;
+      padding: 24px;
+    }
+    .card {
+      max-width: 700px;
+      width: 100%;
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    }
+    .card img {
+      width: 100%;
+      display: block;
+      object-fit: cover;
+      max-height: 420px;
+    }
+    .card-body {
+      padding: 20px 24px;
+      border-top: 1px solid #1e293b;
+    }
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 6px;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+    .badge {
+      margin-top: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #10b981;
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.2);
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img src="${safe(imageUrl)}" alt="${safe(cardTitle)}" />
+    <div class="card-body">
+      <div class="card-title">${safe(cardTitle)}</div>
+      <div class="card-desc">${safe(cardDesc)}</div>
+      <div class="badge">⚡ Created with IVey AI</div>
+    </div>
+  </div>
+</body>
+</html>`);
+});
+
 // ── POST /api/social/upload-to-storage ────────────────────────────────────────
 // Uploads an image (file upload OR remote URL) to Supabase Storage.
 // Returns a public URL that Twitter can render as a card in tweets.

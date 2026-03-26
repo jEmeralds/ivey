@@ -112,9 +112,17 @@ function PostModal({ platform, prefillText, prefillImage, campaignId, onClose, o
         mediaPublicUrl = storageData.publicUrl;
       }
 
-      // ── Step 2: Post as text tweet with image URL appended ────────────────
-      const tweetText = caption.slice(0, charLimit);
-      const fullText  = mediaPublicUrl ? `${tweetText}\n\n${mediaPublicUrl}`.slice(0, 280) : tweetText;
+      // ── Step 2: Build card URL so Twitter renders a native image card ─────
+      // Twitter's crawler reads Open Graph meta tags from the card page and
+      // displays the image inline — bypassing the need for v1.1 media upload.
+      const API_ROOT   = API_BASE.replace('/api', ''); // e.g. https://ivey-production.up.railway.app
+      const tweetText  = caption.slice(0, charLimit);
+      let fullText     = tweetText;
+
+      if (mediaPublicUrl) {
+        const cardUrl = `${API_ROOT}/api/social/card?img=${encodeURIComponent(mediaPublicUrl)}&title=${encodeURIComponent(tweetText.slice(0, 80))}`;
+        fullText = `${tweetText}\n\n${cardUrl}`.slice(0, 280);
+      }
 
       const res = await fetch(`${API_BASE}/social/${platform}/post`, {
         method: 'POST',
