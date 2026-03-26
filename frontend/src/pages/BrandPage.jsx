@@ -378,12 +378,12 @@ const BrandPage = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-12 gap-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
 
           {/* ── Left: brand list ── */}
-          <div className="col-span-2">
-            <p className="text-xs font-bold text-gray-600 uppercase tracking-widest mb-3">Your Brands</p>
+          <div className="lg:col-span-2 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
+            <p className="hidden lg:block text-xs font-bold text-gray-600 uppercase tracking-widest mb-3">Your Brands</p>
             <div className="space-y-2">
               {brands.map(b => (
                 <button key={b.id} onClick={() => handleSelectBrand(b)}
@@ -411,7 +411,7 @@ const BrandPage = () => {
           </div>
 
           {/* ── Center: form ── */}
-          <div className="col-span-7 space-y-4">
+          <div className="lg:col-span-7 space-y-4">
 
             {/* Brand actions bar */}
             {selected && !showNew && (
@@ -450,7 +450,7 @@ const BrandPage = () => {
             <div className={sectionCls}>
               <SectionHeader number="01" title="Brand Identity" subtitle="The core of who you are" />
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-gray-400 block mb-1.5">Brand Name *</label>
                     <input value={form.brand_name} onChange={e => set('brand_name', e.target.value)}
@@ -527,7 +527,7 @@ const BrandPage = () => {
                 {/* Photography style */}
                 <div>
                   <label className="text-xs font-semibold text-gray-400 block mb-3">Photography Style</label>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     {PHOTOGRAPHY_STYLES.map(s => (
                       <button key={s.id} type="button" onClick={() => set('photography_style', s.id)}
                         className={`p-3 rounded-xl border text-left transition-all ${
@@ -568,7 +568,7 @@ const BrandPage = () => {
               <div className="space-y-5">
                 <div>
                   <label className="text-xs font-semibold text-gray-400 block mb-3">Brand Voice</label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {BRAND_VOICES.map(v => (
                       <button key={v.id} type="button" onClick={() => set('brand_voice', v.id)}
                         className={`p-3 rounded-xl border text-left transition-all ${
@@ -685,7 +685,7 @@ const BrandPage = () => {
           </div>
 
           {/* ── Right: live preview ── */}
-          <div className="col-span-3">
+          <div className="lg:col-span-3 hidden lg:block">
             <BrandPreview form={form} />
           </div>
 
