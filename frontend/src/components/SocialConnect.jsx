@@ -69,18 +69,37 @@ function PostModal({ platform, prefillText, prefillImage, campaignId, onClose, o
     setPreviews(prefillImage ? [{ url: prefillImage, type: 'image/url', isUrl: true }, ...newPreviews] : newPreviews);
   };
 
+  // ── Detects YouTube / Vimeo URLs in text ──────────────────────────────────
+  const extractVideoUrl = (str) => {
+    const match = str.match(/https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/)\S+/i);
+    return match ? match[0] : null;
+  };
+
+  // ── Shared post dispatcher ──────────────────────────────────────────────────
+  const postTweet = async (tweetText) => {
+    const res = await fetch(`${API_BASE}/social/${platform}/post`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({ text: tweetText.slice(0, 280), campaignId }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to post');
+    return data;
+  };
+
   const handlePost = async () => {
     setPosting(true); setError('');
     try {
-      const res = await fetch(`${API_BASE}/social/${platform}/post`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({ text: text.slice(0, charLimit), campaignId }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to post');
-      setSuccess(data);
-      onPosted?.();
+      const rawText  = text.slice(0, charLimit);
+      const videoUrl = extractVideoUrl(rawText);
+      let finalText  = rawText;
+      if (videoUrl) {
+        // YouTube/Vimeo — Twitter renders these natively as rich video cards
+        const textWithoutUrl = rawText.replace(videoUrl, '').trim();
+        finalText = textWithoutUrl ? `${textWithoutUrl}\n\n${videoUrl}` : videoUrl;
+      }
+      const data = await postTweet(finalText);
+      setSuccess(data); onPosted?.();
     } catch (err) { setError(err.message); }
     finally { setPosting(false); }
   };
@@ -88,51 +107,43 @@ function PostModal({ platform, prefillText, prefillImage, campaignId, onClose, o
   const handleUpload = async () => {
     setPosting(true); setError('');
     try {
-      // ── Step 1: Upload image to Supabase Storage ──────────────────────────
-      // Twitter free tier doesn't support v1.1 media upload (needs $100/mo Basic).
-      // Instead we upload to Supabase Storage and append the public URL to the tweet.
-      // Twitter will auto-render the image as a card.
-      let mediaPublicUrl = null;
+      const rawCaption = caption.slice(0, charLimit);
+      const videoUrl   = extractVideoUrl(rawCaption);
 
-      const storageForm = new FormData();
-      if (files.length > 0) {
-        storageForm.append('image', files[0]);
-      } else if (prefillImage) {
-        storageForm.append('imageUrl', prefillImage);
+      // ── YouTube/Vimeo in caption — post natively, no upload needed ─────────
+      if (videoUrl && files.length === 0 && !prefillImage) {
+        const textWithoutUrl = rawCaption.replace(videoUrl, '').trim();
+        const finalText = textWithoutUrl ? `${textWithoutUrl}\n\n${videoUrl}` : videoUrl;
+        const data = await postTweet(finalText);
+        setSuccess(data); onPosted?.();
+        return;
       }
 
+      // ── Upload image/video to Supabase Storage ─────────────────────────────
+      let mediaPublicUrl = null;
       if (files.length > 0 || prefillImage) {
+        const storageForm = new FormData();
+        if (files.length > 0) storageForm.append('image', files[0]);
+        else storageForm.append('imageUrl', prefillImage);
         const storageRes = await fetch(`${API_BASE}/social/upload-to-storage`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${getToken()}` },
           body: storageForm,
         });
         const storageData = await storageRes.json();
-        if (!storageRes.ok) throw new Error(storageData.error || 'Failed to upload image to storage');
+        if (!storageRes.ok) throw new Error(storageData.error || 'Failed to upload to storage');
         mediaPublicUrl = storageData.publicUrl;
       }
 
-      // ── Step 2: Build card URL so Twitter renders a native image card ─────
-      // Twitter's crawler reads Open Graph meta tags from the card page and
-      // displays the image inline — bypassing the need for v1.1 media upload.
-      const API_ROOT   = API_BASE.replace('/api', ''); // e.g. https://ivey-production.up.railway.app
-      const tweetText  = caption.slice(0, charLimit);
-      let fullText     = tweetText;
-
+      // ── Build OG card URL so Twitter renders a native image card ───────────
+      const API_ROOT = API_BASE.replace('/api', '');
+      let fullText   = rawCaption;
       if (mediaPublicUrl) {
-        const cardUrl = `${API_ROOT}/api/social/card?img=${encodeURIComponent(mediaPublicUrl)}&title=${encodeURIComponent(tweetText.slice(0, 80))}`;
-        fullText = `${tweetText}\n\n${cardUrl}`.slice(0, 280);
+        const cardUrl = `${API_ROOT}/api/social/card?img=${encodeURIComponent(mediaPublicUrl)}&title=${encodeURIComponent(rawCaption.slice(0, 80))}`;
+        fullText = `${rawCaption}\n\n${cardUrl}`.slice(0, 280);
       }
-
-      const res = await fetch(`${API_BASE}/social/${platform}/post`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({ text: fullText, campaignId }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to post');
-      setSuccess(data);
-      onPosted?.();
+      const data = await postTweet(fullText);
+      setSuccess(data); onPosted?.();
     } catch (err) { setError(err.message); }
     finally { setPosting(false); }
   };
