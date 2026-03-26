@@ -136,10 +136,11 @@ function PostModal({ platform, prefillText, prefillImage, campaignId, onClose, o
       }
 
       // ── Build OG card URL so Twitter renders a native image card ───────────
-      const API_ROOT = API_BASE.replace('/api', '');
+      const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.vercel.app';
       let fullText   = rawCaption;
       if (mediaPublicUrl) {
-        const cardUrl = `${API_ROOT}/api/social/card?img=${encodeURIComponent(mediaPublicUrl)}&title=${encodeURIComponent(rawCaption.slice(0, 80))}`;
+        // Point to Vercel — Twitterbot trusts vercel.app domains over railway.app
+        const cardUrl = `${FRONTEND_URL}/api/card?img=${encodeURIComponent(mediaPublicUrl)}&title=${encodeURIComponent(rawCaption.slice(0, 80))}`;
         fullText = `${rawCaption}\n\n${cardUrl}`.slice(0, 280);
       }
       const data = await postTweet(fullText);
