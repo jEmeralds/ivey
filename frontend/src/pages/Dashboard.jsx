@@ -150,7 +150,7 @@ const Dashboard = () => {
         onConfirm={() => handleDelete(campaign.id)}
       />
       <button
-        onClick={() => navigate(`/campaigns/${campaign.id}`)}
+        onClick={() => navigate(`/edit-campaign/${campaign.id}`)
         className="px-3 py-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors text-xs font-medium"
       >
         Open →
