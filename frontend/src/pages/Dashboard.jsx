@@ -140,7 +140,7 @@ const Dashboard = () => {
   const CampaignActions = ({ campaign }) => (
     <div className="flex items-center gap-1 flex-shrink-0">
       <button
-        onClick={() => navigate(`/campaign/${campaign.id}/edit`)}
+        onClick={() => navigate(`/edit-campaign/${campaign.id}`)
         className="px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-xs font-medium"
       >
         Edit
