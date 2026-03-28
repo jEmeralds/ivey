@@ -1,481 +1,556 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
-// ─── Feature tab data ─────────────────────────────────────────────────────────
-const TABS = [
-  { id: 'ai',       label: 'AI Generation' },
-  { id: 'social',   label: 'Social Posting' },
-  { id: 'design',   label: 'Design Editor' },
-  { id: 'campaigns',label: 'Campaigns' },
-  { id: 'brand',    label: 'Brand Identity' },
-  { id: 'gallery',  label: 'Gallery' },
-];
-
-// ─── Mock UI Panels ───────────────────────────────────────────────────────────
-
-const AiPanel = () => (
-  <div className="relative w-full h-full min-h-[420px] bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 p-5 flex flex-col gap-4">
-    {/* Header */}
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <div className="w-7 h-7 bg-gradient-to-r from-amber-400 to-amber-600 rounded-lg flex items-center justify-center">
-          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-        </div>
-        <span className="text-white text-sm font-bold">Generate Content</span>
-      </div>
-      <span className="text-xs text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">Gemini 2.5 Flash</span>
-    </div>
-    {/* Format chips */}
-    <div className="flex flex-wrap gap-1.5">
-      {['TikTok Script','Instagram Caption','Email Campaign','Banner Ad','YouTube Title','Twitter/X Thread','Video Script','Blog Post'].map((f, i) => (
-        <span key={f} className={`text-xs px-2.5 py-1 rounded-full border font-medium ${i < 3 ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300' : 'border-gray-600 bg-gray-700 text-gray-400'}`}>{f}</span>
-      ))}
-    </div>
-    {/* Output preview */}
-    <div className="flex-1 bg-gray-900 rounded-xl border border-gray-700 p-4">
-      <div className="text-xs text-gray-500 mb-2 uppercase tracking-widest">Generated Output</div>
-      <div className="space-y-1.5">
-        <div className="h-2.5 bg-gray-700 rounded w-full animate-pulse" style={{animationDelay:'0ms'}}/>
-        <div className="h-2.5 bg-gray-700 rounded w-5/6 animate-pulse" style={{animationDelay:'100ms'}}/>
-        <div className="h-2.5 bg-gray-700 rounded w-4/6 animate-pulse" style={{animationDelay:'200ms'}}/>
-        <div className="h-2.5 bg-emerald-700/50 rounded w-full animate-pulse" style={{animationDelay:'300ms'}}/>
-        <div className="h-2.5 bg-emerald-700/50 rounded w-3/4 animate-pulse" style={{animationDelay:'400ms'}}/>
-      </div>
-    </div>
-    {/* Provider selector */}
-    <div className="flex gap-2">
-      {['Claude','GPT-4','Gemini','Grok'].map((p,i) => (
-        <div key={p} className={`flex-1 text-center py-1.5 rounded-lg text-xs font-semibold border ${i===2 ? 'border-amber-500 bg-amber-500/10 text-amber-400' : 'border-gray-700 bg-gray-700 text-gray-500'}`}>{p}</div>
-      ))}
-    </div>
-  </div>
-);
-
-const SocialPanel = () => (
-  <div className="relative w-full min-h-[420px] bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 p-5 flex flex-col gap-4">
-    <div className="flex items-center justify-between">
-      <span className="text-white text-sm font-bold">Connected Accounts</span>
-      <span className="text-xs text-emerald-400">4 connected</span>
-    </div>
-    <div className="space-y-2">
-      {[
-        { name: 'Twitter / X', handle: '@yourbrand', color: 'bg-sky-500', connected: true,  emoji: '𝕏' },
-        { name: 'Instagram',   handle: '@yourbrand', color: 'bg-pink-500', connected: true,  emoji: '📸' },
-        { name: 'Facebook',    handle: 'Your Page',  color: 'bg-blue-600', connected: true,  emoji: '📘' },
-        { name: 'TikTok',      handle: '@yourbrand', color: 'bg-gray-900', connected: false, emoji: '🎵' },
-      ].map(acc => (
-        <div key={acc.name} className="flex items-center justify-between p-3 bg-gray-900 rounded-xl border border-gray-700">
-          <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 ${acc.color} rounded-lg flex items-center justify-center text-sm font-bold text-white`}>{acc.emoji}</div>
-            <div>
-              <div className="text-sm font-semibold text-white">{acc.name}</div>
-              <div className="text-xs text-gray-500">{acc.handle}</div>
-            </div>
-          </div>
-          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${acc.connected ? 'bg-emerald-500/15 text-emerald-400' : 'bg-gray-700 text-gray-500'}`}>
-            {acc.connected ? '● Connected' : 'Connect'}
-          </span>
-        </div>
-      ))}
-    </div>
-    {/* Post composer */}
-    <div className="bg-gray-900 rounded-xl border border-gray-700 p-3">
-      <div className="text-xs text-gray-500 mb-2">Quick Post</div>
-      <div className="h-2 bg-gray-700 rounded w-full mb-1.5"/>
-      <div className="h-2 bg-gray-700 rounded w-2/3 mb-3"/>
-      <div className="flex gap-2">
-        <div className="flex-1 h-7 bg-amber-500/20 border border-amber-500/40 rounded-lg"/>
-        <div className="w-16 h-7 bg-emerald-600 rounded-lg"/>
-      </div>
-    </div>
-  </div>
-);
-
-const DesignPanel = () => (
-  <div className="relative w-full min-h-[420px] bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 flex">
-    {/* Left toolbar */}
-    <div className="w-10 bg-gray-900 border-r border-gray-700 flex flex-col items-center py-3 gap-3">
-      {['▭','T','◎','⬡','↗'].map((t,i) => (
-        <div key={i} className={`w-7 h-7 rounded flex items-center justify-center text-xs ${i===0 ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}>{t}</div>
-      ))}
-    </div>
-    {/* Canvas */}
-    <div className="flex-1 bg-gray-900 relative overflow-hidden">
-      {/* Palette row */}
-      <div className="absolute top-2 left-2 flex gap-1">
-        {['#10b981','#f59e0b','#3b82f6','#ec4899','#8b5cf6','#f97316'].map(c => (
-          <div key={c} className="w-4 h-4 rounded-full border border-white/20" style={{background:c}}/>
-        ))}
-      </div>
-      {/* Canvas elements */}
-      <div className="absolute inset-4 top-10 border border-dashed border-gray-700 rounded-lg flex items-center justify-center">
-        <div className="relative w-48 h-32">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/30 to-amber-600/30 rounded-xl border border-emerald-500/30"/>
-          <div className="absolute top-3 left-3 text-white text-xs font-black">YOUR BRAND</div>
-          <div className="absolute bottom-3 right-3 w-12 h-8 bg-amber-500/30 rounded border border-amber-500/40"/>
-          {/* Selection handles */}
-          <div className="absolute -top-1 -left-1 w-2 h-2 bg-white rounded-sm border border-gray-400"/>
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-sm border border-gray-400"/>
-          <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-white rounded-sm border border-gray-400"/>
-          <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-white rounded-sm border border-gray-400"/>
-        </div>
-      </div>
-      {/* Export button */}
-      <div className="absolute bottom-3 right-3 px-3 py-1.5 bg-amber-500 rounded-lg text-xs font-bold text-white">Export PNG</div>
-    </div>
-  </div>
-);
-
-const CampaignsPanel = () => (
-  <div className="relative w-full min-h-[420px] bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 p-5 flex flex-col gap-4">
-    <div className="flex items-center justify-between">
-      <span className="text-white text-sm font-bold">Campaigns</span>
-      <div className="px-3 py-1 bg-emerald-600 rounded-lg text-xs font-bold text-white">+ New</div>
-    </div>
-    <div className="space-y-2">
-      {[
-        { name: 'MAGICAL WANDERINGS',       status: 'Complete',       color: 'text-amber-400',   dot: 'bg-amber-400'   },
-        { name: 'Kombucha by SCOBBY QUEEN', status: 'Strategy Ready', color: 'text-emerald-400', dot: 'bg-emerald-400' },
-        { name: 'magical kenya',            status: 'Draft',          color: 'text-yellow-400',  dot: 'bg-yellow-400'  },
-        { name: 'from dynamic duo to IVey', status: 'Draft',          color: 'text-yellow-400',  dot: 'bg-yellow-400'  },
-      ].map(c => (
-        <div key={c.name} className="flex items-center justify-between p-3 bg-gray-900 rounded-xl border border-gray-700 hover:border-gray-600 transition-all">
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-white truncate">{c.name}</div>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <div className={`w-1.5 h-1.5 rounded-full ${c.dot}`}/>
-              <span className={`text-xs font-medium ${c.color}`}>{c.status}</span>
-            </div>
-          </div>
-          <div className="flex gap-1 ml-3">
-            <span className="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded">Edit</span>
-            <span className="text-xs text-emerald-500 px-2 py-1 rounded">Open →</span>
-          </div>
-        </div>
-      ))}
-    </div>
-    {/* Strategy preview */}
-    <div className="bg-gray-900 rounded-xl border border-emerald-500/20 p-3">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-sm">📊</span>
-        <span className="text-xs font-bold text-emerald-400">AI Strategy Generated</span>
-      </div>
-      <div className="space-y-1">
-        <div className="h-2 bg-emerald-900/40 rounded w-full"/>
-        <div className="h-2 bg-emerald-900/40 rounded w-4/5"/>
-      </div>
-    </div>
-  </div>
-);
-
-const BrandPanel = () => (
-  <div className="relative w-full min-h-[420px] bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 p-5 flex flex-col gap-4">
-    <div className="flex items-center justify-between">
-      <span className="text-white text-sm font-bold">Brand Identity</span>
-      <div className="px-3 py-1 bg-amber-500/20 border border-amber-500/30 rounded-lg text-xs font-bold text-amber-400">💾 Save Brand</div>
-    </div>
-    {/* Brand card preview */}
-    <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-700">
-      <div className="h-1 bg-gradient-to-r from-emerald-500 to-amber-500"/>
-      <div className="p-4 flex items-center gap-3">
-        <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white font-black text-sm">M</div>
-        <div>
-          <div className="text-white text-sm font-black">MOONRALDS SAFARIS</div>
-          <div className="text-gray-500 text-xs">MAGICAL WANDERINGS</div>
-        </div>
-      </div>
-      <div className="px-4 pb-3 flex gap-1.5">
-        {['#10b981','#c7c8cc','#8e5886'].map(c => (
-          <div key={c} className="w-6 h-6 rounded-md border border-white/10" style={{background:c}}/>
-        ))}
-        <div className="ml-2 flex gap-1">
-          {['Bold','Vibrant','Warm'].map(t => (
-            <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{t}</span>
-          ))}
-        </div>
-      </div>
-    </div>
-    {/* Form fields */}
-    <div className="grid grid-cols-2 gap-2">
-      {[['Brand Name','MOONRALDS SAFARIS'],['Tagline','MAGICAL WANDERINGS'],['Industry','Travel & Hospitality'],['Voice','Inspiring']].map(([l,v]) => (
-        <div key={l} className="bg-gray-900 border border-gray-700 rounded-lg p-2">
-          <div className="text-xs text-gray-500 mb-0.5">{l}</div>
-          <div className="text-xs text-white font-medium truncate">{v}</div>
-        </div>
-      ))}
-    </div>
-    <div>
-      <div className="text-xs text-gray-500 mb-1.5">Brand Voice</div>
-      <div className="flex gap-1.5 flex-wrap">
-        {['Professional','Bold','Inspiring','Playful'].map((v,i) => (
-          <span key={v} className={`text-xs px-2.5 py-1 rounded-lg border ${i===2 ? 'border-amber-500 bg-amber-500/10 text-amber-400' : 'border-gray-700 bg-gray-800 text-gray-500'}`}>{v}</span>
-        ))}
-      </div>
-    </div>
-  </div>
-);
-
-const GalleryPanel = () => (
-  <div className="relative w-full min-h-[420px] bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 p-5 flex flex-col gap-4">
-    <div className="flex items-center justify-between">
-      <span className="text-white text-sm font-bold">🏆 Community Gallery</span>
-      <div className="flex gap-2 text-xs">
-        <span className="text-emerald-400 font-semibold">Featured</span>
-        <span className="text-gray-500">Recent</span>
-        <span className="text-gray-500">Trending</span>
-      </div>
-    </div>
-    {/* Gallery grid */}
-    <div className="grid grid-cols-3 gap-2 flex-1">
-      {[
-        { bg: 'from-emerald-600/40 to-teal-600/40',   label: 'Safari Campaign'    },
-        { bg: 'from-amber-500/40 to-orange-500/40',   label: 'Kombucha Launch'    },
-        { bg: 'from-indigo-500/40 to-purple-500/40',  label: 'Tourism Ad'         },
-        { bg: 'from-rose-500/40 to-pink-500/40',      label: 'Food & Beverage'    },
-        { bg: 'from-sky-500/40 to-blue-500/40',       label: 'Tech Startup'       },
-        { bg: 'from-lime-500/40 to-green-500/40',     label: 'Health & Wellness'  },
-      ].map((g, i) => (
-        <div key={i} className={`aspect-square bg-gradient-to-br ${g.bg} rounded-xl border border-white/10 relative overflow-hidden group cursor-pointer`}>
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-end p-1.5">
-            <span className="text-white text-xs font-semibold leading-tight">{g.label}</span>
-          </div>
-          {i === 0 && <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center text-xs">⭐</div>}
-        </div>
-      ))}
-    </div>
-    <div className="text-center">
-      <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 border border-gray-600 rounded-xl text-xs text-gray-300 font-semibold">
-        Submit Your Campaign →
-      </div>
-    </div>
-  </div>
-);
-
-const PANELS = { ai: AiPanel, social: SocialPanel, design: DesignPanel, campaigns: CampaignsPanel, brand: BrandPanel, gallery: GalleryPanel };
-
-// ─── Feature content ──────────────────────────────────────────────────────────
-const FEATURE_CONTENT = {
-  ai: {
-    tag:     'Core Engine',
-    headline:'Generate viral content in seconds',
-    sub:     'Describe your campaign once. IVey generates scroll-stopping content across 13+ formats — TikTok scripts, Instagram captions, email campaigns, banner ad copy, YouTube titles, and more.',
-    points: [
-      { icon: '🤖', title: '4 AI Providers',       desc: 'Choose between Claude, GPT-4, Gemini, and Grok for each campaign.' },
-      { icon: '📋', title: '13+ Content Formats',  desc: 'Every format your brand needs, from social captions to full email sequences.' },
-      { icon: '🎯', title: 'Brand-Aware Output',   desc: 'Content reflects your brand voice, colors, and audience automatically.' },
-    ],
-  },
-  social: {
-    tag:     'Distribution',
-    headline:'Post everywhere from one place',
-    sub:     'Connect Twitter/X, Instagram, Facebook and TikTok via OAuth. Generate platform-optimized captions and post directly from IVey — no copy-pasting between apps.',
-    points: [
-      { icon: '🔒', title: 'Secure OAuth',          desc: 'Industry-standard OAuth 1.0a and 2.0 — your credentials never touch our servers.' },
-      { icon: '✨', title: 'AI Captions Per Platform', desc: 'Each platform gets its own optimized caption — not the same post copy-pasted.' },
-      { icon: '📊', title: 'Post Analytics',         desc: 'Track every post — retries, failures, and performance all in one analytics panel.' },
-    ],
-  },
-  design: {
-    tag:     'Visual Creation',
-    headline:'Build campaign visuals without leaving IVey',
-    sub:     'A drag-and-drop canvas with 18 curated color palettes, layered elements, text tools, and PNG export. No Canva subscription needed.',
-    points: [
-      { icon: '🎨', title: '18 Curated Palettes',  desc: 'Hand-picked color palettes that actually work for marketing visuals.' },
-      { icon: '🖱️', title: 'Drag & Drop Canvas',   desc: 'Add, move, resize, and layer elements with a simple point-and-click editor.' },
-      { icon: '📥', title: 'PNG Export',            desc: 'Export pixel-perfect images via html2canvas, ready to post anywhere.' },
-    ],
-  },
-  campaigns: {
-    tag:     'Organization',
-    headline:'Every campaign, beautifully organized',
-    sub:     'Create and manage unlimited campaigns. Each gets its own strategy, content history, media gallery, and saved library — everything in one place.',
-    points: [
-      { icon: '📊', title: 'AI Strategy Generation', desc: 'Generate a full marketing strategy for any campaign with one click.' },
-      { icon: '🗂️', title: 'Saved Content Library',  desc: 'Save your best-generated content to revisit and reuse later.' },
-      { icon: '🖼️', title: 'Per-Campaign Media',      desc: 'Upload and manage product photos and videos for each campaign separately.' },
-    ],
-  },
-  brand: {
-    tag:     'Branding',
-    headline:'Define your brand once, use it everywhere',
-    sub:     'Set your brand name, colors, voice, audience, photography style, and more. Every AI generation automatically reflects your brand identity — no manual briefing needed.',
-    points: [
-      { icon: '🎨', title: 'Full Visual Identity',  desc: 'Primary, background, and accent colors with photography style and visual mood.' },
-      { icon: '🗣️', title: 'Voice & Tone',          desc: 'Define exactly how your brand speaks — professional, bold, playful, inspiring.' },
-      { icon: '👥', title: 'Multi-Brand Support',   desc: 'Manage multiple brand profiles and switch between them per campaign.' },
-    ],
-  },
-  gallery: {
-    tag:     'Community',
-    headline:'Get inspired. Get discovered.',
-    sub:     'Browse top-performing campaigns submitted by creators and brands. Submit your own work to get featured and reach new audiences.',
-    points: [
-      { icon: '⭐', title: 'Admin-Curated Picks',   desc: 'The best campaigns get featured by our team for maximum visibility.' },
-      { icon: '📤', title: 'Submit Your Work',       desc: 'Share your top campaigns directly from the dashboard in one click.' },
-      { icon: '🔍', title: 'Cross-Industry Ideas',   desc: 'See what\'s working across Food, Travel, Tech, Fashion, and more.' },
-    ],
-  },
+// ─── Scroll-reveal hook ───────────────────────────────────────────────────────
+const useReveal = (threshold = 0.15) => {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { threshold });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return [ref, visible];
 };
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Animated counter ─────────────────────────────────────────────────────────
+const Counter = ({ to, suffix = '' }) => {
+  const [count, setCount] = useState(0);
+  const [ref, visible] = useReveal(0.5);
+  useEffect(() => {
+    if (!visible) return;
+    let start = 0;
+    const steps = 40;
+    const inc = to / steps;
+    const timer = setInterval(() => {
+      start += inc;
+      if (start >= to) { setCount(to); clearInterval(timer); }
+      else setCount(Math.floor(start));
+    }, 30);
+    return () => clearInterval(timer);
+  }, [visible, to]);
+  return <span ref={ref}>{count}{suffix}</span>;
+};
+
+// ─── Feature data ─────────────────────────────────────────────────────────────
+const FEATURES = [
+  {
+    id: 'ai',
+    tag: 'Core Engine',
+    headline: 'Generate viral content in seconds',
+    sub: 'Describe your campaign once. IVey writes scroll-stopping content across 13+ formats — TikTok scripts, Instagram captions, email campaigns, banner ad copy, YouTube titles, Twitter threads, and more.',
+    color: 'emerald',
+    subpoints: [
+      { label: 'AI-generated captions optimized per platform' },
+      { label: 'Claude, GPT-4, Gemini & Grok supported' },
+      { label: 'Brand voice baked into every output' },
+    ],
+    mockup: () => (
+      <div className="w-full bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden shadow-2xl">
+        {/* Toolbar */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 bg-gray-900">
+          <div className="w-3 h-3 rounded-full bg-red-500/60"/>
+          <div className="w-3 h-3 rounded-full bg-yellow-500/60"/>
+          <div className="w-3 h-3 rounded-full bg-green-500/60"/>
+          <span className="ml-3 text-xs text-gray-500">IVey — Generate Content</span>
+        </div>
+        <div className="p-5 space-y-4">
+          {/* Format chips */}
+          <div>
+            <p className="text-xs text-gray-500 mb-2 uppercase tracking-widest">Select Formats</p>
+            <div className="flex flex-wrap gap-1.5">
+              {['TikTok Script','Instagram Caption','Email Campaign','Banner Ad','YouTube Title','Video Script','Twitter Thread','Blog Post'].map((f, i) => (
+                <span key={f} className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-all ${i < 3 ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300' : 'border-gray-600 bg-gray-700/60 text-gray-400'}`}>{f}</span>
+              ))}
+            </div>
+          </div>
+          {/* AI Provider */}
+          <div>
+            <p className="text-xs text-gray-500 mb-2 uppercase tracking-widest">AI Provider</p>
+            <div className="grid grid-cols-4 gap-1.5">
+              {[['🤖','Claude'],['🧠','GPT-4'],['💎','Gemini'],['⚡','Grok']].map(([e,n], i) => (
+                <div key={n} className={`flex flex-col items-center gap-1 py-2 rounded-lg border text-xs font-semibold transition-all ${i===2 ? 'border-amber-500 bg-amber-500/10 text-amber-300' : 'border-gray-700 bg-gray-700/50 text-gray-500'}`}>
+                  <span>{e}</span><span>{n}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Output */}
+          <div className="bg-gray-900 rounded-xl border border-gray-700 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-gray-500 uppercase tracking-widest">Generated Output</span>
+              <span className="text-xs text-emerald-400 animate-pulse">● Generating...</span>
+            </div>
+            <div className="space-y-2">
+              {[100, 85, 92, 70, 88].map((w, i) => (
+                <div key={i} className={`h-2.5 rounded-full ${i < 2 ? 'bg-emerald-700/60' : 'bg-gray-700'}`} style={{width:`${w}%`, animationDelay:`${i*100}ms`}}/>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'social',
+    tag: 'Distribution',
+    headline: 'Post everywhere, from one place',
+    sub: 'Connect Twitter/X, Instagram, Facebook and TikTok. Generate platform-optimized captions and post directly — no copy-pasting between 6 different apps at 11pm.',
+    color: 'sky',
+    subpoints: [
+      { label: 'Secure OAuth 1.0a + 2.0 — your credentials stay yours' },
+      { label: 'Each platform gets its own optimized caption' },
+      { label: 'Full post history, retries, and analytics' },
+    ],
+    mockup: () => (
+      <div className="w-full bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden shadow-2xl">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 bg-gray-900">
+          <div className="w-3 h-3 rounded-full bg-red-500/60"/>
+          <div className="w-3 h-3 rounded-full bg-yellow-500/60"/>
+          <div className="w-3 h-3 rounded-full bg-green-500/60"/>
+          <span className="ml-3 text-xs text-gray-500">IVey — Social Accounts</span>
+        </div>
+        <div className="p-5 space-y-3">
+          {[
+            { name:'Twitter / X', handle:'@yourbrand', color:'bg-sky-500',   emoji:'𝕏',  connected:true  },
+            { name:'Instagram',   handle:'@yourbrand', color:'bg-pink-500',  emoji:'📸', connected:true  },
+            { name:'Facebook',    handle:'Your Page',  color:'bg-blue-600',  emoji:'📘', connected:true  },
+            { name:'TikTok',      handle:'@yourbrand', color:'bg-gray-900',  emoji:'🎵', connected:false },
+          ].map(acc => (
+            <div key={acc.name} className="flex items-center justify-between p-3 bg-gray-900 rounded-xl border border-gray-700">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 ${acc.color} rounded-xl flex items-center justify-center text-sm font-bold text-white border border-white/10`}>{acc.emoji}</div>
+                <div>
+                  <div className="text-sm font-semibold text-white">{acc.name}</div>
+                  <div className="text-xs text-gray-500">{acc.handle}</div>
+                </div>
+              </div>
+              <span className={`text-xs font-semibold px-3 py-1 rounded-full ${acc.connected ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-gray-700 text-gray-500 border border-gray-600'}`}>
+                {acc.connected ? '● Live' : 'Connect'}
+              </span>
+            </div>
+          ))}
+          {/* Compose */}
+          <div className="mt-2 bg-gray-900 rounded-xl border border-amber-500/20 p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs text-amber-400 font-semibold">Quick Post</span>
+              <span className="text-xs text-gray-600">· 3 platforms selected</span>
+            </div>
+            <div className="h-2 bg-gray-700 rounded w-full mb-1.5"/>
+            <div className="h-2 bg-gray-700 rounded w-3/4 mb-3"/>
+            <div className="flex gap-2">
+              <div className="flex-1 h-8 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-center">
+                <span className="text-xs text-amber-400">✨ Generate Caption</span>
+              </div>
+              <div className="w-20 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+                <span className="text-xs text-white font-bold">Post</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'design',
+    tag: 'Visual Creation',
+    headline: 'Build campaign visuals without leaving IVey',
+    sub: 'A drag-and-drop canvas with 18 curated color palettes, layered elements, text tools, and PNG export. Your Canva alternative — already inside your marketing platform.',
+    color: 'rose',
+    subpoints: [
+      { label: '18 hand-picked color palettes that actually work' },
+      { label: 'Add, move, resize and layer elements freely' },
+      { label: 'Export pixel-perfect PNG in one click' },
+    ],
+    mockup: () => (
+      <div className="w-full bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden shadow-2xl">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 bg-gray-900">
+          <div className="w-3 h-3 rounded-full bg-red-500/60"/>
+          <div className="w-3 h-3 rounded-full bg-yellow-500/60"/>
+          <div className="w-3 h-3 rounded-full bg-green-500/60"/>
+          <span className="ml-3 text-xs text-gray-500">IVey — Design Editor</span>
+        </div>
+        <div className="flex h-64">
+          {/* Sidebar tools */}
+          <div className="w-10 bg-gray-900 border-r border-gray-700 flex flex-col items-center py-3 gap-3">
+            {[['▭','Select'],['T','Text'],['◎','Shape'],['⬡','Frame'],['↗','Line']].map(([icon,], i) => (
+              <div key={i} className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs cursor-pointer transition-all ${i===0 ? 'bg-rose-500 text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'}`}>{icon}</div>
+            ))}
+          </div>
+          {/* Canvas */}
+          <div className="flex-1 bg-gray-900/70 relative flex items-center justify-center">
+            {/* Palette row */}
+            <div className="absolute top-2 left-2 flex gap-1">
+              {['#10b981','#f59e0b','#3b82f6','#ec4899','#8b5cf6','#f97316','#06b6d4','#84cc16'].map(c => (
+                <div key={c} className="w-4 h-4 rounded-full border-2 border-white/20 cursor-pointer hover:scale-125 transition-transform" style={{background:c}}/>
+              ))}
+            </div>
+            {/* Canvas element */}
+            <div className="relative">
+              <div className="w-44 h-28 rounded-xl border border-dashed border-rose-500/40 bg-gradient-to-br from-rose-500/20 to-amber-500/20 flex flex-col items-center justify-center gap-2 relative">
+                <div className="text-white text-xs font-black tracking-widest">YOUR BRAND</div>
+                <div className="w-16 h-1 bg-amber-500/60 rounded"/>
+                <div className="text-gray-400 text-xs">Campaign Visual</div>
+                {/* Handles */}
+                {['-top-1 -left-1','-top-1 -right-1','-bottom-1 -left-1','-bottom-1 -right-1'].map(p => (
+                  <div key={p} className={`absolute ${p} w-2.5 h-2.5 bg-white rounded-sm border border-gray-400`}/>
+                ))}
+              </div>
+            </div>
+            {/* Export btn */}
+            <div className="absolute bottom-2 right-2 px-3 py-1.5 bg-gradient-to-r from-amber-400 to-amber-600 rounded-lg text-xs font-bold text-white shadow-lg cursor-pointer">Export PNG</div>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'campaigns',
+    tag: 'Organization',
+    headline: 'Every campaign, beautifully managed',
+    sub: 'Create unlimited campaigns. Each gets its own AI strategy, content history, media gallery, and saved library. Everything in one clean dashboard — not scattered across 10 Notion pages.',
+    color: 'amber',
+    subpoints: [
+      { label: 'Full AI marketing strategy with one click' },
+      { label: 'Per-campaign media upload and management' },
+      { label: 'Saved content library per campaign' },
+    ],
+    mockup: () => (
+      <div className="w-full bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden shadow-2xl">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 bg-gray-900">
+          <div className="w-3 h-3 rounded-full bg-red-500/60"/>
+          <div className="w-3 h-3 rounded-full bg-yellow-500/60"/>
+          <div className="w-3 h-3 rounded-full bg-green-500/60"/>
+          <span className="ml-3 text-xs text-gray-500">IVey — Campaigns</span>
+        </div>
+        <div className="p-4 space-y-2">
+          {[
+            { name:'MAGICAL WANDERINGS',       status:'Complete',       sc:'text-amber-400',   dot:'bg-amber-400',   formats:5 },
+            { name:'Kombucha by SCOBBY QUEEN', status:'Strategy Ready', sc:'text-emerald-400', dot:'bg-emerald-400', formats:4 },
+            { name:'magical kenya',            status:'Draft',          sc:'text-yellow-400',  dot:'bg-yellow-400',  formats:4 },
+            { name:'from dynamic duo to IVey', status:'Draft',          sc:'text-yellow-400',  dot:'bg-yellow-400',  formats:3 },
+          ].map(c => (
+            <div key={c.name} className="flex items-center justify-between p-3 bg-gray-900 rounded-xl border border-gray-700 hover:border-gray-600 transition-all group">
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-white truncate">{c.name}</div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <div className={`w-1.5 h-1.5 rounded-full ${c.dot}`}/>
+                  <span className={`text-xs ${c.sc}`}>{c.status}</span>
+                  <span className="text-xs text-gray-600">· {c.formats} formats</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-xs text-gray-500 px-2 py-1 hover:text-gray-300 cursor-pointer">Edit</span>
+                <span className="text-xs text-red-400 px-2 py-1 hover:text-red-300 cursor-pointer">Delete</span>
+                <span className="text-xs text-emerald-400 px-2 py-1 cursor-pointer">Open →</span>
+              </div>
+            </div>
+          ))}
+          {/* Strategy snippet */}
+          <div className="mt-1 p-3 bg-emerald-900/20 border border-emerald-500/20 rounded-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm">📊</span>
+              <span className="text-xs font-bold text-emerald-400">AI Strategy — MAGICAL WANDERINGS</span>
+            </div>
+            <div className="space-y-1.5">
+              <div className="h-2 bg-emerald-800/50 rounded w-full"/>
+              <div className="h-2 bg-emerald-800/50 rounded w-4/5"/>
+              <div className="h-2 bg-emerald-800/50 rounded w-5/6"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'brand',
+    tag: 'Brand System',
+    headline: 'Define your brand once. Use it everywhere.',
+    sub: 'Set colors, voice, audience, photography style, and more. Every AI output automatically reflects your brand identity — no manual briefing, no off-brand content.',
+    color: 'violet',
+    subpoints: [
+      { label: 'Full visual identity — colors, mood, photography style' },
+      { label: 'Brand voice, words to use, words to avoid' },
+      { label: 'Multiple brand profiles — switch per campaign' },
+    ],
+    mockup: () => (
+      <div className="w-full bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden shadow-2xl">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 bg-gray-900">
+          <div className="w-3 h-3 rounded-full bg-red-500/60"/>
+          <div className="w-3 h-3 rounded-full bg-yellow-500/60"/>
+          <div className="w-3 h-3 rounded-full bg-green-500/60"/>
+          <span className="ml-3 text-xs text-gray-500">IVey — Brand Identity</span>
+        </div>
+        <div className="p-4 space-y-3">
+          {/* Brand preview card */}
+          <div className="bg-gray-900 rounded-xl overflow-hidden border border-gray-700">
+            <div className="h-1 bg-gradient-to-r from-emerald-500 to-amber-500"/>
+            <div className="p-3 flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white font-black">M</div>
+              <div>
+                <div className="text-white text-sm font-black">MOONRALDS SAFARIS</div>
+                <div className="text-gray-500 text-xs">MAGICAL WANDERINGS · Travel & Hospitality</div>
+              </div>
+              <span className="ml-auto text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">Default</span>
+            </div>
+            <div className="px-3 pb-3 flex gap-2">
+              {['#10b981','#c7c8cc','#8e5886'].map(c => (
+                <div key={c} className="w-8 h-8 rounded-lg border border-white/10 shadow-inner" style={{background:c}}/>
+              ))}
+              <div className="ml-2 flex gap-1.5 items-center flex-wrap">
+                {['Bold','Vibrant','Warm','Luxurious'].map(t => (
+                  <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{t}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+          {/* Voice selector */}
+          <div>
+            <p className="text-xs text-gray-500 mb-2">Brand Voice</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[['Professional','Authoritative'],['Bold','Confident'],['Inspiring','Uplifting']].map(([v,d], i) => (
+                <div key={v} className={`p-2 rounded-lg border text-center cursor-pointer transition-all ${i===2 ? 'border-amber-500 bg-amber-500/10' : 'border-gray-700 bg-gray-900'}`}>
+                  <div className={`text-xs font-bold ${i===2 ? 'text-amber-400' : 'text-white'}`}>{v}</div>
+                  <div className="text-xs text-gray-600 mt-0.5">{d}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Words */}
+          <div className="flex gap-2">
+            <div className="flex-1 bg-gray-900 rounded-lg border border-emerald-500/20 p-2">
+              <p className="text-xs text-emerald-500 mb-1.5">Always Use</p>
+              <div className="flex flex-wrap gap-1">
+                {['authentic','luxurious','wild'].map(w => (
+                  <span key={w} className="text-xs px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20">{w}</span>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 bg-gray-900 rounded-lg border border-red-500/20 p-2">
+              <p className="text-xs text-red-400 mb-1.5">Never Use</p>
+              <div className="flex flex-wrap gap-1">
+                {['cheap','basic','simple'].map(w => (
+                  <span key={w} className="text-xs px-2 py-0.5 bg-red-500/10 text-red-400 rounded-full border border-red-500/20">{w}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'gallery',
+    tag: 'Community',
+    headline: 'Get inspired. Get discovered.',
+    sub: 'Browse top-performing campaigns from creators and brands. Submit your best work to get featured. See what\'s working across Food, Travel, Tech, Fashion and more.',
+    color: 'orange',
+    subpoints: [
+      { label: 'Admin-curated picks for maximum visibility' },
+      { label: 'Submit campaigns directly from your dashboard' },
+      { label: 'Filter by industry, format, and performance' },
+    ],
+    mockup: () => (
+      <div className="w-full bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden shadow-2xl">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 bg-gray-900">
+          <div className="w-3 h-3 rounded-full bg-red-500/60"/>
+          <div className="w-3 h-3 rounded-full bg-yellow-500/60"/>
+          <div className="w-3 h-3 rounded-full bg-green-500/60"/>
+          <span className="ml-3 text-xs text-gray-500">IVey — Gallery</span>
+        </div>
+        <div className="p-4">
+          <div className="flex gap-2 mb-4">
+            {['All','Featured ⭐','Travel','Food','Tech'].map((t,i) => (
+              <button key={t} className={`text-xs px-3 py-1 rounded-full border font-medium ${i===1 ? 'border-amber-500 bg-amber-500/10 text-amber-400' : 'border-gray-700 text-gray-500'}`}>{t}</button>
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { bg:'from-emerald-600/50 to-teal-600/50',  label:'Safari Campaign',   star:true  },
+              { bg:'from-amber-500/50 to-orange-500/50',  label:'Kombucha Launch',   star:false },
+              { bg:'from-indigo-500/50 to-purple-500/50', label:'Tourism Ad',        star:true  },
+              { bg:'from-rose-500/50 to-pink-500/50',     label:'Food Brand',        star:false },
+              { bg:'from-sky-500/50 to-blue-500/50',      label:'Tech Startup',      star:false },
+              { bg:'from-lime-500/50 to-green-500/50',    label:'Wellness Brand',    star:true  },
+            ].map((g, i) => (
+              <div key={i} className={`aspect-square rounded-xl bg-gradient-to-br ${g.bg} border border-white/10 relative overflow-hidden group cursor-pointer hover:scale-105 transition-transform`}>
+                {g.star && <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center text-xs shadow-lg">⭐</div>}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-end p-1.5">
+                  <span className="text-white text-xs font-semibold leading-tight">{g.label}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 border border-gray-600 rounded-xl text-xs text-gray-300 font-semibold cursor-pointer hover:bg-gray-600 transition-all">
+              📤 Submit Your Campaign
+            </div>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+];
+
+const COLOR_CLASSES = {
+  emerald: { tag:'bg-emerald-400/10 border-emerald-400/20 text-emerald-400', dot:'bg-emerald-400', line:'bg-emerald-400', num:'text-emerald-400/20' },
+  sky:     { tag:'bg-sky-400/10 border-sky-400/20 text-sky-400',             dot:'bg-sky-400',     line:'bg-sky-400',     num:'text-sky-400/20'     },
+  rose:    { tag:'bg-rose-400/10 border-rose-400/20 text-rose-400',          dot:'bg-rose-400',    line:'bg-rose-400',    num:'text-rose-400/20'    },
+  amber:   { tag:'bg-amber-400/10 border-amber-400/20 text-amber-400',       dot:'bg-amber-400',   line:'bg-amber-400',   num:'text-amber-400/20'   },
+  violet:  { tag:'bg-violet-400/10 border-violet-400/20 text-violet-400',    dot:'bg-violet-400',  line:'bg-violet-400',  num:'text-violet-400/20'  },
+  orange:  { tag:'bg-orange-400/10 border-orange-400/20 text-orange-400',    dot:'bg-orange-400',  line:'bg-orange-400',  num:'text-orange-400/20'  },
+};
+
+// ─── Single feature row ───────────────────────────────────────────────────────
+const FeatureRow = ({ feature, index }) => {
+  const [textRef, textVisible]     = useReveal(0.2);
+  const [mockupRef, mockupVisible] = useReveal(0.15);
+  const c = COLOR_CLASSES[feature.color];
+  const even = index % 2 === 0;
+  const Panel = feature.mockup;
+
+  return (
+    <div className="py-16 border-b border-gray-800 last:border-0">
+      <div className={`grid lg:grid-cols-2 gap-12 items-center ${!even ? 'lg:[&>*:first-child]:order-2' : ''}`}>
+
+        {/* Text side */}
+        <div
+          ref={textRef}
+          className={`space-y-6 transition-all duration-700 ease-out ${textVisible ? 'opacity-100 translate-x-0' : even ? 'opacity-0 -translate-x-10' : 'opacity-0 translate-x-10'}`}
+        >
+          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-bold ${c.tag}`}>
+            {feature.tag}
+          </div>
+          <h2 className="text-4xl font-black text-white leading-tight">{feature.headline}</h2>
+          <p className="text-gray-400 leading-relaxed text-lg">{feature.sub}</p>
+          <ul className="space-y-3">
+            {feature.subpoints.map((p, i) => (
+              <li key={i} className="flex items-start gap-3 text-gray-300">
+                <div className={`w-5 h-5 rounded-full ${c.dot} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                  <svg className="w-3 h-3 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <span className="text-sm leading-relaxed">{p.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Mockup side */}
+        <div
+          ref={mockupRef}
+          className={`transition-all duration-700 ease-out delay-150 ${mockupVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-10 scale-95'}`}
+        >
+          <Panel />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 const Features = () => {
-  const [activeTab, setActiveTab] = useState('ai');
-  const [animating, setAnimating] = useState(false);
-  const contentRef = useRef(null);
-
-  const switchTab = (id) => {
-    if (id === activeTab) return;
-    setAnimating(true);
-    setTimeout(() => {
-      setActiveTab(id);
-      setAnimating(false);
-    }, 180);
-  };
-
-  const content = FEATURE_CONTENT[activeTab];
-  const Panel   = PANELS[activeTab];
+  const [heroRef, heroVisible] = useReveal(0.1);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden pt-20 pb-16 px-4">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-emerald-500/5 rounded-full blur-3xl"/>
-          <div className="absolute top-10 right-1/3 w-[400px] h-[300px] bg-amber-500/5 rounded-full blur-3xl"/>
+      <section className="relative overflow-hidden pt-24 pb-20 px-4">
+        {/* Mesh gradient background */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-emerald-500/8 rounded-full blur-3xl"/>
+          <div className="absolute top-20 right-0 w-[500px] h-[400px] bg-amber-500/6 rounded-full blur-3xl"/>
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-3xl"/>
+          {/* Grid overlay */}
+          <div className="absolute inset-0 opacity-5" style={{backgroundImage:'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize:'60px 60px'}}/>
         </div>
-        <div className="relative max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-400/10 border border-emerald-400/20 rounded-full text-emerald-400 text-xs font-bold mb-6 tracking-widest uppercase">
+
+        <div
+          ref={heroRef}
+          className={`relative max-w-4xl mx-auto text-center transition-all duration-1000 ease-out ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-400/10 border border-emerald-400/20 rounded-full text-emerald-400 text-xs font-bold mb-8 tracking-widest uppercase">
             <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"/>
             Platform Features
           </div>
-          <h1 className="text-5xl sm:text-6xl font-black text-white leading-tight mb-5">
+
+          <h1 className="text-6xl sm:text-7xl font-black text-white leading-[0.95] tracking-tight mb-6">
             One platform.<br/>
-            <span className="bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">Everything viral.</span>
+            <span className="relative inline-block">
+              <span className="bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 bg-clip-text text-transparent">Everything viral.</span>
+              <span className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-amber-600 rounded-full opacity-40"/>
+            </span>
           </h1>
-          <p className="text-gray-400 text-lg max-w-xl mx-auto leading-relaxed mb-8">
-            AI content generation, social posting, visual design, brand management, and community discovery — all in one place.
+
+          <p className="text-gray-400 text-xl max-w-2xl mx-auto leading-relaxed mb-10">
+            AI content generation, social posting, visual design, brand management, and community discovery. Stop juggling apps. Start going viral.
           </p>
+
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/signup" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-bold hover:from-amber-500 hover:to-amber-700 transition-all shadow-lg text-sm">
+            <Link to="/signup" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-black hover:from-amber-500 hover:to-amber-700 transition-all shadow-2xl shadow-amber-500/20 text-sm">
               Get Started Free
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
             </Link>
-            <Link to="/dashboard" className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl font-bold hover:bg-gray-700 transition-all text-sm">
-              Go to Dashboard
+            <Link to="/dashboard" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl font-bold hover:bg-gray-700 hover:border-gray-600 transition-all text-sm">
+              Open Dashboard
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ── Stats bar ────────────────────────────────────────────────────── */}
-      <div className="border-y border-gray-800 bg-gray-800/40 py-5 px-4">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-          {[['13+','Content Formats'],['4','AI Providers'],['6','Social Platforms'],['∞','Campaigns']].map(([v,l]) => (
-            <div key={l}>
-              <div className="text-2xl font-black text-white">{v}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{l}</div>
+      {/* ── Stats ────────────────────────────────────────────────────────── */}
+      <div className="border-y border-gray-800 bg-gray-800/30 py-8 px-4">
+        <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
+          {[[13,'+','Content Formats'],[4,'','AI Providers'],[6,'','Social Platforms'],[0,'∞','Campaigns']].map(([to, suf, label]) => (
+            <div key={label}>
+              <div className="text-3xl font-black text-white">
+                {to === 0 ? '∞' : <><Counter to={to} />{suf}</>}
+              </div>
+              <div className="text-xs text-gray-500 mt-1 font-medium">{label}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── Feature Showcase ─────────────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-4 py-16">
-
-        {/* Tab bar */}
-        <div className="flex gap-1 overflow-x-auto pb-2 mb-10 scrollbar-hide">
-          {TABS.map(tab => (
-            <button key={tab.id} onClick={() => switchTab(tab.id)}
-              className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'bg-gray-700 text-white border border-gray-600'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'
-              }`}>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Content area */}
-        <div
-          ref={contentRef}
-          className={`transition-all duration-200 ${animating ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}
-        >
-          <div className="grid lg:grid-cols-2 gap-10 items-start">
-
-            {/* Left — text */}
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-400/10 border border-amber-400/20 rounded-full text-amber-400 text-xs font-bold">
-                {content.tag}
-              </div>
-              <h2 className="text-4xl font-black text-white leading-tight">{content.headline}</h2>
-              <p className="text-gray-400 leading-relaxed">{content.sub}</p>
-
-              <div className="space-y-4 pt-2">
-                {content.points.map(p => (
-                  <div key={p.title} className="flex items-start gap-4 p-4 bg-gray-800 border border-gray-700 rounded-xl hover:border-gray-600 transition-all">
-                    <div className="text-2xl flex-shrink-0">{p.icon}</div>
-                    <div>
-                      <div className="text-sm font-bold text-white mb-1">{p.title}</div>
-                      <div className="text-xs text-gray-400 leading-relaxed">{p.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <Link to="/signup" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-bold hover:from-amber-500 hover:to-amber-700 transition-all shadow-lg text-sm">
-                Try it free
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-              </Link>
-            </div>
-
-            {/* Right — visual panel */}
-            <div className="lg:sticky lg:top-24">
-              <Panel />
-            </div>
-          </div>
-        </div>
+      {/* ── Features ─────────────────────────────────────────────────────── */}
+      <section className="max-w-6xl mx-auto px-4 py-8">
+        {FEATURES.map((f, i) => <FeatureRow key={f.id} feature={f} index={i} />)}
       </section>
 
       {/* ── Before / After ───────────────────────────────────────────────── */}
-      <section className="border-t border-gray-800 py-16 px-4">
+      <section className="border-t border-gray-800 py-20 px-4 bg-gray-800/20">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-black text-white text-center mb-10">Stop juggling 10 different tools.</h2>
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-black text-white mb-3">Stop juggling 10 different tools.</h2>
+            <p className="text-gray-500">Everything you need is already in IVey.</p>
+          </div>
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Before */}
-            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6">
-              <div className="text-sm font-bold text-gray-400 mb-4 uppercase tracking-widest">Before IVey</div>
-              <div className="space-y-2.5">
-                {[
-                  'ChatGPT for captions',
-                  'Canva for visuals',
-                  'Buffer for scheduling',
-                  'Notion for campaign notes',
-                  'Hootsuite for analytics',
-                  'Separate tools for each platform',
-                ].map(t => (
+            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-7">
+              <div className="text-xs font-black text-gray-500 mb-5 uppercase tracking-widest flex items-center gap-2">
+                <span className="w-5 h-5 bg-red-500/20 border border-red-500/30 rounded-full flex items-center justify-center text-red-400 text-xs">✕</span>
+                Before IVey
+              </div>
+              <div className="space-y-3">
+                {['ChatGPT tab for captions','Canva tab for visuals','Buffer for scheduling','Notion for campaign notes','Hootsuite for analytics','Copy-pasting between 6 apps','Different logins for every platform','Hours wasted on repetitive work'].map(t => (
                   <div key={t} className="flex items-center gap-3 text-sm text-gray-400">
-                    <span className="w-4 h-4 rounded-full bg-red-500/20 border border-red-500/30 text-red-400 flex items-center justify-center text-xs flex-shrink-0">✕</span>
+                    <span className="w-4 h-4 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-xs flex-shrink-0">✕</span>
                     {t}
                   </div>
                 ))}
               </div>
             </div>
-            {/* After */}
-            <div className="bg-gray-800 border border-emerald-500/30 rounded-2xl p-6">
-              <div className="text-sm font-bold text-emerald-400 mb-4 uppercase tracking-widest">After IVey</div>
-              <div className="space-y-2.5">
-                {[
-                  'AI content across all formats',
-                  'Built-in design editor',
-                  'Direct social posting',
-                  'Campaign management hub',
-                  'Brand identity system',
-                  'Everything in one dashboard',
-                ].map(t => (
+            <div className="bg-gray-800 border border-emerald-500/30 rounded-2xl p-7 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none"/>
+              <div className="text-xs font-black text-emerald-400 mb-5 uppercase tracking-widest flex items-center gap-2">
+                <span className="w-5 h-5 bg-emerald-500/20 border border-emerald-500/30 rounded-full flex items-center justify-center text-emerald-400 text-xs">✓</span>
+                After IVey
+              </div>
+              <div className="space-y-3">
+                {['AI content across all 13+ formats','Built-in design editor','Direct social posting to all platforms','Campaign management hub','Post analytics and history','One login, one dashboard','Brand identity synced everywhere','Spend time on strategy, not tools'].map(t => (
                   <div key={t} className="flex items-center gap-3 text-sm text-gray-300">
-                    <span className="w-4 h-4 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xs flex-shrink-0">✓</span>
+                    <span className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs flex-shrink-0">✓</span>
                     {t}
                   </div>
                 ))}
@@ -486,22 +561,24 @@ const Features = () => {
       </section>
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden py-20 px-4 border-t border-gray-800">
+      <section className="relative overflow-hidden py-24 px-4">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-amber-500/5 rounded-full blur-3xl"/>
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-amber-500/6 rounded-full blur-3xl"/>
+          <div className="absolute top-0 right-1/4 w-[400px] h-[300px] bg-emerald-500/5 rounded-full blur-3xl"/>
         </div>
         <div className="relative max-w-2xl mx-auto text-center">
-          <h2 className="text-4xl font-black text-white mb-4">Ready to go viral?</h2>
-          <p className="text-gray-400 mb-8 leading-relaxed">Join creators and businesses using IVey to generate viral marketing content in seconds.</p>
+          <h2 className="text-5xl font-black text-white mb-4 leading-tight">Ready to go viral?</h2>
+          <p className="text-gray-400 mb-10 text-lg leading-relaxed">Join creators and businesses using IVey to generate viral marketing content in seconds — not hours.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/signup" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-black hover:from-amber-500 hover:to-amber-700 transition-all shadow-xl text-sm">
+            <Link to="/signup" className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-black hover:from-amber-500 hover:to-amber-700 transition-all shadow-2xl shadow-amber-500/20 text-sm">
               Create Free Account
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
             </Link>
-            <Link to="/pricing" className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl font-bold hover:bg-gray-700 transition-all text-sm">
+            <Link to="/pricing" className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl font-bold hover:bg-gray-700 transition-all text-sm">
               View Pricing
             </Link>
           </div>
+          <p className="text-xs text-gray-600 mt-4">No credit card required · Cancel anytime</p>
         </div>
       </section>
 
