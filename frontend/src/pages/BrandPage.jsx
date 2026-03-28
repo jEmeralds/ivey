@@ -195,7 +195,7 @@ const inputCls = 'w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white
 const sectionCls = 'bg-gray-800 border border-gray-700 rounded-2xl p-6 mb-4';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-const BrandPage = () => {
+const BrandPage = ({ embedded = false }) => {
   const navigate = useNavigate();
   const [brands,   setBrands]   = useState([]);
   const [selected, setSelected] = useState(null);
@@ -304,7 +304,7 @@ const BrandPage = () => {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+    <div className="flex items-center justify-center py-20">
       <div className="text-center">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-500 mx-auto mb-3" />
         <p className="text-gray-500 text-sm">Loading brand profiles...</p>
@@ -313,10 +313,10 @@ const BrandPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className={embedded ? 'text-white' : 'min-h-screen bg-gray-900 text-white'}>
 
-      {/* Top nav — matches Dashboard style */}
-      <div className="border-b border-gray-700 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10">
+      {/* Top nav — only shown when standalone */}
+      {!embedded && (
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate('/dashboard')}
@@ -344,7 +344,7 @@ const BrandPage = () => {
             </button>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">

@@ -2,13 +2,14 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getCampaigns, deleteCampaign } from '../services/api';
+import BrandPage from './BrandPage';
 import GallerySubmitButton from '../components/GallerySubmitButton';
 import SocialConnect, { AnalyticsPanel } from '../components/SocialConnect';
 
 const NAV_ITEMS = [
   { id: 'overview',   label: 'Overview',   icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>) },
   { id: 'campaigns',  label: 'Campaigns',  icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>) },
-  { id: 'brands',     label: 'Brands',     icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>), external: true },
+  { id: 'brands',     label: 'Brands',     icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>) },
   { id: 'social',     label: 'Social',     icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>) },
   { id: 'gallery',    label: 'Gallery',    icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>) },
   { id: 'analytics',  label: 'Analytics',  icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>) },
@@ -130,7 +131,6 @@ const Dashboard = () => {
   const formatDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   const goTo = (id) => {
-    if (id === 'brands') { navigate('/brand'); return; }
     setActiveSection(id);
     setSidebarOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -197,7 +197,6 @@ const Dashboard = () => {
                 {item.id === 'campaigns' && campaigns.length > 0 && (
                   <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full">{campaigns.length}</span>
                 )}
-                {item.external && <span className="text-gray-400 text-xs">↗</span>}
               </button>
             ))}
           </div>
@@ -378,6 +377,7 @@ const Dashboard = () => {
         <main className="flex-1 p-4 md:p-8 pb-24 md:pb-8 max-w-5xl w-full mx-auto">
           {activeSection === 'overview'  && <OverviewSection />}
           {activeSection === 'campaigns' && <CampaignsSection />}
+          {activeSection === 'brands'    && <BrandPage embedded />}
           {activeSection === 'social'    && (
             <div className="space-y-4">
               <div>
