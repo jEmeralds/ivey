@@ -1,7 +1,7 @@
 ﻿// frontend/src/pages/Dashboard.jsx
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { getCampaigns } from '../services/api';
+import { getCampaigns, deleteCampaign } from '../services/api';
 import GallerySubmitButton from '../components/GallerySubmitButton';
 import SocialConnect, { AnalyticsPanel } from '../components/SocialConnect';
 
@@ -32,6 +32,42 @@ const StatusBadge = ({ campaign }) => {
   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 whitespace-nowrap">Draft</span>;
 };
 
+// ── Inline delete confirm ──────────────────────────────────────────────────
+const DeleteButton = ({ onConfirm, deleting }) => {
+  const [confirming, setConfirming] = useState(false);
+
+  if (deleting) return (
+    <span className="px-3 py-1.5 text-xs text-red-400 font-medium">Deleting…</span>
+  );
+
+  if (confirming) return (
+    <div className="flex items-center gap-1">
+      <span className="text-xs text-red-500 dark:text-red-400 font-medium whitespace-nowrap">Sure?</span>
+      <button
+        onClick={() => { setConfirming(false); onConfirm(); }}
+        className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs font-medium transition-colors"
+      >
+        Yes
+      </button>
+      <button
+        onClick={() => setConfirming(false)}
+        className="px-2 py-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs font-medium transition-colors"
+      >
+        No
+      </button>
+    </div>
+  );
+
+  return (
+    <button
+      onClick={() => setConfirming(true)}
+      className="px-3 py-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors text-xs font-medium"
+    >
+      Delete
+    </button>
+  );
+};
+
 const Dashboard = () => {
   const [activeSection, setActiveSection] = useState('overview');
   const [sidebarOpen,   setSidebarOpen]   = useState(false);
@@ -39,6 +75,7 @@ const Dashboard = () => {
   const [loading,       setLoading]       = useState(true);
   const [error,         setError]         = useState('');
   const [user,          setUser]          = useState(null);
+  const [deletingId,    setDeletingId]    = useState(null);
   const [stats,         setStats]         = useState({ totalCampaigns: 0, contentGenerated: 0, strategiesCreated: 0 });
   const navigate  = useNavigate();
   const location  = useLocation();
@@ -72,6 +109,24 @@ const Dashboard = () => {
     finally { setLoading(false); }
   };
 
+  const handleDelete = async (id) => {
+    try {
+      setDeletingId(id);
+      await deleteCampaign(id);
+      const updated = campaigns.filter(c => c.id !== id);
+      setCampaigns(updated);
+      setStats({
+        totalCampaigns:    updated.length,
+        contentGenerated:  updated.reduce((a, c) => a + (c.content_count || 0), 0),
+        strategiesCreated: updated.filter(c => c.strategy_generated).length,
+      });
+    } catch {
+      setError('Failed to delete campaign.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const formatDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   const goTo = (id) => {
@@ -81,26 +136,42 @@ const Dashboard = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ── Sidebar (desktop) ──────────────────────────────────────────────────────
+  // ── Shared action buttons (used in both Overview + Campaigns) ──────────────
+  const CampaignActions = ({ campaign }) => (
+    <div className="flex items-center gap-1 flex-shrink-0">
+      <button
+        onClick={() => navigate(`/campaign/${campaign.id}/edit`)}
+        className="px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-xs font-medium"
+      >
+        Edit
+      </button>
+      <DeleteButton
+        deleting={deletingId === campaign.id}
+        onConfirm={() => handleDelete(campaign.id)}
+      />
+      <button
+        onClick={() => navigate(`/campaigns/${campaign.id}`)}
+        className="px-3 py-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors text-xs font-medium"
+      >
+        Open →
+      </button>
+    </div>
+  );
+
+  // ── Sidebar ────────────────────────────────────────────────────────────────
   const Sidebar = () => (
     <>
-      {/* Mobile overlay */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
       <aside className={`
         fixed top-0 left-0 h-full z-40 flex flex-col
         bg-white dark:bg-gray-900
         border-r border-gray-200 dark:border-gray-700
-        transition-transform duration-300 ease-in-out
-        w-64
+        transition-transform duration-300 ease-in-out w-64
         ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
         md:translate-x-0 md:static md:z-auto md:h-auto md:shadow-none
       `}>
-        {/* Logo */}
         <div className="flex items-center justify-between px-5 h-16 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-7 h-7 bg-gradient-to-r from-amber-400 to-amber-600 rounded-lg flex items-center justify-center">
@@ -112,8 +183,6 @@ const Dashboard = () => {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
-
-        {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-4 px-3">
           <div className="space-y-0.5">
             {NAV_ITEMS.map(item => (
@@ -123,9 +192,7 @@ const Dashboard = () => {
                     ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                 }`}>
-                <span className={`w-5 h-5 flex-shrink-0 ${activeSection === item.id && !item.external ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
-                  {item.icon}
-                </span>
+                <span className={`w-5 h-5 flex-shrink-0 ${activeSection === item.id && !item.external ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>{item.icon}</span>
                 <span className="flex-1 text-left">{item.label}</span>
                 {item.id === 'campaigns' && campaigns.length > 0 && (
                   <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full">{campaigns.length}</span>
@@ -135,8 +202,6 @@ const Dashboard = () => {
             ))}
           </div>
         </nav>
-
-        {/* User */}
         <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -152,21 +217,16 @@ const Dashboard = () => {
     </>
   );
 
-  // ── Bottom Nav (mobile only) ───────────────────────────────────────────────
-  // Show only 5 most important items on mobile bottom bar
+  // ── Bottom Nav ─────────────────────────────────────────────────────────────
   const BOTTOM_NAV = NAV_ITEMS.slice(0, 5);
   const BottomNav = () => (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex items-stretch safe-area-pb">
       {BOTTOM_NAV.map(item => (
         <button key={item.id} onClick={() => goTo(item.id)}
           className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 px-1 text-xs font-medium transition-colors ${
-            activeSection === item.id && !item.external
-              ? 'text-emerald-600 dark:text-emerald-400'
-              : 'text-gray-500 dark:text-gray-400'
+            activeSection === item.id && !item.external ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'
           }`}>
-          <span className={`w-5 h-5 ${activeSection === item.id && !item.external ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>
-            {item.icon}
-          </span>
+          <span className={`w-5 h-5 ${activeSection === item.id && !item.external ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>{item.icon}</span>
           <span className="leading-none">{item.label}</span>
         </button>
       ))}
@@ -176,7 +236,6 @@ const Dashboard = () => {
   // ── Overview ───────────────────────────────────────────────────────────────
   const OverviewSection = () => (
     <div className="space-y-5">
-      {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
@@ -190,14 +249,12 @@ const Dashboard = () => {
         </Link>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         <StatCard value={stats.totalCampaigns}    label="Campaigns"  color="bg-emerald-100 dark:bg-emerald-900/30" icon={<svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>} />
         <StatCard value={stats.strategiesCreated} label="Strategies" color="bg-amber-100 dark:bg-amber-900/30"   icon={<svg className="w-5 h-5 text-amber-600 dark:text-amber-400"   fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>} />
         <StatCard value={stats.contentGenerated}  label="Content"    color="bg-indigo-100 dark:bg-indigo-900/30" icon={<svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>} />
       </div>
 
-      {/* Quick actions */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'New Campaign',   icon: '🚀', action: () => navigate('/new-campaign'), color: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
@@ -212,7 +269,6 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Recent campaigns */}
       {campaigns.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -229,7 +285,7 @@ const Dashboard = () => {
                   </div>
                   <span className="text-xs text-gray-400">{formatDate(c.created_at)}</span>
                 </div>
-                <button onClick={() => navigate(`/campaigns/${c.id}`)} className="text-xs text-emerald-600 dark:text-emerald-400 font-medium whitespace-nowrap flex-shrink-0">Open →</button>
+                <CampaignActions campaign={c} />
               </div>
             ))}
           </div>
@@ -283,9 +339,7 @@ const Dashboard = () => {
                       {campaign.output_formats?.length > 0 && <><span>·</span><span>{campaign.output_formats.length} formats</span></>}
                     </div>
                   </div>
-                  <button onClick={() => navigate(`/campaigns/${campaign.id}`)} className="px-3 py-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors text-xs font-medium flex-shrink-0">
-                    Open →
-                  </button>
+                  <CampaignActions campaign={campaign} />
                 </div>
               </div>
             ))}
@@ -306,11 +360,8 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
-      {/* Desktop sidebar */}
       <Sidebar />
-
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Mobile top bar — hamburger + title */}
         <div className="md:hidden flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20">
           <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-1 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -324,7 +375,6 @@ const Dashboard = () => {
           <span className="ml-auto text-sm font-medium text-gray-500 dark:text-gray-400 capitalize">{activeSection}</span>
         </div>
 
-        {/* Main content — extra bottom padding on mobile for bottom nav */}
         <main className="flex-1 p-4 md:p-8 pb-24 md:pb-8 max-w-5xl w-full mx-auto">
           {activeSection === 'overview'  && <OverviewSection />}
           {activeSection === 'campaigns' && <CampaignsSection />}
@@ -357,8 +407,6 @@ const Dashboard = () => {
           )}
         </main>
       </div>
-
-      {/* Mobile bottom nav */}
       <BottomNav />
     </div>
   );
