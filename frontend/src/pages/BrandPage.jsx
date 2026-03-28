@@ -12,11 +12,11 @@ const INDUSTRIES = [
 ];
 
 const PHOTOGRAPHY_STYLES = [
-  { id: 'lifestyle',   label: 'Lifestyle',     desc: 'Real people, real moments',    emoji: '🌿' },
-  { id: 'studio',      label: 'Studio',        desc: 'Clean, controlled, precise',   emoji: '💡' },
-  { id: 'documentary', label: 'Documentary',   desc: 'Raw, authentic, storytelling', emoji: '🎞' },
-  { id: 'bold_graphic',label: 'Bold Graphic',  desc: 'Strong colors, flat design',   emoji: '🟥' },
-  { id: 'minimalist',  label: 'Minimalist',    desc: 'Less is more, white space',    emoji: '⬜' },
+  { id: 'lifestyle',    label: 'Lifestyle',    desc: 'Real people, real moments',    emoji: '🌿' },
+  { id: 'studio',       label: 'Studio',       desc: 'Clean, controlled, precise',   emoji: '💡' },
+  { id: 'documentary',  label: 'Documentary',  desc: 'Raw, authentic, storytelling', emoji: '🎞' },
+  { id: 'bold_graphic', label: 'Bold Graphic', desc: 'Strong colors, flat design',   emoji: '🟥' },
+  { id: 'minimalist',   label: 'Minimalist',   desc: 'Less is more, white space',    emoji: '⬜' },
 ];
 
 const VISUAL_MOODS = [
@@ -69,14 +69,9 @@ const BrandPreview = ({ form }) => {
   return (
     <div className="sticky top-24">
       <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Live Preview</p>
-
-      {/* Brand card */}
       <div className="rounded-2xl overflow-hidden shadow-2xl" style={{ background: secondary }}>
-        {/* Header bar */}
         <div className="h-2" style={{ background: `linear-gradient(90deg, ${primary}, ${accent})` }} />
-
         <div className="p-6">
-          {/* Brand mark */}
           <div className="flex items-center gap-3 mb-5">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl font-black shadow-lg"
               style={{ background: primary, color: secondary }}>
@@ -91,32 +86,23 @@ const BrandPreview = ({ form }) => {
               )}
             </div>
           </div>
-
-          {/* Industry pill */}
           {form.industry && (
             <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold mb-4"
               style={{ background: primary + '25', color: primary, border: `1px solid ${primary}40` }}>
               {form.industry}
             </div>
           )}
-
-          {/* Story snippet */}
           {form.brand_story && (
             <p className="text-xs leading-relaxed mb-5 line-clamp-3" style={{ color: subColor }}>
               {form.brand_story}
             </p>
           )}
-
-          {/* Color swatches */}
           <div className="flex gap-2 mb-4">
             {form.brand_colors.filter(Boolean).map((c, i) => (
-              <div key={i} title={c}
-                className="w-8 h-8 rounded-lg shadow-inner border border-white/10"
+              <div key={i} title={c} className="w-8 h-8 rounded-lg shadow-inner border border-white/10"
                 style={{ background: c }} />
             ))}
           </div>
-
-          {/* Voice + mood pills */}
           <div className="flex flex-wrap gap-1.5">
             {form.brand_voice && (
               <span className="px-2.5 py-1 rounded-full text-xs font-medium"
@@ -132,8 +118,6 @@ const BrandPreview = ({ form }) => {
             ))}
           </div>
         </div>
-
-        {/* Footer */}
         {form.preferred_platforms.length > 0 && (
           <div className="px-6 pb-4 flex gap-2">
             {form.preferred_platforms.map(p => {
@@ -145,10 +129,8 @@ const BrandPreview = ({ form }) => {
           </div>
         )}
       </div>
-
-      {/* Video length preview */}
       {form.default_video_length && (
-        <div className="mt-4 p-4 rounded-xl border border-gray-800 bg-gray-900">
+        <div className="mt-4 p-4 rounded-xl border border-gray-700 bg-gray-800">
           <p className="text-xs text-gray-500 mb-1">Default video length</p>
           <p className="text-lg font-black text-white">
             {form.default_video_length >= 60
@@ -185,9 +167,9 @@ const TagInput = ({ tags, onChange, placeholder, color = '#10b981' }) => {
         <input value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
           placeholder={placeholder}
-          className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 text-white text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none placeholder-gray-500" />
+          className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none placeholder-gray-500" />
         <button onClick={add} type="button"
-          className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg text-sm transition-colors">
+          className="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-gray-300 rounded-lg text-sm transition-colors">
           Add
         </button>
       </div>
@@ -208,21 +190,22 @@ const SectionHeader = ({ number, title, subtitle }) => (
   </div>
 );
 
-const inputCls = 'w-full px-4 py-3 bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm transition-all';
-const sectionCls = 'bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-4';
+// consistent with Dashboard bg-gray-800 sections on gray-900 page
+const inputCls = 'w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white placeholder-gray-500 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm transition-all';
+const sectionCls = 'bg-gray-800 border border-gray-700 rounded-2xl p-6 mb-4';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const BrandPage = () => {
   const navigate = useNavigate();
-  const [brands,     setBrands]     = useState([]);
-  const [selected,   setSelected]   = useState(null); // brand id being edited
-  const [form,       setForm]       = useState(EMPTY_BRAND);
-  const [loading,    setLoading]    = useState(true);
-  const [saving,     setSaving]     = useState(false);
-  const [saved,      setSaved]      = useState(false);
-  const [error,      setError]      = useState('');
-  const [showNew,    setShowNew]    = useState(false);
-  const colorRefs   = [useRef(), useRef(), useRef()];
+  const [brands,   setBrands]   = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [form,     setForm]     = useState(EMPTY_BRAND);
+  const [loading,  setLoading]  = useState(true);
+  const [saving,   setSaving]   = useState(false);
+  const [saved,    setSaved]    = useState(false);
+  const [error,    setError]    = useState('');
+  const [showNew,  setShowNew]  = useState(false);
+  const colorRefs = [useRef(), useRef(), useRef()];
 
   useEffect(() => { fetchBrands(); }, []);
 
@@ -234,7 +217,6 @@ const BrandPage = () => {
       const data = await res.json();
       const list = data.brands || [];
       setBrands(list);
-      // Auto-select default or first
       const def = list.find(b => b.is_default) || list[0];
       if (def) { setSelected(def.id); setForm(toForm(def)); }
       else { setShowNew(true); }
@@ -267,16 +249,8 @@ const BrandPage = () => {
     colors[idx] = val;
     setForm(prev => ({ ...prev, brand_colors: colors }));
   };
-  const toggleMood = (mood) => set('visual_mood',
-    form.visual_mood.includes(mood)
-      ? form.visual_mood.filter(m => m !== mood)
-      : [...form.visual_mood, mood]
-  );
-  const togglePlatform = (id) => set('preferred_platforms',
-    form.preferred_platforms.includes(id)
-      ? form.preferred_platforms.filter(p => p !== id)
-      : [...form.preferred_platforms, id]
-  );
+  const toggleMood     = (mood) => set('visual_mood', form.visual_mood.includes(mood) ? form.visual_mood.filter(m => m !== mood) : [...form.visual_mood, mood]);
+  const togglePlatform = (id)   => set('preferred_platforms', form.preferred_platforms.includes(id) ? form.preferred_platforms.filter(p => p !== id) : [...form.preferred_platforms, id]);
 
   const handleSave = async () => {
     if (!form.brand_name.trim()) { setError('Brand name is required'); return; }
@@ -293,8 +267,7 @@ const BrandPage = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save');
-      setSaved(true);
-      setShowNew(false);
+      setSaved(true); setShowNew(false);
       await fetchBrands();
       setSelected(data.brand.id);
       setTimeout(() => setSaved(false), 3000);
@@ -321,23 +294,17 @@ const BrandPage = () => {
   };
 
   const handleSelectBrand = (brand) => {
-    setSelected(brand.id);
-    setForm(toForm(brand));
-    setShowNew(false);
-    setError('');
-    setSaved(false);
+    setSelected(brand.id); setForm(toForm(brand));
+    setShowNew(false); setError(''); setSaved(false);
   };
 
   const handleNew = () => {
-    setSelected(null);
-    setForm(EMPTY_BRAND);
-    setShowNew(true);
-    setError('');
-    setSaved(false);
+    setSelected(null); setForm(EMPTY_BRAND);
+    setShowNew(true); setError(''); setSaved(false);
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-500 mx-auto mb-3" />
         <p className="text-gray-500 text-sm">Loading brand profiles...</p>
@@ -346,11 +313,12 @@ const BrandPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      {/* Top nav */}
-      <div className="border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm sticky top-0 z-10">
+    <div className="min-h-screen bg-gray-900 text-white">
+
+      {/* Top nav — matches Dashboard style */}
+      <div className="border-b border-gray-700 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button onClick={() => navigate('/dashboard')}
               className="flex items-center gap-2 text-gray-400 hover:text-white text-sm transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -358,12 +326,12 @@ const BrandPage = () => {
               </svg>
               Dashboard
             </button>
-            <span className="text-gray-700">·</span>
+            <span className="text-gray-600">·</span>
             <h1 className="text-sm font-bold text-white">Brand Identity</h1>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={handleNew}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-gray-800 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-700 transition-all">
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-gray-700 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-600 transition-all">
               + New Brand
             </button>
             <button onClick={handleSave} disabled={saving}
@@ -383,14 +351,14 @@ const BrandPage = () => {
 
           {/* ── Left: brand list ── */}
           <div className="lg:col-span-2 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
-            <p className="hidden lg:block text-xs font-bold text-gray-600 uppercase tracking-widest mb-3">Your Brands</p>
+            <p className="hidden lg:block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Your Brands</p>
             <div className="space-y-2">
               {brands.map(b => (
                 <button key={b.id} onClick={() => handleSelectBrand(b)}
-                  className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all group ${
+                  className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${
                     selected === b.id && !showNew
                       ? 'bg-emerald-900/20 border-emerald-600/40 text-white'
-                      : 'bg-gray-900 border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200'
+                      : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-200'
                   }`}>
                   <div className="flex items-center gap-2">
                     <div className="w-5 h-5 rounded flex-shrink-0 flex items-center justify-center text-xs font-black"
@@ -399,26 +367,20 @@ const BrandPage = () => {
                     </div>
                     <span className="text-xs font-semibold truncate">{b.brand_name || 'Untitled'}</span>
                   </div>
-                  {b.is_default && (
-                    <span className="text-xs text-emerald-500 mt-1 block">Default</span>
-                  )}
+                  {b.is_default && <span className="text-xs text-emerald-500 mt-1 block">Default</span>}
                 </button>
               ))}
-              {brands.length === 0 && (
-                <p className="text-xs text-gray-600 px-1">No brands yet</p>
-              )}
+              {brands.length === 0 && <p className="text-xs text-gray-600 px-1">No brands yet</p>}
             </div>
           </div>
 
           {/* ── Center: form ── */}
           <div className="lg:col-span-7 space-y-4">
 
-            {/* Brand actions bar */}
             {selected && !showNew && (
-              <div className="flex items-center justify-between px-4 py-2.5 bg-gray-900 border border-gray-800 rounded-xl">
+              <div className="flex items-center justify-between px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl">
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded"
-                    style={{ background: form.brand_colors[0] || '#10b981' }} />
+                  <div className="w-4 h-4 rounded" style={{ background: form.brand_colors[0] || '#10b981' }} />
                   <span className="text-sm font-bold text-white">{form.brand_name || 'Untitled Brand'}</span>
                   {form.is_default && (
                     <span className="px-2 py-0.5 text-xs font-semibold bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20">
@@ -441,7 +403,6 @@ const BrandPage = () => {
               </div>
             )}
 
-            {/* Error */}
             {error && (
               <div className="px-4 py-3 bg-red-900/20 border border-red-800 text-red-400 rounded-xl text-sm">{error}</div>
             )}
@@ -476,14 +437,12 @@ const BrandPage = () => {
                     rows={3} className={`${inputCls} resize-none`} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-2">
-                    Set as Default Brand
-                  </label>
+                  <label className="text-xs font-semibold text-gray-400 block mb-2">Set as Default Brand</label>
                   <button onClick={() => set('is_default', !form.is_default)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
                       form.is_default
                         ? 'bg-emerald-900/20 border-emerald-600/40 text-emerald-400'
-                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500'
+                        : 'bg-gray-700 border-gray-600 text-gray-400 hover:border-gray-500'
                     }`}>
                     <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                       form.is_default ? 'bg-emerald-500 border-emerald-500' : 'border-gray-500'
@@ -500,19 +459,15 @@ const BrandPage = () => {
             <div className={sectionCls}>
               <SectionHeader number="02" title="Visual Theme" subtitle="Colors, photography style, and mood" />
               <div className="space-y-5">
-
-                {/* Colors */}
                 <div>
                   <label className="text-xs font-semibold text-gray-400 block mb-3">Brand Colors</label>
                   <div className="flex items-center gap-4">
                     {['Primary', 'Background', 'Accent'].map((label, i) => (
                       <div key={i} className="flex flex-col items-center gap-2">
                         <div className="relative">
-                          <div
-                            className="w-14 h-14 rounded-xl cursor-pointer shadow-lg border-2 border-white/10 hover:scale-105 transition-transform"
+                          <div className="w-14 h-14 rounded-xl cursor-pointer shadow-lg border-2 border-white/10 hover:scale-105 transition-transform"
                             style={{ background: form.brand_colors[i] || '#888' }}
-                            onClick={() => colorRefs[i].current?.click()}
-                          />
+                            onClick={() => colorRefs[i].current?.click()} />
                           <input ref={colorRefs[i]} type="color" value={form.brand_colors[i] || '#888888'}
                             onChange={e => setColor(i, e.target.value)}
                             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
@@ -523,8 +478,6 @@ const BrandPage = () => {
                     ))}
                   </div>
                 </div>
-
-                {/* Photography style */}
                 <div>
                   <label className="text-xs font-semibold text-gray-400 block mb-3">Photography Style</label>
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
@@ -533,7 +486,7 @@ const BrandPage = () => {
                         className={`p-3 rounded-xl border text-left transition-all ${
                           form.photography_style === s.id
                             ? 'border-emerald-500 bg-emerald-900/20'
-                            : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                            : 'border-gray-600 bg-gray-700 hover:border-gray-500'
                         }`}>
                         <div className="text-xl mb-1">{s.emoji}</div>
                         <div className="text-xs font-bold text-white">{s.label}</div>
@@ -542,17 +495,17 @@ const BrandPage = () => {
                     ))}
                   </div>
                 </div>
-
-                {/* Visual mood */}
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-3">Visual Mood <span className="text-gray-600 font-normal">(select all that apply)</span></label>
+                  <label className="text-xs font-semibold text-gray-400 block mb-3">
+                    Visual Mood <span className="text-gray-600 font-normal">(select all that apply)</span>
+                  </label>
                   <div className="flex flex-wrap gap-2">
                     {VISUAL_MOODS.map(mood => (
                       <button key={mood} type="button" onClick={() => toggleMood(mood)}
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                           form.visual_mood.includes(mood)
                             ? 'border-emerald-500 bg-emerald-900/20 text-emerald-400'
-                            : 'border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600'
+                            : 'border-gray-600 bg-gray-700 text-gray-400 hover:border-gray-500'
                         }`}>
                         {mood}
                       </button>
@@ -574,7 +527,7 @@ const BrandPage = () => {
                         className={`p-3 rounded-xl border text-left transition-all ${
                           form.brand_voice === v.id
                             ? 'border-amber-500 bg-amber-900/20'
-                            : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                            : 'border-gray-600 bg-gray-700 hover:border-gray-500'
                         }`}>
                         <div className={`text-sm font-bold mb-0.5 ${form.brand_voice === v.id ? 'text-amber-400' : 'text-white'}`}>
                           {v.label}
@@ -626,8 +579,6 @@ const BrandPage = () => {
             <div className={sectionCls}>
               <SectionHeader number="05" title="Content Defaults" subtitle="Sets the baseline for all your campaigns" />
               <div className="space-y-5">
-
-                {/* Video length slider */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <label className="text-xs font-semibold text-gray-400">Default Video Length</label>
@@ -648,8 +599,6 @@ const BrandPage = () => {
                     ~{Math.round(form.default_video_length * 130 / 60)} words · AI will calibrate the script to this duration
                   </p>
                 </div>
-
-                {/* Preferred platforms */}
                 <div>
                   <label className="text-xs font-semibold text-gray-400 block mb-3">Preferred Platforms</label>
                   <div className="flex flex-wrap gap-2">
@@ -658,7 +607,7 @@ const BrandPage = () => {
                         className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold transition-all ${
                           form.preferred_platforms.includes(p.id)
                             ? 'border-emerald-500 bg-emerald-900/20 text-emerald-300'
-                            : 'border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600'
+                            : 'border-gray-600 bg-gray-700 text-gray-400 hover:border-gray-500'
                         }`}>
                         <span>{p.emoji}</span>
                         <span>{p.label}</span>
