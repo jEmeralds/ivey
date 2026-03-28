@@ -140,7 +140,7 @@ const Dashboard = () => {
   const CampaignActions = ({ campaign }) => (
     <div className="flex items-center gap-1 flex-shrink-0">
       <button
-        onClick={() => navigate(`/edit-campaign/${campaign.id}`)
+        onClick={() => navigate(`/edit-campaign/${campaign.id}`)}
         className="px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-xs font-medium"
       >
         Edit
@@ -150,7 +150,7 @@ const Dashboard = () => {
         onConfirm={() => handleDelete(campaign.id)}
       />
       <button
-        onClick={() => navigate(`/edit-campaign/${campaign.id}`)
+        onClick={() => navigate(`/campaigns/${campaign.id}`)}
         className="px-3 py-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors text-xs font-medium"
       >
         Open →
