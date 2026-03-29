@@ -107,12 +107,12 @@ const FAQItem = ({ q, a, index }) => {
   const [ref, visible] = useReveal(0.1);
   return (
     <div ref={ref} className={`transition-all duration-500 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`} style={{transitionDelay:`${index*60}ms`}}>
-      <button onClick={() => setOpen(!open)} className="w-full text-left bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 hover:border-gray-300 dark:hover:border-gray-600 transition-all group">
+      <button onClick={() => setOpen(!open)} className="w-full text-left bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 hover:border-gray-300 dark:hover:border-gray-500 transition-all group">
         <div className="flex items-center justify-between gap-4">
-          <h3 className="text-sm font-bold text-white">{q}</h3>
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white">{q}</h3>
           <span className={`text-gray-500 transition-transform duration-200 flex-shrink-0 ${open ? 'rotate-180' : ''}`}>▼</span>
         </div>
-        {open && <p className="text-sm text-gray-400 mt-3 leading-relaxed">{a}</p>}
+        {open && <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 leading-relaxed">{a}</p>}
       </button>
     </div>
   );
@@ -189,11 +189,11 @@ const Pricing = () => {
             <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"/>
             Pricing
           </div>
-          <h1 className="text-5xl sm:text-6xl font-black text-white leading-tight mb-5">
+          <h1 className="text-5xl sm:text-6xl font-black text-gray-900 dark:text-white leading-tight mb-5">
             Simple, transparent<br/>
             <span className="bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">pricing.</span>
           </h1>
-          <p className="text-gray-400 text-lg leading-relaxed mb-8 max-w-xl mx-auto">
+          <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-8 max-w-xl mx-auto">
             Start free, upgrade as you grow. No hidden fees, no surprises. Cancel anytime.
           </p>
 
@@ -205,14 +205,14 @@ const Pricing = () => {
 
           {/* Toggle */}
           <div className="flex items-center justify-center gap-4">
-            <span className={`text-sm font-semibold ${!isAnnual ? 'text-white' : 'text-gray-500'}`}>Monthly</span>
+            <span className={`text-sm font-semibold ${!isAnnual ? 'text-gray-900 dark:text-white' : 'text-gray-500'}`}>Monthly</span>
             <button onClick={() => setIsAnnual(!isAnnual)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isAnnual ? 'bg-emerald-600' : 'bg-gray-700'}`}>
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isAnnual ? 'translate-x-6' : 'translate-x-1'}`}/>
             </button>
-            <span className={`text-sm font-semibold ${isAnnual ? 'text-white' : 'text-gray-500'}`}>
+            <span className={`text-sm font-semibold ${isAnnual ? 'text-gray-900 dark:text-white' : 'text-gray-500'}`}>
               Annual
-              <span className="ml-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-400/20 text-amber-400 border border-amber-400/20">Save 20%</span>
+              <span className="ml-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-400/20 text-amber-600 dark:text-amber-400 border border-amber-400/20">Save 20%</span>
             </span>
           </div>
         </div>
@@ -247,10 +247,10 @@ const Pricing = () => {
               <div className="p-7">
                 <div className="text-center mb-7">
                   <div className="text-3xl mb-3">{plan.icon}</div>
-                  <h3 className="text-2xl font-black text-white mb-2">{plan.name}</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed mb-5">{plan.description}</p>
+                  <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">{plan.name}</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-5">{plan.description}</p>
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-5xl font-black text-white">${isAnnual ? plan.annualPrice : plan.monthlyPrice}</span>
+                    <span className="text-5xl font-black text-gray-900 dark:text-white">${isAnnual ? plan.annualPrice : plan.monthlyPrice}</span>
                     <span className="text-gray-500 text-sm">/month</span>
                   </div>
                   {isAnnual && plan.monthlyPrice > 0 && (
@@ -297,8 +297,8 @@ const Pricing = () => {
       <section className="border-t border-gray-800 py-20 px-4">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-black text-white mb-3">Frequently asked questions</h2>
-            <p className="text-gray-500">Everything you need to know about IVey pricing.</p>
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-3">Frequently asked questions</h2>
+            <p className="text-gray-500 dark:text-gray-500">Everything you need to know about IVey pricing.</p>
           </div>
           <div className="space-y-3">
             {faqs.map((f, i) => <FAQItem key={i} q={f.q} a={f.a} index={i}/>)}
@@ -312,8 +312,8 @@ const Pricing = () => {
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-amber-500/5 rounded-full blur-3xl"/>
         </div>
         <div className="relative max-w-2xl mx-auto text-center">
-          <h2 className="text-4xl font-black text-white mb-4">Ready to get started?</h2>
-          <p className="text-gray-400 mb-8 leading-relaxed">
+          <h2 className="text-4xl font-black text-gray-900 dark:text-white mb-4">Ready to get started?</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
             {isAuthenticated ? "You're already on the Starter plan. Start creating campaigns now." : "Join creators and businesses using IVey to generate viral content."}
           </p>
           {isAuthenticated ? (
