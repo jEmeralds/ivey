@@ -40,17 +40,17 @@ const Navbar = () => {
 
   const closeMobile = () => setIsMobileMenuOpen(false);
 
-  const navLinkBase = `px-4 py-2 rounded-lg font-medium transition-all duration-200 text-base`;
-  const navLinkActive = `bg-emerald-600 text-white shadow-sm`;
+  const navLinkBase     = `px-4 py-2 rounded-lg font-medium transition-all duration-200 text-base`;
+  const navLinkActive   = `bg-emerald-600 text-white shadow-sm`;
   const navLinkInactive = `text-gray-700 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-100 dark:hover:bg-gray-800`;
 
-  const mobileLinkBase = `flex items-center w-full px-4 py-3.5 rounded-xl font-medium text-base transition-all duration-150`;
-  const mobileLinkActive = `bg-emerald-600/10 text-emerald-600 dark:text-emerald-400`;
+  const mobileLinkBase     = `flex items-center w-full px-4 py-3.5 rounded-xl font-medium text-base transition-all duration-150`;
+  const mobileLinkActive   = `bg-emerald-600/10 text-emerald-600 dark:text-emerald-400`;
   const mobileLinkInactive = `text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800`;
 
   return (
     <>
-      <nav className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 transition-colors duration-200">
+      <nav className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800 fixed top-0 left-0 right-0 w-full z-50 transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16">
 
@@ -66,8 +66,8 @@ const Navbar = () => {
 
             {/* Desktop nav links */}
             <div className="hidden md:flex items-center gap-1">
-              <Link to="/features" className={`${navLinkBase} ${isActive('/features') ? navLinkActive : navLinkInactive}`}>Features</Link>
-              <Link to="/pricing"  className={`${navLinkBase} ${isActive('/pricing')  ? navLinkActive : navLinkInactive}`}>Pricing</Link>
+              <Link to="/features"  className={`${navLinkBase} ${isActive('/features')  ? navLinkActive : navLinkInactive}`}>Features</Link>
+              <Link to="/pricing"   className={`${navLinkBase} ${isActive('/pricing')   ? navLinkActive : navLinkInactive}`}>Pricing</Link>
               <a href="/#gallery" onClick={handleGalleryClick} className={`${navLinkBase} ${navLinkInactive}`}>Gallery</a>
               {isAuthenticated && (
                 <Link to="/dashboard" className={`${navLinkBase} ${isActive('/dashboard') ? navLinkActive : navLinkInactive}`}>Dashboard</Link>
@@ -76,6 +76,7 @@ const Navbar = () => {
 
             {/* Right side */}
             <div className="flex items-center gap-2">
+
               {/* Theme toggle */}
               <button
                 onClick={handleThemeToggle}
@@ -110,7 +111,7 @@ const Navbar = () => {
                 </div>
               ) : (
                 <div className="hidden md:flex items-center gap-2">
-                  <Link to="/login" className={`${navLinkBase} ${navLinkInactive}`}>Sign In</Link>
+                  <Link to="/login"  className={`${navLinkBase} ${navLinkInactive}`}>Sign In</Link>
                   <Link to="/signup" className="px-5 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all font-semibold shadow-sm text-sm">
                     Get Started
                   </Link>
@@ -134,7 +135,7 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile menu — rendered outside nav so it can be full-width overlay */}
+      {/* Mobile menu */}
       {isMobileMenuOpen && (
         <>
           {/* Backdrop */}
@@ -142,11 +143,10 @@ const Navbar = () => {
             className="md:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
             onClick={closeMobile}
           />
-          {/* Drawer */}
+          {/* Drawer — top-16 to sit below fixed navbar */}
           <div className="md:hidden fixed top-16 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-2xl animate-slideDown">
             <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
 
-              {/* Nav links */}
               <Link to="/features" onClick={closeMobile} className={`${mobileLinkBase} ${isActive('/features') ? mobileLinkActive : mobileLinkInactive}`}>
                 <svg className="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                 Features
@@ -168,7 +168,6 @@ const Navbar = () => {
 
               <div className="h-px bg-gray-200 dark:bg-gray-800 my-2" />
 
-              {/* Theme toggle */}
               <button onClick={handleThemeToggle} className={`${mobileLinkBase} ${mobileLinkInactive}`}>
                 {isDarkMode ? (
                   <svg className="w-5 h-5 mr-3 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
@@ -184,7 +183,6 @@ const Navbar = () => {
 
               <div className="h-px bg-gray-200 dark:bg-gray-800 my-2" />
 
-              {/* Auth */}
               {isAuthenticated ? (
                 <div className="space-y-1">
                   <div className="flex items-center gap-3 px-4 py-3">
