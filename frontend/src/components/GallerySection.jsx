@@ -1,215 +1,286 @@
 // frontend/src/components/GallerySection.jsx
-// Single-row carousel with expand-to-grid option
-
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
 
 const PLATFORM_META = {
-  youtube:   { color: '#FF0000', bg: '#1a0000', icon: '▶', label: 'YouTube' },
-  tiktok:    { color: '#69C9D0', bg: '#010101', icon: '♫', label: 'TikTok' },
-  instagram: { color: '#E1306C', bg: '#1a0010', icon: '◈', label: 'Instagram' },
-  facebook:  { color: '#1877F2', bg: '#000d1a', icon: 'f', label: 'Facebook' },
-  link:      { color: '#94a3b8', bg: '#0f172a', icon: '⬡', label: 'Link' },
+  youtube:   { color: '#FF0000', label: 'YouTube',   icon: '▶', bg: '#1a0000' },
+  tiktok:    { color: '#69C9D0', label: 'TikTok',    icon: '♫', bg: '#010101' },
+  instagram: { color: '#E1306C', label: 'Instagram', icon: '◈', bg: '#1a0010' },
+  facebook:  { color: '#1877F2', label: 'Facebook',  icon: 'f', bg: '#000d1a' },
+  link:      { color: '#94a3b8', label: 'Link',       icon: '⬡', bg: '#0f172a' },
 };
 
 function getEmbedUrl(item) {
   const { platform, embed_id, url } = item;
-  if (platform === 'youtube' && embed_id)
-    return `https://www.youtube.com/embed/${embed_id}?autoplay=1&rel=0&modestbranding=1`;
-  if (platform === 'tiktok' && embed_id)
-    return `https://www.tiktok.com/embed/v2/${embed_id}`;
-  if (platform === 'instagram' && embed_id)
-    return `https://www.instagram.com/p/${embed_id}/embed/`;
-  if (platform === 'facebook')
-    return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&autoplay=true`;
+  if (platform === 'youtube'   && embed_id) return `https://www.youtube.com/embed/${embed_id}?autoplay=1&rel=0&modestbranding=1`;
+  if (platform === 'tiktok'    && embed_id) return `https://www.tiktok.com/embed/v2/${embed_id}`;
+  if (platform === 'instagram' && embed_id) return `https://www.instagram.com/p/${embed_id}/embed/`;
+  if (platform === 'facebook')              return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&autoplay=true`;
   return null;
 }
 
-// ── Single card ───────────────────────────────────────────────────────────────
-function MediaCard({ item, width = 240 }) {
-  const [playing, setPlaying] = useState(false);
-  const meta = PLATFORM_META[item.platform] || PLATFORM_META.link;
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+const Lightbox = ({ item, onClose, onPrev, onNext, hasPrev, hasNext }) => {
+  const meta     = PLATFORM_META[item.platform] || PLATFORM_META.link;
   const embedUrl = getEmbedUrl(item);
+  const thumb    = item.platform === 'youtube' && item.embed_id
+    ? `https://img.youtube.com/vi/${item.embed_id}/hqdefault.jpg`
+    : null;
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape')     onClose();
+      if (e.key === 'ArrowLeft'  && hasPrev) onPrev();
+      if (e.key === 'ArrowRight' && hasNext) onNext();
+    };
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [onClose, onPrev, onNext, hasPrev, hasNext]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm px-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="relative bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden shadow-2xl w-full max-w-2xl animate-in">
+
+        {/* Close */}
+        <button onClick={onClose}
+          className="absolute top-3 right-3 z-20 w-8 h-8 bg-gray-800/90 hover:bg-gray-700 border border-gray-600 rounded-full flex items-center justify-center text-gray-400 hover:text-white transition-all">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+
+        {/* Platform badge */}
+        <div className="absolute top-3 left-3 z-20 px-2.5 py-1 rounded-full text-xs font-black text-white shadow-lg" style={{background: meta.color}}>
+          {meta.label.toUpperCase()}
+        </div>
+
+        {/* Prev / Next arrows */}
+        {hasPrev && (
+          <button onClick={onPrev}
+            className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 bg-gray-800/90 hover:bg-gray-700 border border-gray-600 rounded-full flex items-center justify-center text-white transition-all">
+            ‹
+          </button>
+        )}
+        {hasNext && (
+          <button onClick={onNext}
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 bg-gray-800/90 hover:bg-gray-700 border border-gray-600 rounded-full flex items-center justify-center text-white transition-all">
+            ›
+          </button>
+        )}
+
+        {/* Media */}
+        <div className="relative w-full" style={{paddingTop: '56.25%', background: meta.bg}}>
+          {embedUrl ? (
+            <iframe src={embedUrl} className="absolute inset-0 w-full h-full border-none"
+              allow="autoplay; fullscreen; encrypted-media" allowFullScreen/>
+          ) : thumb ? (
+            <img src={thumb} alt={item.caption} className="absolute inset-0 w-full h-full object-cover"/>
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <div className="text-6xl" style={{color: meta.color}}>{meta.icon}</div>
+              <a href={item.url} target="_blank" rel="noreferrer"
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-white border border-white/20 hover:bg-white/10 transition-all">
+                Open Link ↗
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="px-5 py-4 border-t border-gray-800">
+          <p className="text-white font-semibold text-sm mb-2 leading-relaxed">{item.caption}</p>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <span className="text-xs text-gray-500 font-medium">{item.brand_name}</span>
+            <div className="flex items-center gap-3">
+              {item.views !== '—' && <span className="text-xs text-gray-500">👁 {item.views}</span>}
+              {item.likes !== '—' && <span className="text-xs text-gray-500">♥ {item.likes}</span>}
+              {item.format && (
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                  ⚡ {item.format}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Keyboard hint */}
+      <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-gray-600">
+        ← → to navigate · Esc to close
+      </p>
+    </div>
+  );
+};
+
+// ─── Single media card ────────────────────────────────────────────────────────
+const MediaCard = ({ item, onClick }) => {
+  const meta  = PLATFORM_META[item.platform] || PLATFORM_META.link;
   const thumb = item.platform === 'youtube' && item.embed_id
     ? `https://img.youtube.com/vi/${item.embed_id}/mqdefault.jpg`
     : null;
 
   return (
-    <div style={{
-      width, flexShrink: 0,
-      borderRadius: 12, overflow: 'hidden',
-      background: '#0f172a',
-      border: '1px solid rgba(255,255,255,0.07)',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-      transition: 'transform 0.2s, box-shadow 0.2s',
-    }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 10px 28px ${meta.color}20`; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.3)'; }}
+    <div
+      onClick={onClick}
+      className="relative aspect-video rounded-xl overflow-hidden cursor-pointer group border border-white/5 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
+      style={{background: meta.bg || '#0f172a'}}
     >
-      {/* Media */}
-      <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', background: meta.bg, overflow: 'hidden' }}>
-        {playing && embedUrl ? (
-          <iframe src={embedUrl} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }} allow="autoplay; fullscreen; encrypted-media" allowFullScreen />
-        ) : (
-          <div style={{ position: 'absolute', inset: 0 }}>
-            {thumb
-              ? <img src={thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.85 }} />
-              : <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                  <div style={{ fontSize: 26, color: meta.color }}>{meta.icon}</div>
-                  <div style={{ fontSize: 9, color: meta.color, fontWeight: 800, letterSpacing: '0.1em' }}>{meta.label}</div>
-                </div>
-            }
-            {embedUrl
-              ? <div onClick={() => setPlaying(true)} style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'rgba(0,0,0,0.12)' }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: meta.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, boxShadow: `0 0 0 6px ${meta.color}28` }}>▶</div>
-                </div>
-              : <a href={item.url} target="_blank" rel="noreferrer" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
-                  <div style={{ padding: '5px 12px', borderRadius: 6, background: 'rgba(0,0,0,0.65)', fontSize: 11, color: '#fff', fontWeight: 700 }}>View ↗</div>
-                </a>
-            }
-          </div>
-        )}
-        <div style={{ position: 'absolute', top: 6, left: 6, padding: '2px 6px', background: meta.color, borderRadius: 3, fontSize: 7, fontWeight: 900, color: '#fff', letterSpacing: '0.05em', zIndex: 2 }}>
-          {meta.label.toUpperCase()}
+      {/* Thumbnail or platform placeholder */}
+      {thumb ? (
+        <img
+          src={thumb}
+          alt={item.caption}
+          className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+        />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-2"
+          style={{background: (meta.color || '#94a3b8') + '12'}}>
+          <div className="text-3xl" style={{color: meta.color}}>{meta.icon}</div>
+          <div className="text-xs font-bold" style={{color: meta.color}}>{meta.label}</div>
         </div>
-      </div>
-
-      {/* Info */}
-      <div style={{ padding: '9px 11px 11px' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 4 }}>
-          {item.caption}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{item.brand_name}</span>
-          {item.format && (
-            <span style={{ fontSize: 8, padding: '2px 6px', borderRadius: 10, background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', fontWeight: 700 }}>
-              ⚡ {item.format}
-            </span>
-          )}
-        </div>
-        {(item.views !== '—' || item.likes !== '—') && (
-          <div style={{ display: 'flex', gap: 10, marginTop: 5 }}>
-            {item.views !== '—' && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>👁 {item.views}</span>}
-            {item.likes !== '—' && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>♥ {item.likes}</span>}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Carousel row ──────────────────────────────────────────────────────────────
-function CarouselRow({ items }) {
-  const trackRef = useRef(null);
-  const isDragging = useRef(false);
-  const startX = useRef(0);
-  const scrollLeft = useRef(0);
-
-  // Drag to scroll
-  const onMouseDown = (e) => {
-    isDragging.current = true;
-    startX.current = e.pageX - trackRef.current.offsetLeft;
-    scrollLeft.current = trackRef.current.scrollLeft;
-    trackRef.current.style.cursor = 'grabbing';
-  };
-  const onMouseUp = () => { isDragging.current = false; trackRef.current.style.cursor = 'grab'; };
-  const onMouseMove = (e) => {
-    if (!isDragging.current) return;
-    e.preventDefault();
-    const x = e.pageX - trackRef.current.offsetLeft;
-    const walk = (x - startX.current) * 1.2;
-    trackRef.current.scrollLeft = scrollLeft.current - walk;
-  };
-
-  // Arrow scroll
-  const scroll = (dir) => {
-    trackRef.current.scrollBy({ left: dir * 260, behavior: 'smooth' });
-  };
-
-  const showArrows = items.length > 4;
-
-  return (
-    <div style={{ position: 'relative' }}>
-      {/* Left arrow */}
-      {showArrows && (
-        <button onClick={() => scroll(-1)} style={{ position: 'absolute', left: -18, top: '50%', transform: 'translateY(-60%)', zIndex: 10, width: 34, height: 34, borderRadius: '50%', background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.12)', color: '#f1f5f9', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>‹</button>
       )}
 
-      {/* Track */}
+      {/* Platform badge */}
       <div
-        ref={trackRef}
-        onMouseDown={onMouseDown}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseUp}
-        onMouseMove={onMouseMove}
-        style={{ display: 'flex', gap: 16, overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none', cursor: 'grab', paddingBottom: 4, userSelect: 'none' }}
+        className="absolute top-2 left-2 px-2 py-0.5 rounded text-white font-black leading-none shadow-lg"
+        style={{background: meta.color, fontSize: '9px', letterSpacing: '0.05em'}}
       >
-        <style>{`.carousel-track::-webkit-scrollbar{display:none}`}</style>
-        {items.map(item => <MediaCard key={item.id} item={item} width={240} />)}
+        {meta.label.toUpperCase()}
       </div>
 
-      {/* Right arrow */}
-      {showArrows && (
-        <button onClick={() => scroll(1)} style={{ position: 'absolute', right: -18, top: '50%', transform: 'translateY(-60%)', zIndex: 10, width: 34, height: 34, borderRadius: '50%', background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.12)', color: '#f1f5f9', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>›</button>
+      {/* Hover overlay */}
+      <div className="absolute inset-0 bg-black/65 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-2 px-3">
+        <div className="w-10 h-10 rounded-full bg-white/25 backdrop-blur-sm flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+          <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <p className="text-white text-xs font-semibold text-center leading-tight line-clamp-2 px-2">{item.caption}</p>
+        {item.brand_name && (
+          <p className="text-white/60 text-xs">{item.brand_name}</p>
+        )}
+      </div>
+
+      {/* Bottom info bar */}
+      {item.format && (
+        <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-end">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
+            ⚡ {item.format}
+          </span>
+        </div>
       )}
     </div>
   );
-}
+};
 
-// ── Main GallerySection ───────────────────────────────────────────────────────
-export default function GallerySection() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState(false);
-  const [filter, setFilter] = useState('all');
+// ─── Loading skeleton ─────────────────────────────────────────────────────────
+const SkeletonCard = () => (
+  <div className="aspect-video rounded-xl bg-gray-800 animate-pulse border border-gray-700"/>
+);
+
+// ─── Main GallerySection ──────────────────────────────────────────────────────
+export default function GallerySection({ embedded = false }) {
+  const [items,       setItems]       = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [filter,      setFilter]      = useState('all');
+  const [lightboxIdx, setLightboxIdx] = useState(null);
+  const [expanded,    setExpanded]    = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/gallery`)
       .then(r => r.json())
-      .then(data => { setItems(data.items || []); setLoading(false); })
+      .then(d => { setItems(d.items || []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
   if (!loading && items.length === 0) return null;
 
   const platforms = [...new Set(items.map(i => i.platform))];
-  const filtered = filter === 'all' ? items : items.filter(i => i.platform === filter);
+  const filtered  = filter === 'all' ? items : items.filter(i => i.platform === filter);
+
+  // How many to show — 6 collapsed, all expanded
+  const INITIAL_COUNT = 6;
+  const displayed = expanded ? filtered : filtered.slice(0, INITIAL_COUNT);
+  const hasMore   = filtered.length > INITIAL_COUNT;
+
+  const openLightbox = (item) => {
+    const idx = filtered.findIndex(i => i.id === item.id);
+    setLightboxIdx(idx);
+  };
 
   return (
-    <section id="gallery" style={{ padding: '72px 0' }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 48px' }}>
+    <section className={embedded ? 'py-16 px-4' : 'min-h-screen bg-gray-900 py-20 px-4'}>
 
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 14px', borderRadius: 20, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', fontSize: 11, color: '#10b981', fontWeight: 800, marginBottom: 14, letterSpacing: '0.08em' }}>
-            🏆 GALLERY
+      {/* Lightbox */}
+      {lightboxIdx !== null && filtered[lightboxIdx] && (
+        <Lightbox
+          item={filtered[lightboxIdx]}
+          onClose={() => setLightboxIdx(null)}
+          onPrev={() => setLightboxIdx(i => Math.max(0, i - 1))}
+          onNext={() => setLightboxIdx(i => Math.min(filtered.length - 1, i + 1))}
+          hasPrev={lightboxIdx > 0}
+          hasNext={lightboxIdx < filtered.length - 1}
+        />
+      )}
+
+      <div className="max-w-6xl mx-auto">
+
+        {/* ── Header ── */}
+        <div className={`${embedded ? 'text-center mb-10' : 'mb-10'}`}>
+          {embedded && (
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-400/10 border border-emerald-400/20 rounded-full text-emerald-400 text-xs font-bold mb-4 uppercase tracking-widest">
+              🏆 Community Gallery
+            </div>
+          )}
+          <div className={`flex ${embedded ? 'flex-col items-center gap-4' : 'items-start justify-between gap-4 flex-wrap'}`}>
+            <div className={embedded ? 'text-center' : ''}>
+              {!embedded && (
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-400/10 border border-emerald-400/20 rounded-full text-emerald-400 text-xs font-bold mb-4 uppercase tracking-widest">
+                  🏆 Community Gallery
+                </div>
+              )}
+              <h2 className={`font-black text-white leading-tight ${embedded ? 'text-3xl sm:text-4xl' : 'text-4xl sm:text-5xl'}`}>
+                Real content.{' '}
+                <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+                  Real results.
+                </span>
+              </h2>
+              <p className="text-gray-500 mt-2 text-sm leading-relaxed max-w-lg">
+                Generated with IVey and posted by real users. Browse, get inspired, and submit your own.
+              </p>
+            </div>
+            {!embedded && (
+              <Link to="/dashboard"
+                className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-500/20">
+                📤 Submit Your Campaign
+              </Link>
+            )}
           </div>
-          <h2 style={{ fontSize: 'clamp(22px, 3.5vw, 38px)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 10px', color: '#f1f5f9' }}>
-            Real content.{' '}
-            <span style={{ background: 'linear-gradient(135deg, #10b981, #059669)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Real results.
-            </span>
-          </h2>
-          <p style={{ fontSize: 13, color: '#475569', maxWidth: 380, margin: '0 auto 20px', lineHeight: 1.6 }}>
-            Generated with IVey and posted by real users.
-          </p>
 
-          {/* Filters */}
-          {platforms.length > 1 && (
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+          {/* Platform filters */}
+          {!loading && platforms.length > 0 && (
+            <div className={`flex gap-2 flex-wrap mt-5 ${embedded ? 'justify-center' : ''}`}>
               {['all', ...platforms].map(p => {
-                const meta = p === 'all' ? { color: '#10b981', label: 'All' } : PLATFORM_META[p];
+                const meta  = p === 'all' ? { color: '#10b981', label: 'All' } : PLATFORM_META[p];
                 const count = p === 'all' ? items.length : items.filter(i => i.platform === p).length;
+                const active = filter === p;
                 return (
-                  <button key={p} onClick={() => setFilter(p)} style={{
-                    padding: '5px 13px', borderRadius: 20, cursor: 'pointer', fontSize: 11, fontWeight: 700,
-                    border: `1px solid ${filter === p ? meta.color + '60' : 'rgba(255,255,255,0.08)'}`,
-                    background: filter === p ? meta.color + '14' : 'transparent',
-                    color: filter === p ? meta.color : '#475569',
-                    transition: 'all 0.2s',
-                  }}>
-                    {meta.label} ({count})
+                  <button
+                    key={p}
+                    onClick={() => { setFilter(p); setExpanded(false); }}
+                    className="text-xs px-4 py-1.5 rounded-full border font-semibold transition-all hover:scale-105"
+                    style={{
+                      borderColor: active ? meta.color + '80' : 'rgba(255,255,255,0.1)',
+                      background:  active ? meta.color + '18' : 'transparent',
+                      color:       active ? meta.color : '#6b7280',
+                    }}
+                  >
+                    {meta?.label || p} ({count})
                   </button>
                 );
               })}
@@ -217,39 +288,50 @@ export default function GallerySection() {
           )}
         </div>
 
+        {/* ── Grid ── */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '32px', color: '#475569' }}>Loading gallery...</div>
-        ) : expanded ? (
-          /* ── Expanded grid ── */
-          <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 18, marginBottom: 24 }}>
-              {filtered.map(item => <MediaCard key={item.id} item={item} width="100%" />)}
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <button onClick={() => setExpanded(false)} style={{ padding: '8px 24px', borderRadius: 20, background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: '#475569', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'}
-              >
-                ↑ Collapse
-              </button>
-            </div>
-          </>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => <SkeletonCard key={i}/>)}
+          </div>
+        ) : displayed.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="text-5xl mb-4">🏆</div>
+            <p className="text-gray-500 text-sm">No content yet for this filter.</p>
+          </div>
         ) : (
-          /* ── Carousel row ── */
-          <>
-            <CarouselRow items={filtered} />
-            {filtered.length > 4 && (
-              <div style={{ textAlign: 'center', marginTop: 20 }}>
-                <button onClick={() => setExpanded(true)} style={{ padding: '8px 24px', borderRadius: 20, background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: '#475569', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.color = '#10b981'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#475569'; }}
-                >
-                  View all {filtered.length} results ↓
-                </button>
-              </div>
-            )}
-          </>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
+            {displayed.map(item => (
+              <MediaCard key={item.id} item={item} onClick={() => openLightbox(item)}/>
+            ))}
+          </div>
         )}
+
+        {/* ── Expand / Collapse ── */}
+        {!loading && hasMore && (
+          <div className="text-center mt-8">
+            <button
+              onClick={() => setExpanded(e => !e)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl font-semibold text-sm hover:bg-gray-700 hover:border-gray-600 transition-all"
+            >
+              {expanded ? (
+                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7"/></svg>Show Less</>
+              ) : (
+                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>View All {filtered.length} Campaigns</>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* ── Submit CTA (embedded mode) ── */}
+        {embedded && !loading && (
+          <div className="text-center mt-8">
+            <Link to="/dashboard"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-500/20">
+              📤 Submit Your Campaign
+            </Link>
+          </div>
+        )}
+
       </div>
     </section>
   );

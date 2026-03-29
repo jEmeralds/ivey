@@ -17,6 +17,7 @@ import ChatWidget from './components/ChatWidget';
 import Support from './pages/Support';
 import SocialAdminDashboard from './pages/SocialAdminDashboard';
 import BrandPage from './pages/BrandPage';
+import GallerySection from './components/GallerySection';
 
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
               <Route path="/shared/:token" element={<SharedContent />} />
               <Route path="*" element={<Home />} />
               <Route path="/brand" element={<BrandPage />} />
+              <Route path="/gallery" element={<GallerySection />} />
             </Routes>
           </main>
           <ChatWidget />

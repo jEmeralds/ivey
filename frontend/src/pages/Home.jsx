@@ -564,7 +564,7 @@ const Home = () => {
           GALLERY
       ══════════════════════════════════════════════════════════════════ */}
       <section id="gallery" className="border-t border-gray-800">
-        <GallerySection user={user} />
+        <GallerySection embedded />
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════

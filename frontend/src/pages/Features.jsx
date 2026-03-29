@@ -1,5 +1,184 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import GallerySection from '../components/GallerySection';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
+
+const PLATFORM_META = {
+  youtube:   { color: '#FF0000', label: 'YouTube',   icon: '▶' },
+  tiktok:    { color: '#69C9D0', label: 'TikTok',    icon: '♫' },
+  instagram: { color: '#E1306C', label: 'Instagram', icon: '◈' },
+  facebook:  { color: '#1877F2', label: 'Facebook',  icon: 'f' },
+  link:      { color: '#94a3b8', label: 'Link',       icon: '⬡' },
+};
+
+function getEmbedUrl(item) {
+  const { platform, embed_id, url } = item;
+  if (platform === 'youtube'   && embed_id) return `https://www.youtube.com/embed/${embed_id}?autoplay=1&rel=0`;
+  if (platform === 'tiktok'    && embed_id) return `https://www.tiktok.com/embed/v2/${embed_id}`;
+  if (platform === 'instagram' && embed_id) return `https://www.instagram.com/p/${embed_id}/embed/`;
+  if (platform === 'facebook')              return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&autoplay=true`;
+  return null;
+}
+
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+const Lightbox = ({ item, onClose }) => {
+  const meta     = PLATFORM_META[item.platform] || PLATFORM_META.link;
+  const embedUrl = getEmbedUrl(item);
+  const thumb    = item.platform === 'youtube' && item.embed_id
+    ? `https://img.youtube.com/vi/${item.embed_id}/hqdefault.jpg`
+    : null;
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="relative bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden shadow-2xl w-full max-w-2xl">
+        {/* Close */}
+        <button onClick={onClose}
+          className="absolute top-3 right-3 z-10 w-8 h-8 bg-gray-800/90 hover:bg-gray-700 border border-gray-600 rounded-full flex items-center justify-center text-gray-400 hover:text-white transition-all">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        {/* Platform badge */}
+        <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs font-black text-white" style={{background: meta.color}}>
+          {meta.label.toUpperCase()}
+        </div>
+        {/* Media */}
+        <div className="relative w-full" style={{paddingTop:'56.25%', background:'#0f172a'}}>
+          {embedUrl ? (
+            <iframe src={embedUrl} className="absolute inset-0 w-full h-full border-none" allow="autoplay; fullscreen; encrypted-media" allowFullScreen/>
+          ) : thumb ? (
+            <img src={thumb} alt={item.caption} className="absolute inset-0 w-full h-full object-cover"/>
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <div className="text-5xl" style={{color: meta.color}}>{meta.icon}</div>
+              <a href={item.url} target="_blank" rel="noreferrer" className="px-5 py-2 rounded-xl text-sm font-bold text-white border border-white/20 hover:bg-white/10 transition-all">Open Link ↗</a>
+            </div>
+          )}
+        </div>
+        {/* Info */}
+        <div className="px-5 py-4">
+          <p className="text-white font-semibold text-sm mb-1">{item.caption}</p>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">{item.brand_name}</span>
+            <div className="flex items-center gap-3">
+              {item.views !== '—' && <span className="text-xs text-gray-500">👁 {item.views}</span>}
+              {item.likes !== '—' && <span className="text-xs text-gray-500">♥ {item.likes}</span>}
+              {item.format && <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">⚡ {item.format}</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Gallery Mini Panel ───────────────────────────────────────────────────────
+const GalleryMiniPanel = () => {
+  const [items,    setItems]    = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [filter,   setFilter]   = useState('all');
+  const [lightbox, setLightbox] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/gallery`)
+      .then(r => r.json())
+      .then(d => { setItems(d.items || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const platforms = [...new Set(items.map(i => i.platform))];
+  const filtered  = filter === 'all' ? items : items.filter(i => i.platform === filter);
+  const displayed = filtered.slice(0, 6);
+
+  return (
+    <>
+      {lightbox && <Lightbox item={lightbox} onClose={() => setLightbox(null)} />}
+
+      <div className="w-full bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden shadow-2xl">
+        {/* Window chrome */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 bg-gray-900">
+          <div className="w-3 h-3 rounded-full bg-red-500/70"/>
+          <div className="w-3 h-3 rounded-full bg-yellow-500/70"/>
+          <div className="w-3 h-3 rounded-full bg-green-500/70"/>
+          <span className="ml-2 text-xs text-gray-500">IVey — Gallery</span>
+          <span className="ml-auto text-xs text-emerald-400 font-semibold">🏆 Community</span>
+        </div>
+        <div className="p-4 space-y-3">
+          {/* Platform filters */}
+          <div className="flex gap-1.5 flex-wrap">
+            {['all', ...platforms].map(p => {
+              const meta  = p === 'all' ? { color: '#10b981', label: 'All' } : PLATFORM_META[p];
+              const count = p === 'all' ? items.length : items.filter(i => i.platform === p).length;
+              const active = filter === p;
+              return (
+                <button key={p} onClick={() => setFilter(p)}
+                  className="text-xs px-3 py-1 rounded-full border font-semibold transition-all"
+                  style={{ borderColor: active ? meta.color+'80' : 'rgba(255,255,255,0.1)', background: active ? meta.color+'18' : 'transparent', color: active ? meta.color : '#6b7280' }}>
+                  {meta?.label || p} ({count})
+                </button>
+              );
+            })}
+          </div>
+          {/* Grid */}
+          {loading ? (
+            <div className="grid grid-cols-3 gap-2">
+              {[...Array(6)].map((_,i) => <div key={i} className="aspect-video rounded-xl bg-gray-700 animate-pulse"/>)}
+            </div>
+          ) : displayed.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 text-sm">No items yet</div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {displayed.map(item => {
+                const meta  = PLATFORM_META[item.platform] || PLATFORM_META.link;
+                const thumb = item.platform === 'youtube' && item.embed_id
+                  ? `https://img.youtube.com/vi/${item.embed_id}/mqdefault.jpg`
+                  : null;
+                return (
+                  <div key={item.id} onClick={() => setLightbox(item)}
+                    className="relative aspect-video rounded-xl overflow-hidden cursor-pointer group border border-white/5 hover:border-white/20 transition-all hover:-translate-y-0.5 hover:shadow-xl"
+                    style={{background:'#0f172a'}}>
+                    {thumb ? (
+                      <img src={thumb} alt={item.caption} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"/>
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1" style={{background: meta.color+'12'}}>
+                        <span className="text-xl" style={{color: meta.color}}>{meta.icon}</span>
+                        <span className="text-xs font-bold" style={{color: meta.color}}>{meta.label}</span>
+                      </div>
+                    )}
+                    <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-white font-black leading-none" style={{background: meta.color, fontSize:'8px'}}>
+                      {meta.label.toUpperCase()}
+                    </div>
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-1.5 px-2">
+                      <div className="w-8 h-8 rounded-full bg-white/25 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                      </div>
+                      <p className="text-white text-xs font-semibold text-center leading-tight line-clamp-2">{item.caption}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {/* Footer */}
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-xs text-gray-600">{filtered.length} campaign{filtered.length !== 1 ? 's' : ''}</span>
+            <Link to="/dashboard" className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all">
+              📤 Submit Yours
+            </Link>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
 
 // ─── Scroll-reveal hook ───────────────────────────────────────────────────────
 const useReveal = (threshold = 0.15) => {
@@ -352,45 +531,7 @@ const FEATURES = [
       { label: 'Submit campaigns directly from your dashboard' },
       { label: 'Filter by industry, format, and performance' },
     ],
-    mockup: () => (
-      <div className="w-full bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden shadow-2xl">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 bg-gray-900">
-          <div className="w-3 h-3 rounded-full bg-red-500/60"/>
-          <div className="w-3 h-3 rounded-full bg-yellow-500/60"/>
-          <div className="w-3 h-3 rounded-full bg-green-500/60"/>
-          <span className="ml-3 text-xs text-gray-500">IVey — Gallery</span>
-        </div>
-        <div className="p-4">
-          <div className="flex gap-2 mb-4">
-            {['All','Featured ⭐','Travel','Food','Tech'].map((t,i) => (
-              <button key={t} className={`text-xs px-3 py-1 rounded-full border font-medium ${i===1 ? 'border-amber-500 bg-amber-500/10 text-amber-400' : 'border-gray-700 text-gray-500'}`}>{t}</button>
-            ))}
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { bg:'from-emerald-600/50 to-teal-600/50',  label:'Safari Campaign',   star:true  },
-              { bg:'from-amber-500/50 to-orange-500/50',  label:'Kombucha Launch',   star:false },
-              { bg:'from-indigo-500/50 to-purple-500/50', label:'Tourism Ad',        star:true  },
-              { bg:'from-rose-500/50 to-pink-500/50',     label:'Food Brand',        star:false },
-              { bg:'from-sky-500/50 to-blue-500/50',      label:'Tech Startup',      star:false },
-              { bg:'from-lime-500/50 to-green-500/50',    label:'Wellness Brand',    star:true  },
-            ].map((g, i) => (
-              <div key={i} className={`aspect-square rounded-xl bg-gradient-to-br ${g.bg} border border-white/10 relative overflow-hidden group cursor-pointer hover:scale-105 transition-transform`}>
-                {g.star && <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center text-xs shadow-lg">⭐</div>}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-end p-1.5">
-                  <span className="text-white text-xs font-semibold leading-tight">{g.label}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 border border-gray-600 rounded-xl text-xs text-gray-300 font-semibold cursor-pointer hover:bg-gray-600 transition-all">
-              📤 Submit Your Campaign
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
+    mockup: () => <GalleryMiniPanel />,
   },
 ];
 
