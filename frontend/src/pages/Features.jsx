@@ -48,7 +48,7 @@ const Lightbox = ({ item, onClose }) => {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
         {/* Platform badge */}
-        <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs font-black text-white" style={{background: meta.color}}>
+        <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs font-black text-gray-900 dark:text-white" style={{background: meta.color}}>
           {meta.label.toUpperCase()}
         </div>
         {/* Media */}
@@ -60,13 +60,13 @@ const Lightbox = ({ item, onClose }) => {
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <div className="text-5xl" style={{color: meta.color}}>{meta.icon}</div>
-              <a href={item.url} target="_blank" rel="noreferrer" className="px-5 py-2 rounded-xl text-sm font-bold text-white border border-white/20 hover:bg-white/10 transition-all">Open Link ↗</a>
+              <a href={item.url} target="_blank" rel="noreferrer" className="px-5 py-2 rounded-xl text-sm font-bold text-gray-900 dark:text-white border border-white/20 hover:bg-white/10 transition-all">Open Link ↗</a>
             </div>
           )}
         </div>
         {/* Info */}
         <div className="px-5 py-4">
-          <p className="text-white font-semibold text-sm mb-1">{item.caption}</p>
+          <p className="text-gray-900 dark:text-white font-semibold text-sm mb-1">{item.caption}</p>
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-500">{item.brand_name}</span>
             <div className="flex items-center gap-3">
@@ -109,7 +109,7 @@ const GalleryMiniPanel = () => {
           <div className="w-3 h-3 rounded-full bg-red-500/70"/>
           <div className="w-3 h-3 rounded-full bg-yellow-500/70"/>
           <div className="w-3 h-3 rounded-full bg-green-500/70"/>
-          <span className="ml-2 text-xs text-gray-500">IVey — Gallery</span>
+          <span className="ml-2 text-xs text-gray-500 dark:text-gray-500">IVey — Gallery</span>
           <span className="ml-auto text-xs text-emerald-400 font-semibold">🏆 Community</span>
         </div>
         <div className="p-4 space-y-3">
@@ -234,7 +234,7 @@ const FEATURES = [
           <div className="w-3 h-3 rounded-full bg-red-500/60"/>
           <div className="w-3 h-3 rounded-full bg-yellow-500/60"/>
           <div className="w-3 h-3 rounded-full bg-green-500/60"/>
-          <span className="ml-3 text-xs text-gray-500">IVey — Generate Content</span>
+          <span className="ml-3 text-xs text-gray-500 dark:text-gray-500">IVey — Generate Content</span>
         </div>
         <div className="p-5 space-y-4">
           {/* Format chips */}
@@ -258,7 +258,7 @@ const FEATURES = [
             </div>
           </div>
           {/* Output */}
-          <div className="bg-gray-900 rounded-xl border border-gray-700 p-4">
+          <div className="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs text-gray-500 uppercase tracking-widest">Generated Output</span>
               <span className="text-xs text-emerald-400 animate-pulse">● Generating...</span>
@@ -290,7 +290,7 @@ const FEATURES = [
           <div className="w-3 h-3 rounded-full bg-red-500/60"/>
           <div className="w-3 h-3 rounded-full bg-yellow-500/60"/>
           <div className="w-3 h-3 rounded-full bg-green-500/60"/>
-          <span className="ml-3 text-xs text-gray-500">IVey — Social Accounts</span>
+          <span className="ml-3 text-xs text-gray-500 dark:text-gray-500">IVey — Social Accounts</span>
         </div>
         <div className="p-5 space-y-3">
           {[
@@ -299,11 +299,11 @@ const FEATURES = [
             { name:'Facebook',    handle:'Your Page',  color:'bg-blue-600',  emoji:'📘', connected:true  },
             { name:'TikTok',      handle:'@yourbrand', color:'bg-gray-900',  emoji:'🎵', connected:false },
           ].map(acc => (
-            <div key={acc.name} className="flex items-center justify-between p-3 bg-gray-900 rounded-xl border border-gray-700">
+            <div key={acc.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 ${acc.color} rounded-xl flex items-center justify-center text-sm font-bold text-white border border-white/10`}>{acc.emoji}</div>
+                <div className={`w-9 h-9 ${acc.color} rounded-xl flex items-center justify-center text-sm font-bold text-gray-900 dark:text-white border border-white/10`}>{acc.emoji}</div>
                 <div>
-                  <div className="text-sm font-semibold text-white">{acc.name}</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white">{acc.name}</div>
                   <div className="text-xs text-gray-500">{acc.handle}</div>
                 </div>
               </div>
@@ -350,7 +350,7 @@ const FEATURES = [
           <div className="w-3 h-3 rounded-full bg-red-500/60"/>
           <div className="w-3 h-3 rounded-full bg-yellow-500/60"/>
           <div className="w-3 h-3 rounded-full bg-green-500/60"/>
-          <span className="ml-3 text-xs text-gray-500">IVey — Design Editor</span>
+          <span className="ml-3 text-xs text-gray-500 dark:text-gray-500">IVey — Design Editor</span>
         </div>
         <div className="flex h-64">
           {/* Sidebar tools */}
@@ -380,7 +380,7 @@ const FEATURES = [
               </div>
             </div>
             {/* Export btn */}
-            <div className="absolute bottom-2 right-2 px-3 py-1.5 bg-gradient-to-r from-amber-400 to-amber-600 rounded-lg text-xs font-bold text-white shadow-lg cursor-pointer">Export PNG</div>
+            <div className="absolute bottom-2 right-2 px-3 py-1.5 bg-gradient-to-r from-amber-400 to-amber-600 rounded-lg text-xs font-bold text-gray-900 dark:text-white shadow-lg cursor-pointer">Export PNG</div>
           </div>
         </div>
       </div>
@@ -403,7 +403,7 @@ const FEATURES = [
           <div className="w-3 h-3 rounded-full bg-red-500/60"/>
           <div className="w-3 h-3 rounded-full bg-yellow-500/60"/>
           <div className="w-3 h-3 rounded-full bg-green-500/60"/>
-          <span className="ml-3 text-xs text-gray-500">IVey — Campaigns</span>
+          <span className="ml-3 text-xs text-gray-500 dark:text-gray-500">IVey — Campaigns</span>
         </div>
         <div className="p-4 space-y-2">
           {[
@@ -412,9 +412,9 @@ const FEATURES = [
             { name:'magical kenya',            status:'Draft',          sc:'text-yellow-400',  dot:'bg-yellow-400',  formats:4 },
             { name:'from dynamic duo to IVey', status:'Draft',          sc:'text-yellow-400',  dot:'bg-yellow-400',  formats:3 },
           ].map(c => (
-            <div key={c.name} className="flex items-center justify-between p-3 bg-gray-900 rounded-xl border border-gray-700 hover:border-gray-600 transition-all group">
+            <div key={c.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-600 transition-all group">
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-white truncate">{c.name}</div>
+                <div className="text-sm font-bold text-gray-900 dark:text-white truncate">{c.name}</div>
                 <div className="flex items-center gap-2 mt-0.5">
                   <div className={`w-1.5 h-1.5 rounded-full ${c.dot}`}/>
                   <span className={`text-xs ${c.sc}`}>{c.status}</span>
@@ -461,7 +461,7 @@ const FEATURES = [
           <div className="w-3 h-3 rounded-full bg-red-500/60"/>
           <div className="w-3 h-3 rounded-full bg-yellow-500/60"/>
           <div className="w-3 h-3 rounded-full bg-green-500/60"/>
-          <span className="ml-3 text-xs text-gray-500">IVey — Brand Identity</span>
+          <span className="ml-3 text-xs text-gray-500 dark:text-gray-500">IVey — Brand Identity</span>
         </div>
         <div className="p-4 space-y-3">
           {/* Brand preview card */}
@@ -470,7 +470,7 @@ const FEATURES = [
             <div className="p-3 flex items-center gap-3">
               <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white font-black">M</div>
               <div>
-                <div className="text-white text-sm font-black">MOONRALDS SAFARIS</div>
+                <div className="text-gray-900 dark:text-white text-sm font-black">MOONRALDS SAFARIS</div>
                 <div className="text-gray-500 text-xs">MAGICAL WANDERINGS · Travel & Hospitality</div>
               </div>
               <span className="ml-auto text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">Default</span>
@@ -492,7 +492,7 @@ const FEATURES = [
             <div className="grid grid-cols-3 gap-1.5">
               {[['Professional','Authoritative'],['Bold','Confident'],['Inspiring','Uplifting']].map(([v,d], i) => (
                 <div key={v} className={`p-2 rounded-lg border text-center cursor-pointer transition-all ${i===2 ? 'border-amber-500 bg-amber-500/10' : 'border-gray-700 bg-gray-900'}`}>
-                  <div className={`text-xs font-bold ${i===2 ? 'text-amber-400' : 'text-white'}`}>{v}</div>
+                  <div className={`text-xs font-bold ${i===2 ? 'text-amber-400' : 'text-gray-900 dark:text-white'}`}>{v}</div>
                   <div className="text-xs text-gray-600 mt-0.5">{d}</div>
                 </div>
               ))}
@@ -565,7 +565,7 @@ const FeatureRow = ({ feature, index }) => {
           <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-bold ${c.tag}`}>
             {feature.tag}
           </div>
-          <h2 className="text-4xl font-black text-white leading-tight">{feature.headline}</h2>
+          <h2 className="text-4xl font-black text-gray-900 dark:text-white leading-tight">{feature.headline}</h2>
           <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-lg">{feature.sub}</p>
           <ul className="space-y-3">
             {feature.subpoints.map((p, i) => (
@@ -573,7 +573,7 @@ const FeatureRow = ({ feature, index }) => {
                 <div className={`w-5 h-5 rounded-full ${c.dot} flex items-center justify-center flex-shrink-0 mt-0.5`}>
                   <svg className="w-3 h-3 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
                 </div>
-                <span className="text-sm leading-relaxed">{p.label}</span>
+                <span className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">{p.label}</span>
               </li>
             ))}
           </ul>
@@ -620,7 +620,7 @@ const Features = () => {
             Platform Features
           </div>
 
-          <h1 className="text-6xl sm:text-7xl font-black text-white leading-[0.95] tracking-tight mb-6">
+          <h1 className="text-6xl sm:text-7xl font-black text-gray-900 dark:text-white leading-[0.95] tracking-tight mb-6">
             One platform.<br/>
             <span className="relative inline-block">
               <span className="bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 bg-clip-text text-transparent">Everything viral.</span>
@@ -645,14 +645,14 @@ const Features = () => {
       </section>
 
       {/* ── Stats ────────────────────────────────────────────────────────── */}
-      <div className="border-y border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30 py-8 px-4">
+      <div className="border-y border-gray-100 dark:border-gray-800 bg-gray-100 dark:bg-gray-800/30 py-8 px-4">
         <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
           {[[13,'+','Content Formats'],[4,'','AI Providers'],[6,'','Social Platforms'],[0,'∞','Campaigns']].map(([to, suf, label]) => (
             <div key={label}>
-              <div className="text-3xl font-black text-white">
+              <div className="text-3xl font-black text-gray-900 dark:text-white">
                 {to === 0 ? '∞' : <><Counter to={to} />{suf}</>}
               </div>
-              <div className="text-xs text-gray-500 mt-1 font-medium">{label}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1 font-medium">{label}</div>
             </div>
           ))}
         </div>
@@ -667,7 +667,7 @@ const Features = () => {
       <section className="border-t border-gray-100 dark:border-gray-800 py-20 px-4 bg-gray-50 dark:bg-gray-800/20">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-black text-white mb-3">Stop juggling 10 different tools.</h2>
+            <h2 className="text-4xl font-black text-gray-900 dark:text-white mb-3">Stop juggling 10 different tools.</h2>
             <p className="text-gray-500">Everything you need is already in IVey.</p>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
@@ -711,7 +711,7 @@ const Features = () => {
           <div className="absolute top-0 right-1/4 w-[400px] h-[300px] bg-emerald-500/5 rounded-full blur-3xl"/>
         </div>
         <div className="relative max-w-2xl mx-auto text-center">
-          <h2 className="text-5xl font-black text-white mb-4 leading-tight">Ready to go viral?</h2>
+          <h2 className="text-5xl font-black text-gray-900 dark:text-white mb-4 leading-tight">Ready to go viral?</h2>
           <p className="text-gray-400 mb-10 text-lg leading-relaxed">Join creators and businesses using IVey to generate viral marketing content in seconds — not hours.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/signup" className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-black hover:from-amber-500 hover:to-amber-700 transition-all shadow-2xl shadow-amber-500/20 text-sm">

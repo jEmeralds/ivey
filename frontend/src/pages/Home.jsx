@@ -178,8 +178,8 @@ const DemoModal = ({ onClose }) => {
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
             </div>
             <div>
-              <h2 className="text-sm font-bold text-white">IVey — Live Demo</h2>
-              <p className="text-xs text-gray-500">Watch AI build a campaign in real time</p>
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white">IVey — Live Demo</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-500">Watch AI build a campaign in real time</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 text-gray-500 hover:text-gray-300 rounded-lg hover:bg-gray-800 transition-colors">
@@ -215,7 +215,7 @@ const DemoModal = ({ onClose }) => {
           <div className={`transition-opacity duration-300 ${stepIdx >= 3 ? 'opacity-100' : 'opacity-30'}`}>
             <label className="block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-widest">Brand Identity {stepIdx===3 && <span className="text-emerald-400 animate-pulse ml-1">● selecting</span>}</label>
             <div className={`${inp(stepIdx===3)} flex items-center gap-3`}>
-              {brandVal ? (<><div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center text-white text-xs font-black flex-shrink-0">{brandVal[0]}</div><span className="font-semibold">{brandVal}</span><span className="text-xs text-gray-500 ml-auto">Travel & Hospitality</span></>) : <span className="text-gray-600">Select brand profile...</span>}
+              {brandVal ? (<><div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center text-white text-xs font-black flex-shrink-0">{brandVal[0]}</div><span className="font-semibold">{brandVal}</span><span className="text-xs text-gray-500 dark:text-gray-500 ml-auto">Travel & Hospitality</span></>) : <span className="text-gray-600">Select brand profile...</span>}
               {stepIdx===3 && brandVal.length < DEMO_DATA.brand.length && <span className="animate-pulse text-emerald-400">|</span>}
             </div>
           </div>
@@ -258,8 +258,8 @@ const DemoModal = ({ onClose }) => {
               ) : (
                 <div className="rounded-2xl bg-gray-800 border border-emerald-500/30 p-5 text-center space-y-3">
                   <div className="text-4xl">🎉</div>
-                  <h3 className="text-base font-black text-white">Campaign Created!</h3>
-                  <p className="text-sm text-gray-400"><strong className="text-white">"{DEMO_DATA.name}"</strong> is live with {DEMO_DATA.formats.length} content pieces — generated in 28 seconds.</p>
+                  <h3 className="text-base font-black text-gray-900 dark:text-white">Campaign Created!</h3>
+                  <p className="text-sm text-gray-400"><strong className="text-gray-900 dark:text-white">"{DEMO_DATA.name}"</strong> is live with {DEMO_DATA.formats.length} content pieces — generated in 28 seconds.</p>
                   <div className="flex flex-wrap gap-1.5 justify-center">
                     {DEMO_DATA.formats.map(fmt => <span key={fmt} className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${FORMAT_COLORS[fmt]||'border-emerald-500/60 bg-emerald-500/10 text-emerald-300'}`}>✓ {fmt}</span>)}
                   </div>
@@ -362,14 +362,14 @@ const Home = () => {
               <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"/>
               AI-Powered Viral Marketing
             </div>
-            <h1 className="text-5xl sm:text-6xl font-black text-white leading-[0.95] tracking-tight mb-6">
+            <h1 className="text-5xl sm:text-6xl font-black text-gray-900 dark:text-white leading-[0.95] tracking-tight mb-6">
               Generate viral<br/>marketing content<br/>
               <span className="relative">
                 <span className="bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 bg-clip-text text-transparent">in seconds.</span>
                 <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-400 to-amber-600 opacity-40 rounded-full"/>
               </span>
             </h1>
-            <p className="text-gray-400 text-lg leading-relaxed mb-8 max-w-lg">
+            <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-8 max-w-lg">
               Create TikTok scripts, Instagram captions, email campaigns, and 13+ content formats using advanced AI. Built for creators and brands who want to move fast.
             </p>
             {isAuthenticated && (
@@ -400,8 +400,8 @@ const Home = () => {
             <div className="grid grid-cols-3 gap-6">
               {[[50,'K+','Content Pieces'],[2,'M+','Words Generated'],[30,'s','Avg. Time']].map(([to,suf,label]) => (
                 <div key={label}>
-                  <div className="text-2xl font-black text-white"><Counter to={to}/>{suf}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">{label}</div>
+                  <div className="text-2xl font-black text-gray-900 dark:text-white"><Counter to={to}/>{suf}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-500 mt-0.5">{label}</div>
                 </div>
               ))}
             </div>
@@ -410,9 +410,9 @@ const Home = () => {
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-amber-500/10 rounded-3xl blur-2xl scale-110 pointer-events-none"/>
             <div className="relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-2xl">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 bg-gray-900">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 <div className="w-3 h-3 rounded-full bg-red-500/70"/><div className="w-3 h-3 rounded-full bg-yellow-500/70"/><div className="w-3 h-3 rounded-full bg-green-500/70"/>
-                <span className="ml-2 text-xs text-gray-500">IVey — Dashboard</span>
+                <span className="ml-2 text-xs text-gray-500 dark:text-gray-500">IVey — Dashboard</span>
                 <span className="ml-auto text-xs text-emerald-400 animate-pulse">● Live</span>
               </div>
               <div className="p-4 space-y-3">
@@ -425,8 +425,8 @@ const Home = () => {
                     <span className="text-xs text-emerald-500 ml-3">Open →</span>
                   </div>
                 ))}
-                <div className="p-3 bg-emerald-900/20 border border-emerald-500/20 rounded-xl">
-                  <div className="flex justify-between mb-2"><span className="text-xs text-emerald-400 flex items-center gap-1.5"><svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Generating...</span><span className="text-xs font-black text-emerald-400">73%</span></div>
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/20 rounded-xl">
+                  <div className="flex justify-between mb-2"><span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5"><svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Generating...</span><span className="text-xs font-black text-emerald-600 dark:text-emerald-400">73%</span></div>
                   <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden"><div className="h-full w-3/4 bg-gradient-to-r from-emerald-500 to-amber-400 rounded-full animate-pulse"/></div>
                 </div>
                 <button onClick={() => setShowDemo(true)} className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-bold text-sm hover:from-amber-500 hover:to-amber-700 transition-all flex items-center justify-center gap-2">
@@ -489,7 +489,7 @@ const Home = () => {
                   <div className={`w-10 h-10 rounded-xl ${COLOR_MAP[step.color]} border flex items-center justify-center text-xl mb-4`}>{step.icon}</div>
                   <div className="text-xs font-black text-gray-600 mb-1 uppercase tracking-widest">{step.num}</div>
                   <h3 className="text-sm font-black text-gray-900 dark:text-white mb-2">{step.title}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{step.desc}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 dark:text-gray-400 leading-relaxed">{step.desc}</p>
                 </div>
               </Section>
             ))}
@@ -529,7 +529,7 @@ const Home = () => {
                   )}
                   <div className="mb-4">
                     <h3 className="text-lg font-black text-gray-900 dark:text-white mb-1">{plan.name}</h3>
-                    <p className="text-xs text-gray-500 mb-3">{plan.desc}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">{plan.desc}</p>
                     <div className="flex items-baseline gap-1">
                       <span className="text-4xl font-black text-gray-900 dark:text-white">{plan.price}</span>
                       {plan.period && <span className="text-gray-500 text-sm">{plan.period}</span>}
@@ -538,14 +538,14 @@ const Home = () => {
                   </div>
                   <ul className="space-y-2 mb-6 flex-1">
                     {plan.features.map((f, j) => (
-                      <li key={j} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                      <li key={j} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                         <span className={`w-4 h-4 rounded-full flex items-center justify-center text-xs flex-shrink-0 ${plan.popular ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700 text-gray-400'}`}>✓</span>
                         {f}
                       </li>
                     ))}
                   </ul>
                   <button onClick={() => plan.type === 'free' ? navigate(isAuthenticated ? '/dashboard' : '/signup') : null}
-                    className={`w-full py-3 rounded-xl font-black text-sm transition-all ${plan.popular ? 'bg-emerald-600 text-white hover:bg-emerald-700' : plan.type === 'free' ? 'bg-gradient-to-r from-amber-400 to-amber-600 text-white hover:from-amber-500 hover:to-amber-700' : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`}>
+                    className={`w-full py-3 rounded-xl font-black text-sm transition-all ${plan.popular ? 'bg-emerald-600 text-gray-900 dark:text-white hover:bg-emerald-700' : plan.type === 'free' ? 'bg-gradient-to-r from-amber-400 to-amber-600 text-white hover:from-amber-500 hover:to-amber-700' : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`}>
                     {plan.type === 'free' && isAuthenticated ? '🚀 Dashboard' : plan.cta}
                   </button>
                 </div>
@@ -579,7 +579,7 @@ const Home = () => {
           <h2 className="text-5xl font-black text-gray-900 dark:text-white mb-4 leading-tight">
             {isAuthenticated ? `Welcome back,\n${displayName}!` : 'Ready to go viral?'}
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-10 text-lg leading-relaxed">
+          <p className="text-gray-600 dark:text-gray-600 dark:text-gray-400 mb-10 text-lg leading-relaxed">
             {isAuthenticated ? 'Your campaigns are waiting.' : 'Join creators and businesses generating viral content in seconds.'}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
