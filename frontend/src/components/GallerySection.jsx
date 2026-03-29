@@ -180,7 +180,7 @@ const MediaCard = ({ item, onClick }) => {
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 const SkeletonCard = () => (
-  <div className="aspect-video rounded-xl bg-gray-800 animate-pulse border border-gray-700"/>
+  <div className="aspect-video rounded-xl bg-gray-200 dark:bg-gray-800 animate-pulse border border-gray-300 dark:border-gray-700"/>
 );
 
 // ─── Main GallerySection ──────────────────────────────────────────────────────
@@ -214,7 +214,7 @@ export default function GallerySection({ embedded = false }) {
   };
 
   return (
-    <section className={embedded ? 'py-16 px-4' : 'min-h-screen bg-gray-900 py-20 px-4'}>
+    <section className={embedded ? 'py-16 px-4' : 'min-h-screen bg-white dark:bg-gray-900 py-20 px-4'}>
 
       {/* Lightbox */}
       {lightboxIdx !== null && filtered[lightboxIdx] && (
@@ -244,13 +244,13 @@ export default function GallerySection({ embedded = false }) {
                   🏆 Community Gallery
                 </div>
               )}
-              <h2 className={`font-black text-white leading-tight ${embedded ? 'text-3xl sm:text-4xl' : 'text-4xl sm:text-5xl'}`}>
+              <h2 className={`font-black text-gray-900 dark:text-white leading-tight ${embedded ? 'text-3xl sm:text-4xl' : 'text-4xl sm:text-5xl'}`}>
                 Real content.{' '}
                 <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
                   Real results.
                 </span>
               </h2>
-              <p className="text-gray-500 mt-2 text-sm leading-relaxed max-w-lg">
+              <p className="text-gray-500 dark:text-gray-500 mt-2 text-sm leading-relaxed max-w-lg">
                 Generated with IVey and posted by real users. Browse, get inspired, and submit your own.
               </p>
             </div>

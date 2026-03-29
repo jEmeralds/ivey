@@ -107,7 +107,7 @@ const FAQItem = ({ q, a, index }) => {
   const [ref, visible] = useReveal(0.1);
   return (
     <div ref={ref} className={`transition-all duration-500 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`} style={{transitionDelay:`${index*60}ms`}}>
-      <button onClick={() => setOpen(!open)} className="w-full text-left bg-gray-800 border border-gray-700 rounded-xl p-5 hover:border-gray-600 transition-all group">
+      <button onClick={() => setOpen(!open)} className="w-full text-left bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 hover:border-gray-300 dark:hover:border-gray-600 transition-all group">
         <div className="flex items-center justify-between gap-4">
           <h3 className="text-sm font-bold text-white">{q}</h3>
           <span className={`text-gray-500 transition-transform duration-200 flex-shrink-0 ${open ? 'rotate-180' : ''}`}>▼</span>
@@ -176,7 +176,7 @@ const Pricing = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden pt-24 pb-16 px-4">
@@ -222,8 +222,8 @@ const Pricing = () => {
       <section className="max-w-6xl mx-auto px-4 pb-20">
         <div ref={cardsRef} className={`grid lg:grid-cols-3 gap-6 transition-all duration-700 ${cardsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           {plans.map((plan, i) => (
-            <div key={i} className={`relative bg-gray-800 rounded-2xl border-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${
-              plan.popular ? 'border-emerald-500 shadow-xl shadow-emerald-500/10' : 'border-gray-700 hover:border-gray-600'
+            <div key={i} className={`relative bg-white dark:bg-gray-800 rounded-2xl border-2 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${
+              plan.popular ? 'border-emerald-500 shadow-xl shadow-emerald-500/10' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
             }`} style={{transitionDelay:`${i*80}ms`}}>
 
               {plan.popular && (
@@ -286,9 +286,9 @@ const Pricing = () => {
 
         {/* Guarantee */}
         <div className="text-center mt-10">
-          <div className="inline-flex items-center gap-3 px-6 py-3 bg-gray-800 border border-gray-700 rounded-xl">
+          <div className="inline-flex items-center gap-3 px-6 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
             <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-            <span className="text-gray-300 text-sm font-medium">30-day money-back guarantee on all paid plans</span>
+            <span className="text-gray-700 dark:text-gray-300 text-sm font-medium">30-day money-back guarantee on all paid plans</span>
           </div>
         </div>
       </section>
@@ -307,7 +307,7 @@ const Pricing = () => {
       </section>
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
-      <section className="border-t border-gray-800 relative overflow-hidden py-20 px-4">
+      <section className="border-t border-gray-100 dark:border-gray-800 relative overflow-hidden py-20 px-4">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-amber-500/5 rounded-full blur-3xl"/>
         </div>

@@ -102,7 +102,7 @@ const GalleryMiniPanel = () => {
     <>
       {lightbox && <Lightbox item={lightbox} onClose={() => setLightbox(null)} />}
 
-      <div className="w-full bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden shadow-2xl">
+      <div className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-2xl">
         {/* Window chrome */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 bg-gray-900">
           <div className="w-3 h-3 rounded-full bg-red-500/70"/>
@@ -565,7 +565,7 @@ const FeatureRow = ({ feature, index }) => {
             {feature.tag}
           </div>
           <h2 className="text-4xl font-black text-white leading-tight">{feature.headline}</h2>
-          <p className="text-gray-400 leading-relaxed text-lg">{feature.sub}</p>
+          <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-lg">{feature.sub}</p>
           <ul className="space-y-3">
             {feature.subpoints.map((p, i) => (
               <li key={i} className="flex items-start gap-3 text-gray-300">
@@ -595,7 +595,7 @@ const Features = () => {
   const [heroRef, heroVisible] = useReveal(0.1);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden pt-24 pb-20 px-4">
@@ -642,7 +642,7 @@ const Features = () => {
       </section>
 
       {/* ── Stats ────────────────────────────────────────────────────────── */}
-      <div className="border-y border-gray-800 bg-gray-800/30 py-8 px-4">
+      <div className="border-y border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30 py-8 px-4">
         <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
           {[[13,'+','Content Formats'],[4,'','AI Providers'],[6,'','Social Platforms'],[0,'∞','Campaigns']].map(([to, suf, label]) => (
             <div key={label}>
@@ -661,14 +661,14 @@ const Features = () => {
       </section>
 
       {/* ── Before / After ───────────────────────────────────────────────── */}
-      <section className="border-t border-gray-800 py-20 px-4 bg-gray-800/20">
+      <section className="border-t border-gray-100 dark:border-gray-800 py-20 px-4 bg-gray-50 dark:bg-gray-800/20">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-black text-white mb-3">Stop juggling 10 different tools.</h2>
             <p className="text-gray-500">Everything you need is already in IVey.</p>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-7">
+            <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-7">
               <div className="text-xs font-black text-gray-500 mb-5 uppercase tracking-widest flex items-center gap-2">
                 <span className="w-5 h-5 bg-red-500/20 border border-red-500/30 rounded-full flex items-center justify-center text-red-400 text-xs">✕</span>
                 Before IVey
@@ -682,7 +682,7 @@ const Features = () => {
                 ))}
               </div>
             </div>
-            <div className="bg-gray-800 border border-emerald-500/30 rounded-2xl p-7 relative overflow-hidden">
+            <div className="bg-gray-50 dark:bg-gray-800 border border-emerald-500/30 rounded-2xl p-7 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none"/>
               <div className="text-xs font-black text-emerald-400 mb-5 uppercase tracking-widest flex items-center gap-2">
                 <span className="w-5 h-5 bg-emerald-500/20 border border-emerald-500/30 rounded-full flex items-center justify-center text-emerald-400 text-xs">✓</span>

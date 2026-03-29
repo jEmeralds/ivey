@@ -342,7 +342,7 @@ const Home = () => {
   const displayName = user?.name || user?.email?.split('@')[0] || 'there';
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white overflow-x-hidden">
+    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white overflow-x-hidden">
 
       {showDemo && <DemoModal onClose={() => setShowDemo(false)} />}
 
@@ -401,7 +401,7 @@ const Home = () => {
               {[[50,'K+','Content Pieces'],[2,'M+','Words Generated'],[30,'s','Avg. Time']].map(([to,suf,label]) => (
                 <div key={label}>
                   <div className="text-2xl font-black text-white"><Counter to={to}/>{suf}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">{label}</div>
                 </div>
               ))}
             </div>
@@ -409,7 +409,7 @@ const Home = () => {
           {/* Right — dashboard preview */}
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-amber-500/10 rounded-3xl blur-2xl scale-110 pointer-events-none"/>
-            <div className="relative bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-2xl">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 bg-gray-900">
                 <div className="w-3 h-3 rounded-full bg-red-500/70"/><div className="w-3 h-3 rounded-full bg-yellow-500/70"/><div className="w-3 h-3 rounded-full bg-green-500/70"/>
                 <span className="ml-2 text-xs text-gray-500">IVey — Dashboard</span>
@@ -417,9 +417,9 @@ const Home = () => {
               </div>
               <div className="p-4 space-y-3">
                 {[{name:'MAGICAL WANDERINGS',status:'Complete',sc:'text-amber-400',dot:'bg-amber-400'},{name:'Kombucha by SCOBBY QUEEN',status:'Strategy Ready',sc:'text-emerald-400',dot:'bg-emerald-400'},{name:'magical kenya',status:'Draft',sc:'text-yellow-400',dot:'bg-yellow-400'}].map(c => (
-                  <div key={c.name} className="flex items-center justify-between p-3 bg-gray-900 rounded-xl border border-gray-700">
+                  <div key={c.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold text-white truncate">{c.name}</div>
+                      <div className="text-sm font-bold text-gray-900 dark:text-white truncate">{c.name}</div>
                       <div className="flex items-center gap-2 mt-0.5"><div className={`w-1.5 h-1.5 rounded-full ${c.dot}`}/><span className={`text-xs ${c.sc}`}>{c.status}</span></div>
                     </div>
                     <span className="text-xs text-emerald-500 ml-3">Open →</span>
@@ -446,16 +446,16 @@ const Home = () => {
         <div className="max-w-6xl mx-auto">
           <Section className="text-center mb-14">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-400/10 border border-amber-400/20 rounded-full text-amber-400 text-xs font-bold mb-4 uppercase tracking-widest">Everything Included</div>
-            <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">One platform.<br/>Everything viral.</h2>
-            <p className="text-gray-500 max-w-xl mx-auto text-lg">Stop juggling 10 different tools. IVey has everything you need to create, design, post, and track viral marketing content.</p>
+            <h2 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white mb-4">One platform.<br/>Everything viral.</h2>
+            <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-lg">Stop juggling 10 different tools. IVey has everything you need to create, design, post, and track viral marketing content.</p>
           </Section>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map((f, i) => (
               <Section key={f.title} delay={i * 80}>
-                <div className="h-full bg-gray-800 border border-gray-700 rounded-2xl p-6 hover:border-gray-600 hover:bg-gray-750 hover:-translate-y-1 transition-all duration-300 group cursor-default">
+                <div className="h-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:border-gray-300 dark:hover:border-gray-600 hover:-translate-y-1 transition-all duration-300 group cursor-default">
                   <div className={`w-12 h-12 rounded-xl ${COLOR_MAP[f.color]} border flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform duration-300`}>{f.icon}</div>
-                  <h3 className="text-base font-black text-white mb-2">{f.title}</h3>
-                  <p className="text-sm text-gray-400 leading-relaxed">{f.desc}</p>
+                  <h3 className="text-base font-black text-gray-900 dark:text-white mb-2">{f.title}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{f.desc}</p>
                 </div>
               </Section>
             ))}
@@ -471,25 +471,25 @@ const Home = () => {
       {/* ══════════════════════════════════════════════════════════════════
           HOW IT WORKS
       ══════════════════════════════════════════════════════════════════ */}
-      <section id="how-it-works" className="border-t border-gray-800 py-20 px-4 bg-gray-800/20">
+      <section id="how-it-works" className="border-t border-gray-100 dark:border-gray-800 py-20 px-4 bg-gray-50 dark:bg-gray-800/20">
         <div className="max-w-5xl mx-auto">
           <Section className="text-center mb-14">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-400/10 border border-emerald-400/20 rounded-full text-emerald-400 text-xs font-bold mb-4 uppercase tracking-widest">How It Works</div>
-            <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">From brief to viral<br/>in 4 steps.</h2>
-            <p className="text-gray-500 max-w-xl mx-auto text-lg">The fastest path from idea to published content.</p>
+            <h2 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white mb-4">From brief to viral<br/>in 4 steps.</h2>
+            <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-lg">The fastest path from idea to published content.</p>
           </Section>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {HOW_IT_WORKS.map((step, i) => (
               <Section key={step.num} delay={i * 100}>
-                <div className="relative bg-gray-800 border border-gray-700 rounded-2xl p-6 hover:border-gray-600 hover:-translate-y-1 transition-all duration-300 h-full">
+                <div className="relative bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:border-gray-300 dark:hover:border-gray-600 hover:-translate-y-1 transition-all duration-300 h-full">
                   {/* Connector line on desktop */}
                   {i < HOW_IT_WORKS.length - 1 && (
                     <div className="hidden lg:block absolute top-8 -right-3 w-6 h-0.5 bg-gray-700 z-10"/>
                   )}
                   <div className={`w-10 h-10 rounded-xl ${COLOR_MAP[step.color]} border flex items-center justify-center text-xl mb-4`}>{step.icon}</div>
                   <div className="text-xs font-black text-gray-600 mb-1 uppercase tracking-widest">{step.num}</div>
-                  <h3 className="text-sm font-black text-white mb-2">{step.title}</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">{step.desc}</p>
+                  <h3 className="text-sm font-black text-gray-900 dark:text-white mb-2">{step.title}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{step.desc}</p>
                 </div>
               </Section>
             ))}
@@ -510,13 +510,13 @@ const Home = () => {
         <div className="max-w-5xl mx-auto">
           <Section className="text-center mb-14">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-violet-400/10 border border-violet-400/20 rounded-full text-violet-400 text-xs font-bold mb-4 uppercase tracking-widest">Pricing</div>
-            <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">Simple, transparent<br/>pricing.</h2>
-            <p className="text-gray-500 max-w-xl mx-auto text-lg">Start free. Upgrade as you grow. No hidden fees, no surprises.</p>
+            <h2 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white mb-4">Simple, transparent<br/>pricing.</h2>
+            <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-lg">Start free. Upgrade as you grow. No hidden fees, no surprises.</p>
           </Section>
           <div className="grid sm:grid-cols-3 gap-5">
             {PRICING_PREVIEW.map((plan, i) => (
               <Section key={plan.name} delay={i * 100}>
-                <div className={`relative bg-gray-800 rounded-2xl border-2 p-6 h-full flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${plan.popular ? 'border-emerald-500 shadow-xl shadow-emerald-500/10' : 'border-gray-700 hover:border-gray-600'}`}>
+                <div className={`relative bg-white dark:bg-gray-800 rounded-2xl border-2 p-6 h-full flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${plan.popular ? 'border-emerald-500 shadow-xl shadow-emerald-500/10' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}>
                   {plan.popular && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                       <span className="px-3 py-1 bg-emerald-500 text-white text-xs font-black rounded-full shadow-lg">Most Popular</span>
@@ -528,17 +528,17 @@ const Home = () => {
                     </div>
                   )}
                   <div className="mb-4">
-                    <h3 className="text-lg font-black text-white mb-1">{plan.name}</h3>
+                    <h3 className="text-lg font-black text-gray-900 dark:text-white mb-1">{plan.name}</h3>
                     <p className="text-xs text-gray-500 mb-3">{plan.desc}</p>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-black text-white">{plan.price}</span>
+                      <span className="text-4xl font-black text-gray-900 dark:text-white">{plan.price}</span>
                       {plan.period && <span className="text-gray-500 text-sm">{plan.period}</span>}
                     </div>
-                    {plan.price === 'Free' && <p className="text-xs text-emerald-400 font-semibold mt-1">Forever free · No credit card</p>}
+                    {plan.price === 'Free' && <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-1">Forever free · No credit card</p>}
                   </div>
                   <ul className="space-y-2 mb-6 flex-1">
                     {plan.features.map((f, j) => (
-                      <li key={j} className="flex items-center gap-2 text-sm text-gray-300">
+                      <li key={j} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                         <span className={`w-4 h-4 rounded-full flex items-center justify-center text-xs flex-shrink-0 ${plan.popular ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-700 text-gray-400'}`}>✓</span>
                         {f}
                       </li>
@@ -563,23 +563,23 @@ const Home = () => {
       {/* ══════════════════════════════════════════════════════════════════
           GALLERY
       ══════════════════════════════════════════════════════════════════ */}
-      <section id="gallery" className="border-t border-gray-800">
+      <section id="gallery" className="border-t border-gray-100 dark:border-gray-800">
         <GallerySection embedded />
       </section>
 
       {/* ══════════════════════════════════════════════════════════════════
           FINAL CTA
       ══════════════════════════════════════════════════════════════════ */}
-      <section className="border-t border-gray-800 relative overflow-hidden py-24 px-4">
+      <section className="border-t border-gray-100 dark:border-gray-800 relative overflow-hidden py-24 px-4">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-amber-500/5 rounded-full blur-3xl"/>
           <div className="absolute top-0 right-1/4 w-[400px] h-[300px] bg-emerald-500/4 rounded-full blur-3xl"/>
         </div>
         <Section className="relative max-w-2xl mx-auto text-center">
-          <h2 className="text-5xl font-black text-white mb-4 leading-tight">
+          <h2 className="text-5xl font-black text-gray-900 dark:text-white mb-4 leading-tight">
             {isAuthenticated ? `Welcome back,\n${displayName}!` : 'Ready to go viral?'}
           </h2>
-          <p className="text-gray-400 mb-10 text-lg leading-relaxed">
+          <p className="text-gray-600 dark:text-gray-400 mb-10 text-lg leading-relaxed">
             {isAuthenticated ? 'Your campaigns are waiting.' : 'Join creators and businesses generating viral content in seconds.'}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -598,7 +598,7 @@ const Home = () => {
               </>
             )}
           </div>
-          <p className="text-xs text-gray-600 mt-5">No credit card required · Cancel anytime</p>
+          <p className="text-xs text-gray-400 dark:text-gray-600 mt-5">No credit card required · Cancel anytime</p>
         </Section>
       </section>
 
