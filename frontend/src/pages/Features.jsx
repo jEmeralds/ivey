@@ -714,11 +714,11 @@ const Features = () => {
           <h2 className="text-5xl font-black text-gray-900 dark:text-white mb-4 leading-tight">Ready to go viral?</h2>
           <p className="text-gray-400 mb-10 text-lg leading-relaxed">Join creators and businesses using IVey to generate viral marketing content in seconds — not hours.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/signup" className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-black hover:from-amber-500 hover:to-amber-700 transition-all shadow-2xl shadow-amber-500/20 text-sm">
-              Create Free Account
+            <button onClick={() => navigate(isAuthenticated ? '/dashboard' : '/signup')} className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-black hover:from-amber-500 hover:to-amber-700 transition-all shadow-2xl shadow-amber-500/20 text-sm">
+              {isAuthenticated ? 'Go to Dashboard' : 'Create Free Account'}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-            </Link>
-            <Link to="/pricing" className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl font-bold hover:bg-gray-700 transition-all text-sm">
+            </button>
+            <Link to="/pricing" className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-all text-sm">
               View Pricing
             </Link>
           </div>
