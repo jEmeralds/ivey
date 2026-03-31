@@ -82,7 +82,7 @@ const useTypewriter = () => {
   return { type, clear };
 };
 
-const DemoModal = ({ onClose }) => {
+const DemoModal = ({ onClose, onCTA }) => {
   const [stepIdx, setStepIdx]     = useState(0);
   const [paused, setPaused]       = useState(false);
   const [nameVal, setNameVal]     = useState('');
@@ -263,7 +263,7 @@ const DemoModal = ({ onClose }) => {
                   <div className="flex flex-wrap gap-1.5 justify-center">
                     {DEMO_DATA.formats.map(fmt => <span key={fmt} className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${FORMAT_COLORS[fmt]||'border-emerald-500/60 bg-emerald-500/10 text-emerald-300'}`}>✓ {fmt}</span>)}
                   </div>
-                  <button onClick={onClose} className="mt-1 px-6 py-2.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-bold text-sm hover:from-amber-500 hover:to-amber-700 transition-all shadow-lg">Try It Yourself →</button>
+                  <button onClick={onCTA} className="mt-1 px-6 py-2.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl font-bold text-sm hover:from-amber-500 hover:to-amber-700 transition-all shadow-lg">Try It Yourself →</button>
                 </div>
               )}
             </div>
@@ -344,7 +344,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white overflow-x-hidden">
 
-      {showDemo && <DemoModal onClose={() => setShowDemo(false)} />}
+      {showDemo && <DemoModal onClose={() => setShowDemo(false)} onCTA={() => { setShowDemo(false); navigate(isAuthenticated ? '/dashboard' : '/signup'); }} />}
 
       {/* ══════════════════════════════════════════════════════════════════
           HERO
