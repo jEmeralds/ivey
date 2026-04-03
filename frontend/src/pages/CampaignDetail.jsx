@@ -1,10 +1,10 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
-  getCampaignById, generateIdeas, generateStrategy, getCampaignMedia,
+  getCampaignById, generateStrategy, getCampaignMedia,
   saveContent, getSavedContent, deleteSavedContent,
 } from '../services/api';
-import { OUTPUT_FORMATS, isVideoFormat, isImageFormat } from '../constants/outputFormats';
+
 import MediaUpload from '../components/MediaUpload';
 import ReactMarkdown from 'react-markdown';
 
@@ -129,7 +129,7 @@ const ShareModal = ({ isOpen, onClose, imageUrl, format, campaignId, campaignNam
                   🔄 Regenerate
                 </button>
               </div>
-              <p className="text-xs text-gray-500 text-center">Copy the caption then paste it when posting your image</p>
+              <p className="text-xs text-gray-500 text-center">Copy the caption then paste it when posting your content</p>
             </div>
           )}
           {imageUrl && (
@@ -280,76 +280,6 @@ const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
   );
 };
 
-// ─── Image Card ───────────────────────────────────────────────────────────────
-const ImageCard = ({ item, campaignId, campaignName, productDescription, targetAudience, onSave, showToast }) => {
-  const [shareModal, setShareModal] = useState(false);
-  const [saving,     setSaving]     = useState(false);
-  const [saved,      setSaved]      = useState(false);
-  const fmt = OUTPUT_FORMATS[item.format] || {};
-
-  const handleSave = async () => {
-    if (saved || !item.imageUrl) return;
-    setSaving(true);
-    await onSave({ title: `${fmt.name || item.format} — ${campaignName}`, content: item.imageUrl, content_type: 'generated_image', format: item.format, key: `img_${item.format}_${Date.now()}` });
-    setSaved(true); setSaving(false);
-  };
-
-  if (item.error) {
-    return (
-      <div className="bg-gray-800 border border-red-900/40 rounded-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
-          <span className="text-xs font-semibold text-gray-300">{fmt.name || item.format}</span>
-          <span className="text-xs text-gray-500">{fmt.platform}</span>
-        </div>
-        <div className="flex items-center justify-center h-48 bg-gray-700/50 px-6">
-          <div className="text-center">
-            <div className="text-3xl mb-2">⚠️</div>
-            <p className="text-xs text-red-400 font-medium">Generation failed</p>
-            <p className="text-xs text-gray-500 mt-1">{item.error}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden hover:border-gray-500 transition-all group">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
-          <div>
-            <span className="text-xs font-semibold text-white">{fmt.name || item.format}</span>
-            <span className="text-xs text-gray-500 ml-2">{fmt.platform}</span>
-          </div>
-          <span className="text-xs font-mono text-gray-600">{fmt.aspect} · {fmt.width}×{fmt.height}</span>
-        </div>
-        <div className="relative bg-gray-700">
-          {item.imageUrl ? (
-            <img src={item.imageUrl} alt={`${fmt.name || item.format} for ${campaignName}`} className="w-full object-cover" />
-          ) : (
-            <div className="flex items-center justify-center h-48">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mx-auto mb-2" />
-                <p className="text-xs text-gray-400">Generating...</p>
-              </div>
-            </div>
-          )}
-        </div>
-        {item.imageUrl && (
-          <div className="px-4 py-3 flex gap-2">
-            <button onClick={() => setShareModal(true)} className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-all">📤 Share</button>
-            <a href={item.imageUrl} target="_blank" rel="noopener noreferrer" download className="px-3 py-2 bg-gray-700 border border-gray-600 text-gray-300 rounded-lg text-xs font-semibold hover:bg-gray-600 transition-all">⬇️</a>
-            <button onClick={handleSave} disabled={saving || saved}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all border ${saved ? 'bg-amber-500/20 border-amber-500/40 text-amber-400' : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'}`}>
-              {saving ? '⏳' : saved ? '✅' : '🔖'}
-            </button>
-          </div>
-        )}
-      </div>
-      <ShareModal isOpen={shareModal} onClose={() => setShareModal(false)} imageUrl={item.imageUrl} format={item.format} campaignId={campaignId} campaignName={campaignName} productDescription={productDescription} targetAudience={targetAudience} showToast={showToast} />
-    </>
-  );
-};
-
 // ─── Strategy Section ─────────────────────────────────────────────────────────
 const StrategySection = ({ title, content, icon, defaultOpen }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -477,13 +407,11 @@ const CampaignDetail = () => {
   };
 
   const [campaign,           setCampaign]           = useState(null);
-  const [generatedImages,    setGeneratedImages]    = useState([]);
   const [strategy,           setStrategy]           = useState(null);
   const [strategySections,   setStrategySections]   = useState([]);
   const [media,              setMedia]              = useState([]);
   const [savedItems,         setSavedItems]         = useState([]);
   const [loading,            setLoading]            = useState(true);
-  const [generating,         setGenerating]         = useState(false);
   const [generatingStrategy, setGeneratingStrategy] = useState(false);
   const [error,              setError]              = useState('');
   const [toast,              setToast]              = useState({ visible: false, message: '', type: 'success' });
@@ -513,8 +441,7 @@ const CampaignDetail = () => {
         video_duration:   raw.video_duration || null,
         generated_content: Array.isArray(raw.generated_content) ? raw.generated_content : [],
       });
-      const prev = (raw.generated_content || []).filter(c => c.imageUrl || c.error);
-      if (prev.length) setGeneratedImages(prev);
+
     } catch { setError('Failed to load campaign'); }
     finally { setLoading(false); }
   };
@@ -535,16 +462,6 @@ const CampaignDetail = () => {
   const handleDeleteSaved = async (savedId) => {
     try { await deleteSavedContent(savedId); setSavedItems(prev => prev.filter(s => s.id !== savedId)); }
     catch { showToast('Failed to delete', 'error'); }
-  };
-
-  const handleGenerate = async () => {
-    try {
-      setGenerating(true); setError(''); setGeneratedImages([]);
-      const data = await generateIdeas(id);
-      setGeneratedImages(data.generatedContent || []);
-    } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to generate images');
-    } finally { setGenerating(false); }
   };
 
   const handleGenerateStrategy = async () => {
@@ -574,9 +491,6 @@ const CampaignDetail = () => {
     </div>
   );
 
-  const successImages = generatedImages.filter(i => i.imageUrl);
-  const failedImages  = generatedImages.filter(i => i.error);
-
   return (
     <div className="min-h-screen bg-gray-900 pt-16 py-10 px-4">
       <div className="max-w-6xl mx-auto">
@@ -599,35 +513,19 @@ const CampaignDetail = () => {
                 className="flex items-center gap-1.5 px-4 py-2 text-sm bg-gray-700 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-600 disabled:opacity-50 transition-all">
                 {generatingStrategy ? '⏳ Generating...' : '📊 Strategy'}
               </button>
-              <button onClick={handleGenerate} disabled={generating}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-lg hover:from-amber-500 hover:to-amber-700 disabled:opacity-50 transition-all font-semibold shadow-lg">
-                {generating ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-                    Generating...
-                  </span>
-                ) : generatedImages.length > 0 ? '🔄 Regenerate' : '✨ Generate Images'}
-              </button>
+
             </div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4 mt-5 pt-5 border-t border-gray-700">
             <div><span className="text-xs text-gray-500">Target Audience</span><p className="text-sm font-medium text-white mt-0.5">{campaign.target_audience}</p></div>
             <div>
-              <span className="text-xs text-gray-500">Formats</span>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {campaign.output_formats?.map(f => (
-                  <span key={f} className="px-2 py-0.5 bg-emerald-900/30 text-emerald-300 rounded text-xs font-medium">{OUTPUT_FORMATS[f]?.name || f}</span>
-                ))}
-              </div>
+              <span className="text-xs text-gray-500">AI Provider</span>
+              <p className="text-sm font-medium text-white mt-0.5 capitalize">{campaign.ai_provider || 'gemini'}</p>
             </div>
             <div>
               <span className="text-xs text-gray-500">Status</span>
-              <p className="text-sm font-medium mt-0.5">
-                {generatedImages.length > 0
-                  ? <span className="text-emerald-400">✅ {successImages.length} image{successImages.length !== 1 ? 's' : ''} generated</span>
-                  : <span className="text-gray-400">No images yet</span>}
-              </p>
+              <p className="text-sm font-medium text-emerald-400 mt-0.5">🎬 Video-first campaign</p>
             </div>
           </div>
         </div>
@@ -642,85 +540,16 @@ const CampaignDetail = () => {
           <div className="bg-red-900/20 border border-red-800 text-red-400 px-4 py-3 rounded-xl mb-6 text-sm">{error}</div>
         )}
 
-        {/* Empty state */}
-        {generatedImages.length === 0 && !generating && (
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl p-12 text-center mb-6">
-            <div className="text-6xl mb-4">🎨</div>
-            <h2 className="text-xl font-bold text-white mb-2">Ready to generate your visuals?</h2>
-            <p className="text-gray-400 mb-8 text-sm max-w-md mx-auto">
-              IVey will generate a unique DALL-E 3 image for each format you selected — at the exact dimensions for each platform.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button onClick={handleGenerateStrategy} disabled={generatingStrategy}
-                className="px-7 py-3.5 bg-gray-700 border border-gray-600 text-gray-300 rounded-lg font-semibold hover:bg-gray-600 disabled:opacity-50 transition-all text-sm">
-                {generatingStrategy ? '⏳ Generating Strategy...' : '📊 Generate Strategy First'}
-              </button>
-              <button onClick={handleGenerate} disabled={generating}
-                className="px-7 py-3.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-lg font-semibold hover:from-amber-500 hover:to-amber-700 disabled:opacity-50 transition-all shadow-lg text-sm">
-                ✨ Generate Images Now
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Generating skeleton */}
-        {generating && (
-          <div className="mb-6">
-            <p className="text-sm text-gray-400 mb-4 flex items-center gap-2">
-              <svg className="animate-spin h-4 w-4 text-emerald-500" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-              Generating images with DALL-E 3 — this may take a moment...
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {campaign.output_formats?.map(f => (
-                <div key={f} className="bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden animate-pulse">
-                  <div className="px-4 py-3 border-b border-gray-700 flex justify-between">
-                    <div className="h-3 bg-gray-700 rounded w-24" />
-                    <div className="h-3 bg-gray-700 rounded w-16" />
-                  </div>
-                  <div className="bg-gray-700 h-48" />
-                  <div className="px-4 py-3 flex gap-2">
-                    <div className="flex-1 h-8 bg-gray-700 rounded-lg" />
-                    <div className="w-8 h-8 bg-gray-700 rounded-lg" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Video Script */}
-        {campaign.output_formats?.includes('VIDEO_SCRIPT') && (
-          <div className="mb-6">
-            <VideoScriptCard campaignId={id} campaign={campaign} showToast={showToast} onSave={handleSave} />
-          </div>
-        )}
-
-        {/* Generated image grid */}
-        {generatedImages.length > 0 && !generating && (
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-white">
-                🎨 Generated Visuals
-                {failedImages.length > 0 && <span className="ml-2 text-xs font-normal text-red-400">({failedImages.length} failed)</span>}
-              </h2>
-              <button onClick={handleGenerate} disabled={generating}
-                className="px-3 py-1.5 text-xs bg-gray-700 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-600 transition-all">
-                🔄 Regenerate All
-              </button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {generatedImages.map((imgItem, idx) => (
-                <ImageCard key={idx} item={imgItem} campaignId={id} campaignName={campaign.name} productDescription={campaign.description} targetAudience={campaign.target_audience} onSave={handleSave} showToast={showToast} />
-              ))}
-            </div>
-          </div>
-        )}
+        <div className="mb-6">
+          <VideoScriptCard campaignId={id} campaign={campaign} showToast={showToast} onSave={handleSave} />
+        </div>
 
         {/* Strategy */}
         {strategy && (
           <div className="bg-gray-800 border border-gray-700 rounded-2xl p-7 mb-6">
             <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-              <h2 className="text-xl font-bold text-white">📊 Visual Marketing Strategy</h2>
+              <h2 className="text-xl font-bold text-white">📊 Marketing Strategy</h2>
               <button onClick={handleGenerateStrategy} disabled={generatingStrategy}
                 className="px-3 py-1.5 text-xs bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-all">
                 {generatingStrategy ? 'Regenerating...' : '🔄 Regenerate'}
