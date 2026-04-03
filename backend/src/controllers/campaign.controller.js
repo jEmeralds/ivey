@@ -349,27 +349,28 @@ export const generateVideoScript = async (req, res) => {
 
     const brand = await getBrandForCampaign(campaign, userId);
 
-    // Duration: from request body, or campaign stored value, or brand default, or 60s
-    const durationSeconds = duration_seconds
-      || campaign.video_duration
-      || brand?.default_video_length
-      || 60;
+    // Pass duration only if explicitly provided — otherwise AI selects bracket
+    // Always capped at 60s inside generateVideoScriptAI
+    const requestedDuration = duration_seconds
+      ? Number(duration_seconds)
+      : (campaign.video_duration || brand?.default_video_length || null);
 
     const { generateVideoScriptAI } = await import('../services/ai.service.js');
 
-    const script = await generateVideoScriptAI({
+    const result = await generateVideoScriptAI({
       campaignName:       campaign.name,
       productDescription: campaign.product_description,
       targetAudience:     campaign.target_audience,
-      durationSeconds,
+      durationSeconds:    requestedDuration,
       brand,
       ai_provider:        ai_provider || campaign.ai_provider || 'gemini',
     });
 
     res.json({
-      script,
-      duration_seconds: durationSeconds,
-      word_count: Math.round(durationSeconds * 130 / 60),
+      script:        result.script,
+      seconds:       result.seconds,
+      bracket:       `${result.seconds}s`,
+      bracketReason: result.bracketReason || '',
     });
   } catch (error) {
     console.error('Generate script error:', error);

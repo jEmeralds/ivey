@@ -20,48 +20,30 @@ const FORMAT_CONFIG = {
 const MARKDOWN_SYSTEM = `You are an expert marketing strategist. Format responses using clean markdown with ## headers, **bold**, bullet points, and > blockquotes. Be specific and actionable.`;
 
 // ── Brand context builder ─────────────────────────────────────────────────────
-// Injects the full brand profile into AI prompts — identity, visual theme,
-// voice/tone, audience insights, and content defaults
 function buildBrandContext(brand) {
   if (!brand) return '';
   const lines = [];
-
-  // Identity
   if (brand.brand_name)    lines.push(`Brand Name: ${brand.brand_name}`);
   if (brand.tagline)       lines.push(`Tagline: "${brand.tagline}"`);
   if (brand.industry)      lines.push(`Industry: ${brand.industry}`);
   if (brand.brand_story)   lines.push(`Brand Story: ${brand.brand_story}`);
-
-  // Visual theme
   if (brand.brand_colors?.length)    lines.push(`Brand Colors: ${brand.brand_colors.join(', ')} — use these throughout`);
   if (brand.photography_style)       lines.push(`Photography Style: ${brand.photography_style} — apply this aesthetic to all visuals`);
   if (brand.visual_mood?.length)     lines.push(`Visual Mood: ${brand.visual_mood.join(', ')} — this is the feeling all content should evoke`);
-
-  // Voice and tone
   if (brand.brand_voice)             lines.push(`Brand Voice: ${brand.brand_voice}`);
   if (brand.words_always?.length)    lines.push(`Words to always use: ${brand.words_always.join(', ')}`);
   if (brand.words_never?.length)     lines.push(`Words to never use: ${brand.words_never.join(', ')}`);
-
-  // Audience
   if (brand.target_personas)         lines.push(`Primary Audience: ${brand.target_personas}`);
   if (brand.pain_points)             lines.push(`Audience Pain Points: ${brand.pain_points}`);
   if (brand.audience_desires)        lines.push(`Audience Desires: ${brand.audience_desires}`);
-
   if (lines.length === 0) return '';
-
-  return `\n--- BRAND PROFILE ---
-${lines.join('\n')}
-IMPORTANT: Every piece of content must reflect this brand identity. Use the brand voice, colors, and aesthetic consistently. Address the audience's pain points and speak to their desires.
---- END BRAND PROFILE ---\n`;
+  return `\n--- BRAND PROFILE ---\n${lines.join('\n')}\nIMPORTANT: Every piece of content must reflect this brand identity. Use the brand voice, colors, and aesthetic consistently. Address the audience's pain points and speak to their desires.\n--- END BRAND PROFILE ---\n`;
 }
 
 // ── Build DALL-E visual style from brand ─────────────────────────────────────
-// Translates brand profile fields into DALL-E style language
 function buildVisualStyleFromBrand(brand) {
   if (!brand) return '';
   const parts = [];
-
-  // Photography style → DALL-E aesthetic
   const photoStyleMap = {
     lifestyle:    'lifestyle photography, natural light, real people and environments, warm and authentic',
     studio:       'studio photography, controlled lighting, clean backgrounds, precise and polished',
@@ -72,26 +54,15 @@ function buildVisualStyleFromBrand(brand) {
   if (brand.photography_style && photoStyleMap[brand.photography_style]) {
     parts.push(photoStyleMap[brand.photography_style]);
   }
-
-  // Visual mood → atmosphere
   const moodMap = {
-    Warm:       'warm golden tones, inviting atmosphere',
-    Cool:       'cool blue tones, fresh and crisp',
-    Minimal:    'minimal composition, clean and uncluttered',
-    Vibrant:    'vibrant saturated colors, energetic',
-    Dark:       'dark moody atmosphere, dramatic shadows',
-    Earthy:     'earthy natural tones, organic materials',
-    Luxurious:  'luxury aesthetic, premium materials, opulent',
-    Playful:    'playful and fun, bright colors, dynamic',
-    Bold:       'bold strong visuals, commanding presence',
-    Soft:       'soft pastel tones, gentle and delicate',
-    Industrial: 'industrial aesthetic, raw materials, urban',
-    Natural:    'natural organic feel, nature-inspired',
+    Warm: 'warm golden tones, inviting atmosphere', Cool: 'cool blue tones, fresh and crisp',
+    Minimal: 'minimal composition, clean and uncluttered', Vibrant: 'vibrant saturated colors, energetic',
+    Dark: 'dark moody atmosphere, dramatic shadows', Earthy: 'earthy natural tones, organic materials',
+    Luxurious: 'luxury aesthetic, premium materials, opulent', Playful: 'playful and fun, bright colors, dynamic',
+    Bold: 'bold strong visuals, commanding presence', Soft: 'soft pastel tones, gentle and delicate',
+    Industrial: 'industrial aesthetic, raw materials, urban', Natural: 'natural organic feel, nature-inspired',
   };
-  brand.visual_mood?.forEach(mood => {
-    if (moodMap[mood]) parts.push(moodMap[mood]);
-  });
-
+  brand.visual_mood?.forEach(mood => { if (moodMap[mood]) parts.push(moodMap[mood]); });
   return parts.join(', ');
 }
 
@@ -229,7 +200,6 @@ Focus entirely on visual content strategy. Be specific and actionable.`;
 };
 
 // ── Generate images — PRIMARY FUNCTION ───────────────────────────────────────
-// One DALL-E image per selected format. Replaces generateContentIdeasAI.
 export const generateImagesAI = async (campaignData, referenceImageUrl = null) => {
   if (!OPENAI_API_KEY) throw new Error('OpenAI API key not configured');
 
@@ -237,11 +207,10 @@ export const generateImagesAI = async (campaignData, referenceImageUrl = null) =
   console.log(`\n🎨 Generating images: ${name}`);
   console.log(`   Formats: ${output_formats?.join(', ')}`);
 
-  const brandContext = buildBrandContext(brand);
-  const brandColorHint  = brand?.brand_colors?.length ? `Use brand colors: ${brand.brand_colors.join(', ')}.` : '';
+  const brandContext     = buildBrandContext(brand);
+  const brandColorHint   = brand?.brand_colors?.length ? `Use brand colors: ${brand.brand_colors.join(', ')}.` : '';
   const brandVisualStyle = buildVisualStyleFromBrand(brand);
 
-  // Analyse reference image if provided
   let productVisualDescription = '';
   if (referenceImageUrl) {
     console.log('   🔍 Analysing reference image...');
@@ -312,7 +281,6 @@ export const generateImagesAI = async (campaignData, referenceImageUrl = null) =
 };
 
 // ── Generate caption — called at share time ───────────────────────────────────
-// platform: 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'tiktok'
 export const generateCaptionAI = async ({ campaignName, productDescription, targetAudience, format, platform, brand, ai_provider = 'gemini' }) => {
   const brandContext = buildBrandContext(brand);
 
@@ -324,8 +292,7 @@ export const generateCaptionAI = async ({ campaignName, productDescription, targ
     tiktok:    'TikTok: short punchy text, energetic, trending hashtags, call to duet or stitch',
   };
 
-  const guide = platformGuides[platform] || 'Social media: engaging, clear CTA, relevant hashtags';
-
+  const guide      = platformGuides[platform] || 'Social media: engaging, clear CTA, relevant hashtags';
   const brandVoice = brand?.brand_voice
     ? `\nBrand Voice: ${brand.brand_voice}. Words to use: ${brand.words_always?.join(', ') || 'none'}. Words to avoid: ${brand.words_never?.join(', ') || 'none'}.`
     : '';
@@ -393,86 +360,129 @@ export const generateVisualAI = async ({ campaignName, productDescription, targe
   return { imageUrl: data.data[0].url, revisedPrompt: data.data[0].revised_prompt, usedReference: !!productVisualDescription, format, generatedAt: new Date().toISOString() };
 };
 
-// ── Generate video script ─────────────────────────────────────────────────────
-// duration_seconds: how long the video should be
-// brand: full brand profile with voice, tone, style etc.
-export const generateVideoScriptAI = async ({ campaignName, productDescription, targetAudience, durationSeconds, brand, ai_provider = 'gemini' }) => {
-  const wordCount = Math.round(durationSeconds * 130 / 60);
-  const duration  = durationSeconds < 60
-    ? `${durationSeconds} seconds`
-    : `${Math.floor(durationSeconds / 60)} minute${Math.floor(durationSeconds / 60) > 1 ? 's' : ''}${durationSeconds % 60 > 0 ? ` ${durationSeconds % 60} seconds` : ''}`;
+// ── Select video bracket — AI decides 30 / 45 / 60 based on campaign ─────────
+// Returns: { seconds: 30|45|60, reason: string }
+export const selectVideoBracketAI = async ({ campaignName, productDescription, targetAudience, brand, ai_provider = 'gemini' }) => {
+  const brandCtx = buildBrandContext(brand);
 
-  const brandContext = buildBrandContext(brand);
+  const prompt = `You are an expert short-form video strategist.
 
-  // Build structure based on duration
-  let structure = '';
-  if (durationSeconds <= 30) {
-    structure = `Structure:
-- Hook (0–3s): Immediately grab attention — bold statement, question, or surprising visual
-- CTA (3–${durationSeconds}s): Drive one clear action`;
-  } else if (durationSeconds <= 90) {
-    structure = `Structure:
-- Hook (0–5s): Stop the scroll immediately
-- Problem (5–30s): Name the pain point your audience feels
-- Solution (30–${Math.round(durationSeconds * 0.8)}s): Show how ${campaignName} solves it
-- CTA (${Math.round(durationSeconds * 0.8)}–${durationSeconds}s): One clear call to action`;
-  } else if (durationSeconds <= 180) {
-    structure = `Structure:
-- Hook (0–10s): Bold opening that stops the viewer
-- Problem (10–40s): Build the pain point with empathy
-- Solution (40–${Math.round(durationSeconds * 0.7)}s): Demonstrate the product clearly
-- Social Proof (${Math.round(durationSeconds * 0.7)}–${Math.round(durationSeconds * 0.88)}s): Credibility and results
-- CTA (${Math.round(durationSeconds * 0.88)}–${durationSeconds}s): Clear next step`;
-  } else if (durationSeconds <= 300) {
-    structure = `Structure:
-- Hook (0–15s): Compelling opening
-- Problem (15–60s): Deep dive into audience pain points
-- Solution (60–${Math.round(durationSeconds * 0.65)}s): Full product demonstration
-- Social Proof (${Math.round(durationSeconds * 0.65)}–${Math.round(durationSeconds * 0.85)}s): Results and testimonials
-- CTA (${Math.round(durationSeconds * 0.85)}–${durationSeconds}s): Offer and next steps`;
-  } else {
-    structure = `Structure:
-- Hook & Promise (0–30s): Bold statement of what the viewer will gain
-- Context (30–120s): Background, problem, and why it matters
-- Core Content (120–${Math.round(durationSeconds * 0.65)}s): Main value, chapters, demonstration
-- Proof (${Math.round(durationSeconds * 0.65)}–${Math.round(durationSeconds * 0.85)}s): Evidence, testimonials, data
-- CTA (${Math.round(durationSeconds * 0.85)}–${durationSeconds}s): Clear next steps and offer`;
-  }
-
-  const brandVoiceGuide = brand ? `
-Brand Voice: ${brand.brand_voice || 'conversational'}
-Brand Tone/Mood: ${brand.visual_mood?.join(', ') || 'not specified'}
-Words to use: ${brand.words_always?.join(', ') || 'none specified'}
-Words to avoid: ${brand.words_never?.join(', ') || 'none specified'}
-Audience Pain Points: ${brand.pain_points || 'not specified'}
-Audience Desires: ${brand.audience_desires || 'not specified'}
-Photography/Visual style: ${brand.photography_style || 'lifestyle'}` : '';
-
-  const prompt = `You are an expert video scriptwriter. Write a complete, production-ready video script.
+Analyze this campaign and determine the ideal video duration. You must choose ONLY one of: 30, 45, or 60 seconds. No other duration is valid.
 
 Campaign: ${campaignName}
 Product/Service: ${productDescription}
 Target Audience: ${targetAudience}
-Duration: ${duration} (exactly ${durationSeconds} seconds)
-Target word count: ~${wordCount} words (spoken at 130 words/minute)
+${brandCtx}
+
+BRACKET GUIDE:
+- 30 seconds: Simple, single-benefit product. Impulse purchase. Very clear value proposition. Audience already familiar with the category. Best for: flash deals, simple apps, single-feature products.
+- 45 seconds: Moderate complexity. Two or three key benefits. Needs context but not a full demo. Best for: lifestyle products, service introductions, brand awareness.
+- 60 seconds: Complex product, new category, needs demonstration or education. Multiple benefits. Premium pricing that requires justification. Best for: SaaS, health products, luxury goods, new innovations.
+
+Respond ONLY with a valid JSON object and nothing else — no explanation before or after:
+{"seconds": 30, "reason": "one concise sentence explaining why"}`;
+
+  try {
+    const raw    = await callAI(ai_provider, prompt);
+    const match  = raw.match(/\{[\s\S]*"seconds"[\s\S]*\}/);
+    if (!match)  throw new Error('No JSON in response');
+    const parsed = JSON.parse(match[0]);
+    const secs   = [30, 45, 60].includes(Number(parsed.seconds)) ? Number(parsed.seconds) : 60;
+    console.log(`🎯 Bracket selected: ${secs}s — ${parsed.reason}`);
+    return { seconds: secs, reason: parsed.reason || '' };
+  } catch (e) {
+    console.warn('⚠️  Bracket selection failed, defaulting to 60s:', e.message);
+    return { seconds: 60, reason: 'Default — campaign complexity could not be assessed' };
+  }
+};
+
+// ── Generate video script — IVey selects bracket, max 60 seconds ──────────────
+// If durationSeconds is passed, it's capped at 60. If not passed, AI selects.
+export const generateVideoScriptAI = async ({ campaignName, productDescription, targetAudience, durationSeconds, brand, ai_provider = 'gemini' }) => {
+  const MAX_SECONDS = 60;
+  const brandContext = buildBrandContext(brand);
+
+  // Determine bracket
+  let selectedSeconds = durationSeconds ? Math.min(Number(durationSeconds), MAX_SECONDS) : null;
+  let bracketReason   = '';
+
+  // Snap to nearest valid bracket if passed manually
+  if (selectedSeconds) {
+    if (selectedSeconds <= 30)      selectedSeconds = 30;
+    else if (selectedSeconds <= 45) selectedSeconds = 45;
+    else                            selectedSeconds = 60;
+  } else {
+    // AI selects the bracket
+    const bracket   = await selectVideoBracketAI({ campaignName, productDescription, targetAudience, brand, ai_provider });
+    selectedSeconds = bracket.seconds;
+    bracketReason   = bracket.reason;
+  }
+
+  const durationLabel = `${selectedSeconds} seconds`;
+
+  // Structure per bracket — gives AI clear guidance without hardcoding word counts
+  const structureMap = {
+    30: `Structure for 30 seconds:
+- Hook [0:00–0:04]: Explosive opener. Bold visual statement or provocative question. Must stop the scroll in the first second.
+- Core Message [0:04–0:22]: ONE key benefit, delivered with total clarity and conviction. No fluff.
+- CTA [0:22–0:30]: Single specific action. Make it urgent and easy.`,
+
+    45: `Structure for 45 seconds:
+- Hook [0:00–0:05]: Grab attention immediately — show the problem or the desire
+- Context [0:05–0:20]: Build the story — who this is for and why it matters right now
+- Solution [0:20–0:38]: Show the product or service delivering real transformation
+- CTA [0:38–0:45]: Clear, specific, urgent call to action`,
+
+    60: `Structure for 60 seconds:
+- Hook [0:00–0:06]: Stop the scroll — bold opening that creates immediate curiosity or urgency
+- Problem [0:06–0:20]: Make the audience feel the pain point or desire deeply
+- Solution [0:20–0:42]: Demonstrate the product — show the transformation, features, and benefits
+- Proof [0:42–0:52]: Quick credibility moment — a result, a number, a testimonial, or social proof
+- CTA [0:52–1:00]: Exact next step — where to go, what to do, and why right now`,
+  };
+
+  const brandVoiceGuide = brand ? `
+Brand Voice: ${brand.brand_voice || 'conversational and direct'}
+Mood: ${brand.visual_mood?.join(', ') || 'not specified'}
+Words to always use: ${brand.words_always?.join(', ') || 'none'}
+Words to never use: ${brand.words_never?.join(', ') || 'none'}
+Audience Pain Points: ${brand.pain_points || 'not specified'}
+Audience Desires: ${brand.audience_desires || 'not specified'}` : '';
+
+  const prompt = `You are a world-class short-form video scriptwriter specializing in viral social content.
+
+Write a complete, production-ready ${durationLabel} video script for HeyGen.
+
+Campaign: ${campaignName}
+Product/Service: ${productDescription}
+Target Audience: ${targetAudience}
+Duration: EXACTLY ${durationLabel}
 ${brandContext}${brandVoiceGuide}
 
-${structure}
+${structureMap[selectedSeconds]}
 
 SCRIPT FORMAT RULES:
-- Write every word that will be SPOKEN by the presenter/narrator
-- Each scene starts with a timestamp e.g. [0:00–0:05]
-- After the timestamp, add a brief VISUAL NOTE in (parentheses) — what the camera shows
-- Then write the exact spoken words on a new line
-- Keep sentences short and punchy — this is spoken, not read
-- No markdown headers, no bullet points in the spoken text
-- The spoken words must flow naturally when read aloud
-- End with a strong, specific CTA — tell them exactly what to do
+- Write every single word the presenter or narrator will speak
+- Format each scene exactly like this:
 
-Write the full script now. Start immediately with [0:00].`;
+[0:00–0:05]
+(VISUAL: Describe what the camera shows — movement, subject, mood)
+The spoken words go here on a new line. Keep it punchy.
 
-  console.log(`\n🎬 Generating ${duration} video script for: ${campaignName}`);
+- Short sentences. Real spoken language. How people actually talk.
+- No bullet points inside the spoken text
+- No markdown headers inside the script
+- Every second earns its place — cut anything that doesn't serve the message
+- The hook must land in the first 2 seconds
+- End with a CTA that tells them EXACTLY what to do — specific platform, link, or action
+
+CRITICAL: This script goes directly into HeyGen. A voice AI will read every word. Write for ears, not eyes. Rhythm and natural flow matter more than perfect grammar.
+
+Start immediately with [0:00]. Write the complete script now.`;
+
+  console.log(`\n🎬 Generating ${durationLabel} video script: ${campaignName}${bracketReason ? ` (${bracketReason})` : ''}`);
   const script = await callAI(ai_provider, prompt);
   console.log('✅ Video script done\n');
-  return script;
+
+  return { script, seconds: selectedSeconds, bracketReason };
 };
