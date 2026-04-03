@@ -560,7 +560,7 @@ const CampaignDetail = () => {
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-white mb-2">Campaign not found</h2>
-        <button onClick={() => navigate('/dashboard')} className="text-emerald-500 hover:text-emerald-400">← Back to Dashboard</button>
+        <button onClick={() => navigate(-1)} className="text-emerald-500 hover:text-emerald-400">← Back</button>
       </div>
     </div>
   );
@@ -573,7 +573,7 @@ const CampaignDetail = () => {
       <div className="max-w-6xl mx-auto">
 
         {/* Back */}
-        <button onClick={() => navigate('/dashboard')} className="text-emerald-500 hover:text-emerald-400 font-medium mb-6 flex items-center gap-2 text-sm">
+        <button onClick={() => navigate(-1)} className="text-emerald-500 hover:text-emerald-400 font-medium mb-6 flex items-center gap-2 text-sm">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Back to Dashboard
         </button>
