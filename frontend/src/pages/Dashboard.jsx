@@ -70,7 +70,17 @@ const DeleteButton = ({ onConfirm, deleting }) => {
 };
 
 const Dashboard = () => {
-  const [activeSection, setActiveSection] = useState('overview');
+  const location  = useLocation();
+  const navigate  = useNavigate();
+
+  // Read section from URL immediately — no flash to overview
+  const getInitialSection = () => {
+    const params = new URLSearchParams(location.search);
+    const s = params.get('section');
+    return (s && ['overview','campaigns','brands','social','gallery','analytics'].includes(s)) ? s : 'overview';
+  };
+
+  const [activeSection, setActiveSection] = useState(getInitialSection);
   const [sidebarOpen,   setSidebarOpen]   = useState(false);
   const [campaigns,     setCampaigns]     = useState([]);
   const [loading,       setLoading]       = useState(true);
@@ -78,8 +88,6 @@ const Dashboard = () => {
   const [user,          setUser]          = useState(null);
   const [deletingId,    setDeletingId]    = useState(null);
   const [stats,         setStats]         = useState({ totalCampaigns: 0, contentGenerated: 0, strategiesCreated: 0 });
-  const navigate  = useNavigate();
-  const location  = useLocation();
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
