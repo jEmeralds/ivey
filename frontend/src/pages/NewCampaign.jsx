@@ -112,7 +112,7 @@ const NewCampaign = () => {
       <div className="max-w-4xl mx-auto">
 
         {/* Back */}
-        <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-medium mb-6 transition-colors text-sm">
+        <button onClick={() => navigate('/dashboard?section=campaigns')} className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 font-medium mb-6 transition-colors text-sm">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Back to Dashboard
         </button>
