@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   getCampaignById, generateIdeas, generateStrategy, getCampaignMedia,
   saveContent, getSavedContent, deleteSavedContent,
@@ -464,8 +464,17 @@ const SavedLibrary = ({ savedItems, onDelete }) => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 const CampaignDetail = () => {
-  const { id }   = useParams();
-  const navigate = useNavigate();
+  const { id }    = useParams();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+
+  const goBack = () => {
+    if (location.state?.from === 'campaigns') {
+      navigate('/dashboard?section=campaigns');
+    } else {
+      navigate('/dashboard?section=campaigns');
+    }
+  };
 
   const [campaign,           setCampaign]           = useState(null);
   const [generatedImages,    setGeneratedImages]    = useState([]);
@@ -560,7 +569,7 @@ const CampaignDetail = () => {
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-white mb-2">Campaign not found</h2>
-        <button onClick={() => navigate(-1)} className="text-emerald-500 hover:text-emerald-400">← Back</button>
+        <button onClick={goBack} className="text-emerald-500 hover:text-emerald-400">← Back to Campaigns</button>
       </div>
     </div>
   );
@@ -573,9 +582,9 @@ const CampaignDetail = () => {
       <div className="max-w-6xl mx-auto">
 
         {/* Back */}
-        <button onClick={() => navigate(-1)} className="text-emerald-500 hover:text-emerald-400 font-medium mb-6 flex items-center gap-2 text-sm">
+        <button onClick={goBack} className="text-emerald-500 hover:text-emerald-400 font-medium mb-6 flex items-center gap-2 text-sm">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-          Back to Dashboard
+          Back to Campaigns
         </button>
 
         {/* Campaign Header */}

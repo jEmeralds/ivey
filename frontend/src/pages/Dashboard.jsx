@@ -158,7 +158,7 @@ const Dashboard = () => {
         onConfirm={() => handleDelete(campaign.id)}
       />
       <button
-        onClick={() => navigate(`/campaigns/${campaign.id}`)}
+        onClick={() => navigate(`/campaigns/${campaign.id}`, { state: { from: 'campaigns' } })}
         className="px-3 py-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors text-xs font-medium"
       >
         Open →
@@ -334,7 +334,7 @@ const Dashboard = () => {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <button onClick={() => navigate(`/campaigns/${campaign.id}`)} className="font-semibold text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors text-left text-sm">
+                      <button onClick={() => navigate(`/campaigns/${campaign.id}`, { state: { from: 'campaigns' } })} className="font-semibold text-gray-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors text-left text-sm">
                         {campaign.name}
                       </button>
                       <StatusBadge campaign={campaign} />
