@@ -25,9 +25,9 @@ const BRAVE_SEARCH_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
 export const PROVIDERS = {
   GEMINI:        { id: 'gemini',        tier: 'free', name: 'Gemini 2.5 Flash'  },
   CLAUDE_HAIKU:  { id: 'claude-haiku',  tier: 'free', name: 'Claude Haiku'      },
-  CLAUDE_SONNET: { id: 'claude',        tier: 'paid', name: 'Claude Sonnet'     },
-  GPT4O:         { id: 'openai',        tier: 'paid', name: 'GPT-4o'            },
-  GPT4O_MINI:    { id: 'openai-mini',   tier: 'paid', name: 'GPT-4o Mini'       },
+  CLAUDE_SONNET: { id: 'claude',        tier: 'free', name: 'Claude Sonnet'     },
+  GPT4O:         { id: 'openai',        tier: 'free', name: 'GPT-4o'            },
+  GPT4O_MINI:    { id: 'openai-mini',   tier: 'free', name: 'GPT-4o Mini'       },
   GROK:          { id: 'grok',          tier: 'paid', name: 'Grok (xAI)'        },
   MISTRAL:       { id: 'mistral',       tier: 'paid', name: 'Mistral Large'     },
 };
@@ -35,12 +35,19 @@ export const PROVIDERS = {
 const SYSTEM = `You are an expert viral marketing strategist and world-class video scriptwriter. 
 Be specific, creative, and deeply psychological in your approach.`;
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // ── Provider router ───────────────────────────────────────────────────────────
 export async function callAI(provider = 'gemini', prompt, userPlan = 'free') {
   const resolved = _resolveProvider(provider, userPlan);
   console.log(`   🤖 ${resolved}`);
-  try {
-    switch (resolved) {
+
+  // Free tier fallback chain: gemini → claude-haiku → openai-mini
+  const freeFallbackChain = ['gemini', 'claude-haiku', 'openai-mini'];
+
+  const tryProvider = async (p) => {
+    switch (p) {
       case 'gemini':       return await _gemini(prompt);
       case 'claude':       return await _claude(prompt, 'claude-3-5-sonnet-20241022');
       case 'claude-haiku': return await _claude(prompt, 'claude-3-haiku-20240307');
@@ -50,11 +57,46 @@ export async function callAI(provider = 'gemini', prompt, userPlan = 'free') {
       case 'mistral':      return await _mistral(prompt);
       default:             return await _gemini(prompt);
     }
+  };
+
+  // Try the resolved provider first
+  try {
+    return await tryProvider(resolved);
   } catch (err) {
-    if (resolved !== 'gemini') {
-      console.warn(`   ⚠️  ${resolved} failed — falling back to Gemini`);
-      return await _gemini(prompt);
+    const isRateLimit = err.message?.includes('quota') || err.message?.includes('rate') ||
+                        err.message?.includes('429') || err.message?.includes('exceeded');
+
+    // If rate limit and on free fallback chain, try next provider in chain
+    if (isRateLimit) {
+      const currentIdx = freeFallbackChain.indexOf(resolved);
+      for (let i = currentIdx + 1; i < freeFallbackChain.length; i++) {
+        const fallback = freeFallbackChain[i];
+        // Check if we have the API key for this provider
+        const hasKey = (fallback === 'gemini' && GEMINI_API_KEY) ||
+                       (fallback === 'claude-haiku' && ANTHROPIC_API_KEY) ||
+                       (fallback === 'openai-mini' && OPENAI_API_KEY);
+        if (!hasKey) continue;
+        try {
+          console.warn(`   ⚠️  ${resolved} rate limited — falling back to ${fallback}`);
+          await sleep(2000);
+          return await tryProvider(fallback);
+        } catch (fallbackErr) {
+          const fallbackRateLimit = fallbackErr.message?.includes('quota') ||
+                                    fallbackErr.message?.includes('rate') ||
+                                    fallbackErr.message?.includes('429');
+          if (fallbackRateLimit) continue; // try next in chain
+          throw fallbackErr;
+        }
+      }
     }
+
+    // If not rate limit or all fallbacks exhausted, try once more with delay
+    if (isRateLimit) {
+      console.warn(`   ⏳ All providers rate limited — waiting 15s...`);
+      await sleep(15000);
+      return await tryProvider(resolved);
+    }
+
     throw err;
   }
 }
@@ -178,8 +220,6 @@ async function withRetry(fn, maxRetries = 3, baseDelay = 8000) {
 }
 
 // ── Sequential delay helper ───────────────────────────────────────────────────
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // RESEARCH LAYER
 // ═══════════════════════════════════════════════════════════════════════════════
