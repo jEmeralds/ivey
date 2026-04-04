@@ -351,7 +351,13 @@ const BrandPage = ({ embedded = false }) => {
 
           {/* ── Left: brand list ── */}
           <div className="lg:col-span-2 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
-            <p className="hidden lg:block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Your Brands</p>
+            <div className="hidden lg:flex items-center justify-between mb-3">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Your Brands</p>
+              <button onClick={handleNew}
+                className="flex items-center gap-1 px-2 py-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all">
+                + New
+              </button>
+            </div>
             <div className="space-y-2">
               {brands.map(b => (
                 <button key={b.id} onClick={() => handleSelectBrand(b)}
@@ -372,6 +378,11 @@ const BrandPage = ({ embedded = false }) => {
               ))}
               {brands.length === 0 && <p className="text-xs text-gray-600 px-1">No brands yet</p>}
             </div>
+            {/* Mobile new brand button */}
+            <button onClick={handleNew}
+              className="lg:hidden flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all">
+              + New Brand
+            </button>
           </div>
 
           {/* ── Center: form ── */}
