@@ -158,6 +158,28 @@ function extractJSON(raw, fallback = {}) {
   return fallback;
 }
 
+
+// ── Retry with exponential backoff ────────────────────────────────────────────
+async function withRetry(fn, maxRetries = 3, baseDelay = 8000) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const isRateLimit = err.message?.includes('quota') || err.message?.includes('rate') || err.message?.includes('429');
+      if (isRateLimit && attempt < maxRetries) {
+        const delay = baseDelay * attempt;
+        console.warn(`   ⏳ Rate limit hit — waiting ${delay/1000}s before retry ${attempt}/${maxRetries-1}...`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+// ── Sequential delay helper ───────────────────────────────────────────────────
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // RESEARCH LAYER
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -311,7 +333,7 @@ Respond ONLY with valid JSON — no text before or after:
 
   console.log('   🧠 L1: Excavating audience psychology...');
   try {
-    const raw = await callAI(ai_provider, prompt, userPlan);
+    const raw = await withRetry(() => callAI(ai_provider, prompt, userPlan));
     const profile = extractJSON(raw, {});
     if (!profile.two_am_thought) throw new Error('Incomplete profile');
     console.log(`   ✅ L1: Hook insight — "${profile.hook_insight?.slice(0, 60)}..."`);
@@ -381,7 +403,7 @@ Respond ONLY with valid JSON:
 }`;
 
   try {
-    const raw = await callAI(ai_provider, prompt, userPlan);
+    const raw = await withRetry(() => callAI(ai_provider, prompt, userPlan));
     const gap = extractJSON(raw, {});
     console.log(`   ✅ L2: Gap found — "${gap.emotional_gap?.slice(0, 60)}..."`);
     return gap;
@@ -467,7 +489,7 @@ Respond ONLY with valid JSON:
 
   console.log('   🎭 L3: Designing narrative architecture...');
   try {
-    const raw = await callAI(ai_provider, prompt, userPlan);
+    const raw = await withRetry(() => callAI(ai_provider, prompt, userPlan));
     const arc = extractJSON(raw, {});
     console.log(`   ✅ L3: Arc — "${arc.arc_name}" | "${arc.emotional_throughline?.slice(0, 50)}..."`);
     return arc;
@@ -550,7 +572,7 @@ Respond ONLY with valid JSON array:
 
   console.log('   🎣 L4: Running Hook Laboratory...');
   try {
-    const raw = await callAI(ai_provider, prompt, userPlan);
+    const raw = await withRetry(() => callAI(ai_provider, prompt, userPlan));
     let hooks = extractJSON(raw, []);
     if (!Array.isArray(hooks) || hooks.length === 0) throw new Error('No hooks returned');
 
@@ -732,7 +754,7 @@ ${insightCtx}
 Respond ONLY with JSON: {"seconds": 45, "reason": "one sentence"}`;
 
   try {
-    const raw = await callAI(ai_provider, prompt, userPlan);
+    const raw = await withRetry(() => callAI(ai_provider, prompt, userPlan));
     const p = extractJSON(raw, {});
     const s = [30, 45, 60].includes(Number(p.seconds)) ? Number(p.seconds) : 60;
     console.log(`   🎯 Bracket: ${s}s — ${p.reason}`);
@@ -796,23 +818,33 @@ export const generateVideoScriptAI = async ({
     brand, productionBrief, ai_provider, userPlan,
   });
 
-  // ── L5: Write 3 drafts in parallel ────────────────────────────────────────
+  // ── L5: Write 3 drafts sequentially with delays to respect rate limits ──────
   console.log('   ✍️  L5: Writing 3 script drafts...');
   const draftArgs = { campaignName, productDescription, targetAudience, seconds: secs, audienceProfile, competitiveGap, narrativeArc, winnerHook, brand, productionBrief, ai_provider, userPlan };
 
-  const [emotionalDraft, directDraft, narrativeDraft] = await Promise.all([
-    writeScriptDraft({ draftType: 'emotional',  ...draftArgs }),
-    writeScriptDraft({ draftType: 'direct',     ...draftArgs }),
-    writeScriptDraft({ draftType: 'narrative',  ...draftArgs }),
-  ]);
+  console.log('   ✍️  Draft 1/3: Emotional...');
+  const emotionalDraft = await withRetry(() => writeScriptDraft({ draftType: 'emotional', ...draftArgs }));
+  await sleep(3000);
 
-  // ── Score all 3 drafts in parallel ────────────────────────────────────────
-  console.log('   📊 Scoring all 3 drafts...');
-  const [emotionalScore, directScore, narrativeScore] = await Promise.all([
-    scoreScript({ script: emotionalDraft,  hook: winnerHook?.hook, seconds: secs, ai_provider, userPlan }),
-    scoreScript({ script: directDraft,     hook: winnerHook?.hook, seconds: secs, ai_provider, userPlan }),
-    scoreScript({ script: narrativeDraft,  hook: winnerHook?.hook, seconds: secs, ai_provider, userPlan }),
-  ]);
+  console.log('   ✍️  Draft 2/3: Direct...');
+  const directDraft = await withRetry(() => writeScriptDraft({ draftType: 'direct', ...draftArgs }));
+  await sleep(3000);
+
+  console.log('   ✍️  Draft 3/3: Narrative...');
+  const narrativeDraft = await withRetry(() => writeScriptDraft({ draftType: 'narrative', ...draftArgs }));
+  await sleep(2000);
+
+  // ── Score all 3 drafts sequentially ───────────────────────────────────────
+  console.log('   📊 Scoring draft 1/3...');
+  const emotionalScore = await withRetry(() => scoreScript({ script: emotionalDraft, hook: winnerHook?.hook, seconds: secs, ai_provider, userPlan }));
+  await sleep(2000);
+
+  console.log('   📊 Scoring draft 2/3...');
+  const directScore = await withRetry(() => scoreScript({ script: directDraft, hook: winnerHook?.hook, seconds: secs, ai_provider, userPlan }));
+  await sleep(2000);
+
+  console.log('   📊 Scoring draft 3/3...');
+  const narrativeScore = await withRetry(() => scoreScript({ script: narrativeDraft, hook: winnerHook?.hook, seconds: secs, ai_provider, userPlan }));
 
   // ── Pick winner ────────────────────────────────────────────────────────────
   const drafts = [
