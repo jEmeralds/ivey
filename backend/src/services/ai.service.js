@@ -207,13 +207,66 @@ export function buildBrandContext(brand) {
   return `\n--- BRAND PROFILE ---\n${lines.join('\n')}\nAll content must reflect this brand consistently.\n---\n`;
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRODUCTION BRIEF CONTEXT BUILDER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function buildProductionContext(brief) {
+  if (!brief) return '';
+  const lines = [];
+
+  const formatLabels = {
+    single_narrator: 'Single narrator speaking directly to camera',
+    two_character:   'Two-character conversation/dialogue',
+    multi_character: 'Multi-character scene with ensemble cast',
+    voiceover:       'Voiceover only — no on-screen presenter',
+    interview:       'Interview style — host and guest',
+  };
+
+  if (brief.videoFormat)       lines.push(`Video Format: ${formatLabels[brief.videoFormat] || brief.videoFormat}`);
+  if (brief.primaryMarket)     lines.push(`Primary Market: ${brief.primaryMarket} — reflect this culture in setting, references, and visual details`);
+  if (brief.settingStyle)      lines.push(`Setting Style: ${brief.settingStyle}`);
+  if (brief.energyLevel)       lines.push(`Energy/Tone: ${brief.energyLevel}`);
+  if (brief.musicMood && brief.musicMood !== 'No music specified') lines.push(`Music Mood: ${brief.musicMood}`);
+  if (brief.logoUrl)           lines.push(`Brand Logo: ${brief.logoUrl} — reference brand visual style in scenes`);
+  if (brief.logoDescription)   lines.push(`Logo/Brand Visual: ${brief.logoDescription}`);
+
+  // Narrator profile (for single narrator / voiceover / interview)
+  if (['single_narrator', 'voiceover', 'interview'].includes(brief.videoFormat)) {
+    const narratorParts = [];
+    if (brief.narratorGender && brief.narratorGender !== 'Either') narratorParts.push(brief.narratorGender);
+    if (brief.narratorAge && brief.narratorAge !== 'Any') narratorParts.push(brief.narratorAge);
+    if (brief.narratorEthnicity && brief.narratorEthnicity !== 'Not specified') narratorParts.push(brief.narratorEthnicity);
+    if (narratorParts.length) lines.push(`Narrator/Presenter: ${narratorParts.join(', ')} — use this profile in all (VISUAL) directions`);
+  }
+
+  // Character format instructions
+  if (brief.videoFormat === 'two_character') {
+    lines.push('CHARACTER FORMAT: Write as a two-person dialogue. Label as [CHARACTER A] and [CHARACTER B]. IVey will assign roles based on audience psychology.');
+    lines.push('Dialogue should feel natural and conversational — not scripted. Each character has a distinct voice and perspective.');
+  } else if (brief.videoFormat === 'multi_character') {
+    lines.push('CHARACTER FORMAT: Write as a multi-character scene. Assign clear roles to each character based on the audience profile.');
+    lines.push('Keep it cinematic — characters interact naturally, each serving a narrative purpose.');
+  } else if (brief.videoFormat === 'interview') {
+    lines.push('CHARACTER FORMAT: Write as an interview. HOST asks questions, GUEST answers. Host is curious/skeptical, Guest is the transformed customer or expert.');
+  } else if (brief.videoFormat === 'voiceover') {
+    lines.push('CHARACTER FORMAT: Voiceover narration only. No on-screen presenter. Visual storytelling with spoken narration over imagery.');
+    lines.push('Write visual notes with rich cinematographic detail — the visuals carry the emotion, the voice guides the journey.');
+  }
+
+  if (!lines.length) return '';
+  return `\n--- PRODUCTION BRIEF ---\n${lines.join('\n')}\nAll visual notes, character descriptions, and scene directions must reflect this production brief.\n---\n`;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // LAYER 1 — AUDIENCE EXCAVATION
 // ═══════════════════════════════════════════════════════════════════════════════
 // Returns structured audience psychology profile as JSON
 
-export async function excavateAudienceAI({ campaignName, productDescription, targetAudience, brand, ai_provider = 'gemini', userPlan = 'free' }) {
+export async function excavateAudienceAI({ campaignName, productDescription, targetAudience, brand, productionBrief, ai_provider = 'gemini', userPlan = 'free' }) {
   const brandCtx = buildBrandContext(brand);
+  const prodCtx  = buildProductionContext(productionBrief);
 
   const prompt = `You are a deep consumer psychologist and viral marketing strategist.
 
@@ -223,7 +276,7 @@ This profile will guide every decision in the campaign — hook selection, narra
 Campaign: ${campaignName}
 Product/Service: ${productDescription}
 Target Audience: ${targetAudience}
-${brandCtx}
+${brandCtx}${prodCtx}
 
 Answer all 8 questions with SPECIFICITY. Not generic marketing answers — real psychological insight.
 
@@ -351,7 +404,7 @@ Respond ONLY with valid JSON:
 // ═══════════════════════════════════════════════════════════════════════════════
 // Designs the custom emotional arc for this specific campaign
 
-export async function designNarrativeArcAI({ campaignName, productDescription, targetAudience, seconds, audienceProfile, competitiveGap, brand, ai_provider = 'gemini', userPlan = 'free' }) {
+export async function designNarrativeArcAI({ campaignName, productDescription, targetAudience, seconds, audienceProfile, competitiveGap, brand, productionBrief, ai_provider = 'gemini', userPlan = 'free' }) {
   const brandCtx = buildBrandContext(brand);
 
   const audienceCtx = audienceProfile ? `
@@ -442,7 +495,7 @@ Respond ONLY with valid JSON:
 // ═══════════════════════════════════════════════════════════════════════════════
 // Generates 5 hooks, scores each, returns all + top pick
 
-export async function runHookLaboratoryAI({ campaignName, productDescription, targetAudience, seconds, audienceProfile, competitiveGap, brand, ai_provider = 'gemini', userPlan = 'free' }) {
+export async function runHookLaboratoryAI({ campaignName, productDescription, targetAudience, seconds, audienceProfile, competitiveGap, brand, productionBrief, ai_provider = 'gemini', userPlan = 'free' }) {
   const brandCtx = buildBrandContext(brand);
 
   const audienceCtx = audienceProfile ? `
@@ -524,8 +577,9 @@ Respond ONLY with valid JSON array:
 // ═══════════════════════════════════════════════════════════════════════════════
 // Writes 3 drafts, scores each, returns all + winner
 
-async function writeScriptDraft({ draftType, campaignName, productDescription, targetAudience, seconds, audienceProfile, competitiveGap, narrativeArc, winnerHook, brand, ai_provider, userPlan }) {
+async function writeScriptDraft({ draftType, campaignName, productDescription, targetAudience, seconds, audienceProfile, competitiveGap, narrativeArc, winnerHook, brand, productionBrief, ai_provider, userPlan }) {
   const brandCtx = buildBrandContext(brand);
+  const prodCtx  = buildProductionContext(productionBrief);
 
   const draftInstructions = {
     emotional: `DRAFT TYPE: EMOTIONAL
@@ -695,7 +749,7 @@ Respond ONLY with JSON: {"seconds": 45, "reason": "one sentence"}`;
 
 export const generateVideoScriptAI = async ({
   campaignName, productDescription, targetAudience,
-  durationSeconds, brand, ai_provider = 'gemini', userPlan = 'free'
+  durationSeconds, brand, productionBrief, ai_provider = 'gemini', userPlan = 'free'
 }) => {
   const MAX = 60;
   console.log(`\n⚡ IVey Engine v3 — "${campaignName}"`);
@@ -704,7 +758,7 @@ export const generateVideoScriptAI = async ({
   // ── L1: Audience Excavation ────────────────────────────────────────────────
   const audienceProfile = await excavateAudienceAI({
     campaignName, productDescription, targetAudience,
-    brand, ai_provider, userPlan,
+    brand, productionBrief, ai_provider, userPlan,
   });
 
   // ── L2: Competitive Landscape ──────────────────────────────────────────────
@@ -732,19 +786,19 @@ export const generateVideoScriptAI = async ({
   const narrativeArc = await designNarrativeArcAI({
     campaignName, productDescription, targetAudience,
     seconds: secs, audienceProfile, competitiveGap,
-    brand, ai_provider, userPlan,
+    brand, productionBrief, ai_provider, userPlan,
   });
 
   // ── L4: Hook Laboratory ────────────────────────────────────────────────────
   const { hooks, winner: winnerHook } = await runHookLaboratoryAI({
     campaignName, productDescription, targetAudience,
     seconds: secs, audienceProfile, competitiveGap,
-    brand, ai_provider, userPlan,
+    brand, productionBrief, ai_provider, userPlan,
   });
 
   // ── L5: Write 3 drafts in parallel ────────────────────────────────────────
   console.log('   ✍️  L5: Writing 3 script drafts...');
-  const draftArgs = { campaignName, productDescription, targetAudience, seconds: secs, audienceProfile, competitiveGap, narrativeArc, winnerHook, brand, ai_provider, userPlan };
+  const draftArgs = { campaignName, productDescription, targetAudience, seconds: secs, audienceProfile, competitiveGap, narrativeArc, winnerHook, brand, productionBrief, ai_provider, userPlan };
 
   const [emotionalDraft, directDraft, narrativeDraft] = await Promise.all([
     writeScriptDraft({ draftType: 'emotional',  ...draftArgs }),
@@ -805,6 +859,7 @@ export const generateVideoScriptAI = async ({
     narrativeArc,
     hooks,
     winnerHook,
+    productionBrief,
   };
 };
 

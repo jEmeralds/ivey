@@ -4,31 +4,116 @@ import { createCampaign } from '../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
 
-// ── AI Provider options ───────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 const AI_PROVIDERS = [
-  { id: 'gemini', label: 'Gemini',  icon: '💎', desc: 'Google — free tier, fast'       },
-  { id: 'claude', label: 'Claude',  icon: '🤖', desc: 'Anthropic — creative & precise' },
-  { id: 'openai', label: 'GPT-4o',  icon: '🧠', desc: 'OpenAI — versatile'            },
+  { id: 'gemini', label: 'Gemini', icon: '💎', desc: 'Free tier, fast'    },
+  { id: 'claude', label: 'Claude', icon: '🤖', desc: 'Creative & precise' },
+  { id: 'openai', label: 'GPT-4o', icon: '🧠', desc: 'Versatile'          },
 ];
 
-// ── Platform caption formats ──────────────────────────────────────────────────
 const CAPTION_FORMATS = [
-  { id: 'TWITTER_POST',    label: 'Twitter/X',    icon: '𝕏',  color: 'border-sky-500/30 bg-sky-500/10 text-sky-400'       },
-  { id: 'INSTAGRAM_POST',  label: 'Instagram',    icon: '📸', color: 'border-pink-500/30 bg-pink-500/10 text-pink-400'     },
-  { id: 'TIKTOK_SCRIPT',   label: 'TikTok',       icon: '🎵', color: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-400'     },
-  { id: 'FACEBOOK_POST',   label: 'Facebook',     icon: '📘', color: 'border-blue-500/30 bg-blue-500/10 text-blue-400'     },
-  { id: 'LINKEDIN_POST',   label: 'LinkedIn',     icon: '💼', color: 'border-indigo-500/30 bg-indigo-500/10 text-indigo-400'},
-  { id: 'YOUTUBE_AD',      label: 'YouTube',      icon: '▶',  color: 'border-red-500/30 bg-red-500/10 text-red-400'        },
+  { id: 'TWITTER_POST',   label: 'Twitter/X', icon: '𝕏',  color: 'border-sky-500/30 bg-sky-500/10 text-sky-400'         },
+  { id: 'INSTAGRAM_POST', label: 'Instagram', icon: '📸', color: 'border-pink-500/30 bg-pink-500/10 text-pink-400'       },
+  { id: 'TIKTOK_SCRIPT',  label: 'TikTok',    icon: '🎵', color: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-400'       },
+  { id: 'FACEBOOK_POST',  label: 'Facebook',  icon: '📘', color: 'border-blue-500/30 bg-blue-500/10 text-blue-400'       },
+  { id: 'LINKEDIN_POST',  label: 'LinkedIn',  icon: '💼', color: 'border-indigo-500/30 bg-indigo-500/10 text-indigo-400' },
+  { id: 'YOUTUBE_AD',     label: 'YouTube',   icon: '▶',  color: 'border-red-500/30 bg-red-500/10 text-red-400'          },
 ];
 
+const VIDEO_FORMATS = [
+  { id: 'single_narrator',   label: 'Single Narrator',       icon: '🎤', desc: 'One presenter speaks directly to camera' },
+  { id: 'two_character',     label: 'Two-Character Conv.',   icon: '💬', desc: 'Dialogue between two characters'         },
+  { id: 'multi_character',   label: 'Multi-Character Scene', icon: '👥', desc: 'Ensemble scene with 3+ people'           },
+  { id: 'voiceover',         label: 'Voiceover Only',        icon: '🎙', desc: 'No on-screen presenter, visual story'    },
+  { id: 'interview',         label: 'Interview Style',       icon: '🎬', desc: 'Q&A format, host and guest'              },
+];
+
+const GENDERS       = ['Male', 'Female', 'Either'];
+const AGE_RANGES    = ['20s', '30s', '40s', '50s+', 'Any'];
+const ETHNICITIES   = ['African', 'East Asian', 'South Asian', 'Middle Eastern', 'Latino', 'Caucasian', 'Mixed', 'Not specified'];
+const MARKETS       = ['Kenya', 'Nigeria', 'South Africa', 'Ghana', 'Tanzania', 'Egypt', 'China', 'India', 'Japan', 'UAE', 'Saudi Arabia', 'UK', 'USA', 'Canada', 'Australia', 'Brazil', 'Global'];
+const SETTINGS      = ['Urban', 'Rural', 'Corporate / Office', 'Lifestyle / Home', 'Nature / Outdoors', 'Studio / Clean', 'Luxury', 'Street / Market'];
+const ENERGY_LEVELS = ['Calm & Trusted', 'Warm & Friendly', 'Bold & Direct', 'Exciting & Energetic', 'Inspirational', 'Humorous & Light'];
+const MUSIC_MOODS   = ['No music specified', 'Afrobeats', 'Western Pop', 'R&B / Soul', 'Traditional / Cultural', 'Corporate / Neutral', 'Cinematic / Epic', 'Acoustic / Warm', 'Electronic / Modern'];
+
+// ── Logo scraper from website URL ─────────────────────────────────────────────
+const scrapeLogoFromUrl = async (websiteUrl) => {
+  if (!websiteUrl) return null;
+  try {
+    const url = new URL(websiteUrl);
+    // Try common favicon/logo paths
+    const candidates = [
+      `${url.origin}/logo.png`,
+      `${url.origin}/logo.svg`,
+      `${url.origin}/favicon.ico`,
+      `${url.origin}/favicon.png`,
+      `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128`,
+    ];
+    return candidates[0]; // Return first candidate — backend will validate
+  } catch {
+    return null;
+  }
+};
+
+// ── Section wrapper component ─────────────────────────────────────────────────
+const FormSection = ({ icon, title, subtitle, children, accent = 'emerald' }) => {
+  const colors = {
+    emerald: 'border-emerald-500/30',
+    amber:   'border-amber-500/30',
+    violet:  'border-violet-500/30',
+    sky:     'border-sky-500/30',
+    red:     'border-red-500/30',
+  };
+  return (
+    <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 ${colors[accent] ? `dark:border-l-4 dark:${colors[accent]}` : ''}`}>
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xl flex-shrink-0">{icon}</div>
+        <div>
+          <h3 className="font-bold text-gray-900 dark:text-white text-sm">{title}</h3>
+          {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>}
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+};
+
+// ── Select button group ───────────────────────────────────────────────────────
+const SelectGroup = ({ options, value, onChange, color = 'emerald' }) => {
+  const activeClass = color === 'emerald'
+    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400'
+    : color === 'amber'
+    ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400'
+    : 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400';
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map(opt => (
+        <button key={opt} type="button" onClick={() => onChange(opt)}
+          className={`px-3 py-1.5 rounded-xl border-2 text-xs font-semibold transition-all ${
+            value === opt
+              ? activeClass
+              : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
+          }`}>
+          {opt}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+// ── Main component ────────────────────────────────────────────────────────────
 const NewCampaign = () => {
   const navigate = useNavigate();
-  const [loading,       setLoading]       = useState(false);
-  const [error,         setError]         = useState('');
-  const [brands,        setBrands]        = useState([]);
-  const [brandsLoading, setBrandsLoading] = useState(true);
+  const [loading,        setLoading]        = useState(false);
+  const [error,          setError]          = useState('');
+  const [brands,         setBrands]         = useState([]);
+  const [brandsLoading,  setBrandsLoading]  = useState(true);
+  const [logoPreview,    setLogoPreview]    = useState(null);
+  const [scrapingLogo,   setScrapingLogo]   = useState(false);
 
   const [formData, setFormData] = useState({
+    // Core
     name:           '',
     brandProfileId: '',
     brandName:      '',
@@ -36,9 +121,34 @@ const NewCampaign = () => {
     description:    '',
     targetAudience: '',
     aiProvider:     'gemini',
-    captionFormats: [],   // optional caption formats
+    captionFormats: [],
+
+    // Production Brief
+    production: {
+      videoFormat:     'single_narrator',
+      // Narrator (used for single_narrator, voiceover)
+      narratorGender:  'Either',
+      narratorAge:     'Any',
+      narratorEthnicity: 'Not specified',
+      // Energy & tone
+      energyLevel:     'Warm & Friendly',
+      musicMood:       'No music specified',
+      // Cultural context
+      primaryMarket:   'Global',
+      settingStyle:    'Urban',
+      // Logo (auto-scraped or from brand profile)
+      logoUrl:         '',
+      logoDescription: '',
+    },
   });
 
+  const set = (key, val) => setFormData(prev => ({ ...prev, [key]: val }));
+  const setProd = (key, val) => setFormData(prev => ({
+    ...prev,
+    production: { ...prev.production, [key]: val },
+  }));
+
+  // ── Fetch brands ────────────────────────────────────────────────────────────
   useEffect(() => {
     const fetchBrands = async () => {
       try {
@@ -48,12 +158,29 @@ const NewCampaign = () => {
         const list  = Array.isArray(data.brands) ? data.brands : data.brand ? [data.brand] : [];
         setBrands(list.filter(Boolean));
         const def = list.find(b => b.is_default);
-        if (def) setFormData(prev => ({ ...prev, brandProfileId: def.id, brandName: def.brand_name || '' }));
+        if (def) set('brandProfileId', def.id); set('brandName', def?.brand_name || '');
       } catch { setBrands([]); }
       finally { setBrandsLoading(false); }
     };
     fetchBrands();
   }, []);
+
+  // ── Auto-scrape logo when URL changes ──────────────────────────────────────
+  useEffect(() => {
+    if (!formData.websiteUrl) return;
+    const timer = setTimeout(async () => {
+      setScrapingLogo(true);
+      try {
+        const logoUrl = await scrapeLogoFromUrl(formData.websiteUrl);
+        if (logoUrl) {
+          setProd('logoUrl', logoUrl);
+          setLogoPreview(logoUrl);
+        }
+      } catch {}
+      finally { setScrapingLogo(false); }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [formData.websiteUrl]);
 
   const handleBrandSelect = (brandId) => {
     const selected = brands.find(b => b.id === brandId);
@@ -70,18 +197,15 @@ const NewCampaign = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.description.trim() || !formData.targetAudience.trim()) {
-      setError('Please fill in all required fields');
-      return;
+      setError('Please fill in all required fields'); return;
     }
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
-      // Video script is always included — IVey is video-first
-      // Caption formats are optional extras
       const outputFormats = ['VIDEO_SCRIPT', ...formData.captionFormats];
       const response = await createCampaign({
         ...formData,
         outputFormats,
+        productionBrief: formData.production, // pass full brief to backend
       });
       navigate(`/campaigns/${response.campaign.id}`, { state: { from: 'campaigns' } });
     } catch (err) {
@@ -90,9 +214,11 @@ const NewCampaign = () => {
     }
   };
 
-  const inp  = 'w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none text-sm';
-  const lbl  = 'block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2';
+  const inp  = 'w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none text-sm';
+  const lbl  = 'block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest';
   const hint = 'text-xs text-gray-500 dark:text-gray-400 mt-1.5';
+
+  const prod = formData.production;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 pb-16 px-4">
@@ -116,180 +242,277 @@ const NewCampaign = () => {
               <p className="text-sm text-gray-500 dark:text-gray-400">IVey generates your video script — take it to HeyGen to produce</p>
             </div>
           </div>
-
-          {/* How it works strip */}
-          <div className="flex items-center gap-2 mt-4 p-3 bg-gray-800/50 dark:bg-gray-800 border border-gray-700 rounded-xl overflow-x-auto">
-            {[
-              { n:'1', label:'Brief your campaign' },
-              { n:'→', label:null },
-              { n:'2', label:'IVey selects bracket' },
-              { n:'→', label:null },
-              { n:'3', label:'AI writes script' },
-              { n:'→', label:null },
-              { n:'4', label:'Take to HeyGen' },
-            ].map((s, i) => s.label ? (
-              <div key={i} className="flex items-center gap-1.5 flex-shrink-0">
-                <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-black flex items-center justify-center flex-shrink-0">{s.n}</div>
-                <span className="text-xs text-gray-400 whitespace-nowrap">{s.label}</span>
-              </div>
-            ) : (
-              <span key={i} className="text-gray-600 flex-shrink-0 text-xs">{s.n}</span>
+          {/* Engine flow */}
+          <div className="flex items-center gap-1.5 mt-4 p-3 bg-gray-800/40 dark:bg-gray-800 border border-gray-700 rounded-xl overflow-x-auto">
+            {['Brief + Production', '→', 'Audience Psychology', '→', 'Competitive Gap', '→', 'Narrative Arc', '→', 'Hook Lab', '→', '3 Scripts Scored'].map((s, i) => (
+              s === '→'
+                ? <span key={i} className="text-gray-600 text-xs flex-shrink-0">→</span>
+                : <span key={i} className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0 bg-gray-700/50 px-2 py-1 rounded-lg">{s}</span>
             ))}
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
 
-          {/* ── Campaign Name ── */}
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
-            <label className={lbl}>Campaign Name *</label>
-            <input type="text" required value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
-              placeholder="e.g., MOONRALDS SAFARI LAUNCH 2025"
-              className={inp} />
-            <p className={hint}>Give it a clear, memorable name</p>
-          </div>
+          {/* ── CAMPAIGN BASICS ── */}
+          <FormSection icon="📋" title="Campaign Basics" subtitle="What are you promoting?">
+            <div className="space-y-4">
+              <div>
+                <label className={lbl}>Campaign Name *</label>
+                <input type="text" required value={formData.name}
+                  onChange={e => set('name', e.target.value)}
+                  placeholder="e.g., MOONRALDS SAFARI LAUNCH 2025"
+                  className={inp} />
+              </div>
+              <div>
+                <label className={lbl}>Product / Service Description *</label>
+                <textarea required rows={4} value={formData.description}
+                  onChange={e => set('description', e.target.value)}
+                  placeholder="Be specific — include key features, what makes it unique, the mood or feeling you want to convey. The more specific you are, the better the script."
+                  className={`${inp} resize-none leading-relaxed`} />
+                <p className={hint}>This is the foundation of your video script</p>
+              </div>
+              <div>
+                <label className={lbl}>Target Audience *</label>
+                <input type="text" required value={formData.targetAudience}
+                  onChange={e => set('targetAudience', e.target.value)}
+                  placeholder="e.g., Affluent Kenyan adults 30–55, adventure seekers, luxury travel enthusiasts"
+                  className={inp} />
+                <p className={hint}>IVey uses this to excavate psychology and choose the hook angle</p>
+              </div>
+              <div>
+                <label className={lbl}>Website URL <span className="font-normal normal-case text-gray-400">(optional)</span></label>
+                <div className="relative">
+                  <input type="url" value={formData.websiteUrl}
+                    onChange={e => set('websiteUrl', e.target.value)}
+                    placeholder="https://www.example.com"
+                    className={inp} />
+                  {scrapingLogo && (
+                    <div className="absolute right-3 top-3">
+                      <svg className="animate-spin w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    </div>
+                  )}
+                </div>
+                {logoPreview && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <img src={logoPreview} alt="Logo" className="w-8 h-8 rounded object-contain bg-gray-100 dark:bg-gray-700 p-1"
+                      onError={() => setLogoPreview(null)} />
+                    <span className="text-xs text-emerald-500">✓ Logo detected from website</span>
+                  </div>
+                )}
+                <p className={hint}>IVey will extract your logo and brand colors automatically</p>
+              </div>
+            </div>
+          </FormSection>
 
-          {/* ── Brand Profile ── */}
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
-            <label className={lbl}>Brand Profile</label>
+          {/* ── BRAND PROFILE ── */}
+          <FormSection icon="🎨" title="Brand Profile" subtitle="Guides voice, mood, and identity">
             {brandsLoading ? (
               <div className={`${inp} text-gray-400`}>Loading brands...</div>
             ) : brands.length > 0 ? (
               <>
                 <select value={formData.brandProfileId} onChange={e => handleBrandSelect(e.target.value)} className={inp}>
                   <option value="">— No brand profile / enter manually —</option>
-                  {brands.map(b => (
-                    <option key={b.id} value={b.id}>{b.brand_name}{b.is_default ? ' (default)' : ''}</option>
-                  ))}
+                  {brands.map(b => <option key={b.id} value={b.id}>{b.brand_name}{b.is_default ? ' (default)' : ''}</option>)}
                 </select>
-                <p className={hint}>Brand voice, mood, and identity guides every word of the script</p>
+                <p className={hint}>Brand voice, mood, and identity guide every word of the script</p>
               </>
             ) : (
               <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl text-sm text-amber-700 dark:text-amber-300">
-                <span>⚠️</span>
-                <span>No brand profiles yet.</span>
+                <span>⚠️</span><span>No brand profiles yet.</span>
                 <button type="button" onClick={() => navigate('/dashboard?section=brands')} className="underline font-semibold">Create one →</button>
               </div>
             )}
             {!formData.brandProfileId && (
-              <div className="mt-3">
-                <input type="text" value={formData.brandName}
-                  onChange={e => setFormData({ ...formData, brandName: e.target.value })}
-                  placeholder="Brand name (optional)"
-                  className={inp} />
-              </div>
+              <input type="text" value={formData.brandName}
+                onChange={e => setFormData(prev => ({ ...prev, brandName: e.target.value }))}
+                placeholder="Brand name (optional)"
+                className={`${inp} mt-3`} />
             )}
-          </div>
+          </FormSection>
 
-          {/* ── Description ── */}
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
-            <label className={lbl}>Product / Service Description *</label>
-            <textarea required rows={5} value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Describe what you are promoting. Be specific — include key features, what makes it unique, the mood or feeling you want to convey, and any important context. The more specific you are, the better IVey's script will be."
-              className={`${inp} resize-none leading-relaxed`} />
-            <p className={hint}>This is the foundation of your video script — be as specific as possible</p>
-          </div>
+          {/* ── PRODUCTION BRIEF ── */}
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-violet-500/20 rounded-2xl p-6 shadow-xl">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-xl">🎭</div>
+              <div>
+                <h3 className="font-black text-white text-sm">Production Brief</h3>
+                <p className="text-xs text-gray-400 mt-0.5">IVey uses this to design characters, setting, and visual notes</p>
+              </div>
+              <span className="ml-auto px-2 py-0.5 bg-violet-500/20 text-violet-400 text-xs font-bold rounded-full border border-violet-500/30">IVey decides characters</span>
+            </div>
 
-          {/* ── Target Audience ── */}
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
-            <label className={lbl}>Target Audience *</label>
-            <input type="text" required value={formData.targetAudience}
-              onChange={e => setFormData({ ...formData, targetAudience: e.target.value })}
-              placeholder="e.g., Health-conscious women 25–40, urban professionals who care about wellness and quality"
-              className={inp} />
-            <p className={hint}>IVey uses this to choose the right hook angle and emotional tone</p>
-          </div>
+            <div className="space-y-6">
 
-          {/* ── Website URL (optional) ── */}
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
-            <label className={lbl}>Website URL <span className="font-normal text-gray-400">(optional)</span></label>
-            <input type="url" value={formData.websiteUrl}
-              onChange={e => setFormData({ ...formData, websiteUrl: e.target.value })}
-              placeholder="https://www.example.com"
-              className={inp} />
-            <p className={hint}>Used for additional context in strategy generation</p>
-          </div>
-
-          {/* ── Video Script — always on, IVey selects bracket ── */}
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-emerald-500/30 rounded-2xl p-6 shadow-xl shadow-emerald-500/5">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl flex-shrink-0">🎬</div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-black text-white text-base">Video Script</h3>
-                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-full border border-emerald-500/30">Always included</span>
-                </div>
-                <p className="text-sm text-gray-400 leading-relaxed mb-4">
-                  IVey analyzes your campaign and automatically selects the best bracket — 30, 45, or 60 seconds — then writes a production-ready script optimized for HeyGen.
-                </p>
-                {/* Bracket preview */}
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { secs: '30s', label: 'Flash', desc: 'Single benefit, impulse buy', color: 'border-amber-500/30 bg-amber-500/5 text-amber-400' },
-                    { secs: '45s', label: 'Sharp', desc: '2-3 benefits, needs context',  color: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-400' },
-                    { secs: '60s', label: 'Full',  desc: 'Complex product, full story',  color: 'border-sky-500/30 bg-sky-500/5 text-sky-400' },
-                  ].map(b => (
-                    <div key={b.secs} className={`p-3 rounded-xl border ${b.color}`}>
-                      <div className="font-black text-sm mb-0.5">{b.secs} — {b.label}</div>
-                      <div className="text-xs opacity-70">{b.desc}</div>
-                    </div>
+              {/* Video format */}
+              <div>
+                <label className="block text-xs font-bold text-gray-400 mb-3 uppercase tracking-widest">Video Format</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {VIDEO_FORMATS.map(f => (
+                    <button key={f.id} type="button" onClick={() => setProd('videoFormat', f.id)}
+                      className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                        prod.videoFormat === f.id
+                          ? 'border-violet-500 bg-violet-500/10'
+                          : 'border-gray-700 hover:border-gray-600'
+                      }`}>
+                      <span className="text-xl flex-shrink-0">{f.icon}</span>
+                      <div>
+                        <div className={`text-xs font-bold ${prod.videoFormat === f.id ? 'text-violet-400' : 'text-gray-300'}`}>{f.label}</div>
+                        <div className="text-xs text-gray-500">{f.desc}</div>
+                      </div>
+                      {prod.videoFormat === f.id && <span className="ml-auto text-violet-400 text-xs">✓</span>}
+                    </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-600 mt-3 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"/>
-                  IVey selects the bracket automatically based on your campaign
-                </p>
+                {(prod.videoFormat === 'two_character' || prod.videoFormat === 'multi_character' || prod.videoFormat === 'interview') && (
+                  <div className="mt-3 p-3 bg-violet-500/5 border border-violet-500/20 rounded-xl">
+                    <p className="text-xs text-violet-300 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse"/>
+                      IVey will design the characters based on your audience psychology profile — who they are, their relationship, and their roles in the story
+                    </p>
+                  </div>
+                )}
               </div>
+
+              {/* Narrator profile — shown for single narrator, voiceover, interview */}
+              {['single_narrator', 'voiceover', 'interview'].includes(prod.videoFormat) && (
+                <div className="space-y-4">
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest">
+                    {prod.videoFormat === 'voiceover' ? 'Voice Profile' : 'Narrator / Presenter'}
+                  </label>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-2">Gender</label>
+                      <div className="flex flex-col gap-1.5">
+                        {GENDERS.map(g => (
+                          <button key={g} type="button" onClick={() => setProd('narratorGender', g)}
+                            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                              prod.narratorGender === g
+                                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                                : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                            }`}>{g}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-2">Age Range</label>
+                      <div className="flex flex-col gap-1.5">
+                        {AGE_RANGES.map(a => (
+                          <button key={a} type="button" onClick={() => setProd('narratorAge', a)}
+                            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                              prod.narratorAge === a
+                                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                                : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                            }`}>{a}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-2">Ethnicity</label>
+                      <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1">
+                        {ETHNICITIES.map(e => (
+                          <button key={e} type="button" onClick={() => setProd('narratorEthnicity', e)}
+                            className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all text-left ${
+                              prod.narratorEthnicity === e
+                                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                                : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                            }`}>{e}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Cultural context */}
+              <div className="space-y-4">
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest">Cultural Context</label>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-2">Primary Market</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {MARKETS.map(m => (
+                      <button key={m} type="button" onClick={() => setProd('primaryMarket', m)}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                          prod.primaryMarket === m
+                            ? 'border-sky-500 bg-sky-500/10 text-sky-400'
+                            : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                        }`}>{m}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-2">Setting Style</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SETTINGS.map(s => (
+                      <button key={s} type="button" onClick={() => setProd('settingStyle', s)}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                          prod.settingStyle === s
+                            ? 'border-sky-500 bg-sky-500/10 text-sky-400'
+                            : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                        }`}>{s}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Tone & delivery */}
+              <div className="space-y-4">
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest">Tone & Delivery</label>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-2">Energy Level</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ENERGY_LEVELS.map(e => (
+                      <button key={e} type="button" onClick={() => setProd('energyLevel', e)}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                          prod.energyLevel === e
+                            ? 'border-amber-500 bg-amber-500/10 text-amber-400'
+                            : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                        }`}>{e}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-2">Music Mood</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {MUSIC_MOODS.map(m => (
+                      <button key={m} type="button" onClick={() => setProd('musicMood', m)}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                          prod.musicMood === m
+                            ? 'border-amber-500 bg-amber-500/10 text-amber-400'
+                            : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                        }`}>{m}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
 
-          {/* ── Optional caption formats ── */}
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <label className={`${lbl} mb-0`}>
-                  Platform Captions
-                  <span className="ml-2 font-normal text-gray-400 text-xs">(optional)</span>
-                </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  Generate AI captions for these platforms alongside your video script
-                </p>
-              </div>
-              {formData.captionFormats.length > 0 && (
-                <button type="button" onClick={() => setFormData(p => ({ ...p, captionFormats: [] }))}
-                  className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                  Clear all
-                </button>
-              )}
-            </div>
+          {/* ── PLATFORM CAPTIONS ── */}
+          <FormSection icon="📱" title="Platform Captions" subtitle="Optional — generated alongside your video script">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {CAPTION_FORMATS.map(fmt => {
                 const selected = formData.captionFormats.includes(fmt.id);
                 return (
                   <button key={fmt.id} type="button" onClick={() => toggleCaption(fmt.id)}
                     className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
-                      selected
-                        ? `${fmt.color} scale-[1.02]`
-                        : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
+                      selected ? `${fmt.color} scale-[1.02]` : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}>
-                    <span>{fmt.icon}</span>
-                    <span>{fmt.label}</span>
+                    <span>{fmt.icon}</span><span>{fmt.label}</span>
                     {selected && <span className="ml-auto text-xs">✓</span>}
                   </button>
                 );
               })}
             </div>
-          </div>
+          </FormSection>
 
-          {/* ── AI Provider ── */}
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
-            <label className={lbl}>AI Provider</label>
-            <div className="grid grid-cols-3 gap-2">
+          {/* ── AI PROVIDER ── */}
+          <FormSection icon="🤖" title="AI Provider" subtitle="Gemini is free — Claude and GPT-4o unlock with paid plan">
+            <div className="grid grid-cols-3 gap-3">
               {AI_PROVIDERS.map(p => (
                 <button key={p.id} type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, aiProvider: p.id }))}
+                  onClick={() => set('aiProvider', p.id)}
                   className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
                     formData.aiProvider === p.id
                       ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
@@ -297,12 +520,11 @@ const NewCampaign = () => {
                   }`}>
                   <span className="text-2xl">{p.icon}</span>
                   <span className={`text-xs font-bold ${formData.aiProvider === p.id ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'}`}>{p.label}</span>
-                  <span className="text-xs text-gray-400 text-center leading-tight">{p.desc}</span>
+                  <span className="text-xs text-gray-400 text-center">{p.desc}</span>
                 </button>
               ))}
             </div>
-            <p className={hint}>Gemini is free and fast — switch to Claude or GPT-4o for premium output</p>
-          </div>
+          </FormSection>
 
           {/* Error */}
           {error && (
@@ -311,32 +533,26 @@ const NewCampaign = () => {
             </div>
           )}
 
-          {/* What gets generated summary */}
+          {/* What gets generated */}
           <div className="flex items-start gap-3 px-4 py-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/40 rounded-xl">
             <span className="text-lg flex-shrink-0">⚡</span>
             <div>
-              <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">
-                IVey will generate:
-              </p>
-              <ul className="mt-1.5 space-y-1">
-                <li className="text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full flex-shrink-0"/>
-                  Video script (30/45/60s — IVey selects based on campaign)
-                </li>
-                <li className="text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full flex-shrink-0"/>
-                  Hook angle analysis + 3 hook variants for A/B testing
-                </li>
-                <li className="text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full flex-shrink-0"/>
-                  Viral score + predicted reach
-                </li>
-                {formData.captionFormats.length > 0 && (
-                  <li className="text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+              <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300 mb-1.5">IVey will generate:</p>
+              <ul className="space-y-1">
+                {[
+                  'Audience psychology profile (8 excavation questions)',
+                  'Competitive gap analysis',
+                  `${prod.videoFormat === 'two_character' ? 'Two-character conversation' : prod.videoFormat === 'multi_character' ? 'Multi-character scene' : 'Video'} script — IVey selects 30/45/60s bracket`,
+                  '5 hooks scored and ranked — A/B test variants',
+                  '3 script drafts (Emotional / Direct / Narrative) — best delivered',
+                  'Viral score + predicted reach',
+                  ...(formData.captionFormats.length > 0 ? [`Captions: ${formData.captionFormats.map(id => CAPTION_FORMATS.find(f => f.id === id)?.label).join(', ')}`] : []),
+                ].map((item, i) => (
+                  <li key={i} className="text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full flex-shrink-0"/>
-                    Captions for: {formData.captionFormats.map(id => CAPTION_FORMATS.find(f => f.id === id)?.label).join(', ')}
+                    {item}
                   </li>
-                )}
+                ))}
               </ul>
             </div>
           </div>
@@ -362,14 +578,15 @@ const NewCampaign = () => {
               )}
             </button>
           </div>
+
         </form>
 
         {/* Info cards */}
         <div className="grid md:grid-cols-3 gap-4 mt-10">
           {[
-            { emoji:'🎯', title:'Smart Bracket Selection', desc:'IVey analyzes your campaign and picks 30, 45, or 60 seconds based on complexity and audience.' },
-            { emoji:'🎬', title:'HeyGen-Ready Scripts',    desc:'Every script is formatted with visual notes and timing — paste directly into HeyGen to produce.' },
-            { emoji:'📊', title:'Viral Score',             desc:'Every script is automatically scored for viral potential with predicted views and optimization tips.' },
+            { emoji:'🧠', title:'Deep Intelligence',    desc:'5 layers run before a word is written — audience psychology, competitive gap, narrative arc, hook lab.' },
+            { emoji:'🎭', title:'Production-Ready',     desc:'Characters, cultural setting, music, narrator profile — all baked into every visual note in the script.' },
+            { emoji:'📊', title:'3 Drafts, Best Wins',  desc:'IVey writes Emotional, Direct, and Narrative versions. Scores all three. Delivers the strongest.' },
           ].map(c => (
             <div key={c.title} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
               <div className="text-2xl mb-2">{c.emoji}</div>

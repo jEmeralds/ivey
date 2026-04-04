@@ -86,7 +86,7 @@ export const getCampaignById = async (req, res) => {
 export const createCampaign = async (req, res) => {
   try {
     const userId = req.userId;
-    const { name, description, targetAudience, aiProvider, outputFormats, brandName, websiteUrl, brandProfileId, videoDuration } = req.body;
+    const { name, description, targetAudience, aiProvider, outputFormats, brandName, websiteUrl, brandProfileId, videoDuration, productionBrief } = req.body;
 
     if (!name || !description || !targetAudience || !outputFormats || outputFormats.length === 0) {
       return res.status(400).json({ error: 'All fields are required' });
@@ -111,6 +111,7 @@ export const createCampaign = async (req, res) => {
         output_formats:      outputFormats,
         brand_profile_id:    brandProfileId || null,
         video_duration:      videoDuration || null,
+        production_brief:    productionBrief || null,
       }])
       .select()
       .single();
@@ -266,6 +267,7 @@ export const generateVideoScript = async (req, res) => {
       targetAudience:     campaign.target_audience,
       durationSeconds:    requestedDuration,
       brand,
+      productionBrief:    campaign.production_brief || null,
       ai_provider:        ai_provider || campaign.ai_provider || 'gemini',
     });
 
@@ -295,6 +297,7 @@ export const generateVideoScript = async (req, res) => {
       narrativeArc:     result.narrativeArc,
       hooks:            result.hooks,
       winnerHook:       result.winnerHook,
+      productionBrief:  result.productionBrief,
     });
   } catch (error) {
     console.error('Generate script error:', error);
