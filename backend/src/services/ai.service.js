@@ -1,16 +1,25 @@
 ﻿// ═══════════════════════════════════════════════════════════════════════════════
-// IVey AI Engine — v3.0  (Phase 1 — Foundation Intelligence)
+// IVey AI Engine — v4.0  (2-Call Architecture)
 // ───────────────────────────────────────────────────────────────────────────────
-// 5 layers run before a word of script is written:
 //
-//  L1  Audience Excavation    — 8 psychological questions, JSON profile
-//  L2  Competitive Landscape  — web research, gap identification
-//  L3  Narrative Architecture — custom 7-stage emotional arc
-//  L4  Hook Laboratory        — 5 formulas, scored, top selected
-//  L5  Script Construction    — 3 drafts (Emotional/Direct/Narrative), auto-scored
+//  CALL 1 — Intelligence Brief  (~15s)
+//    Audience psychology (8 questions)
+//    Competitive gap analysis
+//    Narrative arc design
+//    5 hooks scored and ranked
+//    Bracket selection (30/45/60s)
+//    All in ONE prompt — one API call
 //
-// Provider registry — free tier default, paid tier unlocked per plan.
-// Adding a new provider = 1 entry in PROVIDERS + 1 case in callAI().
+//  CALL 2 — Script Construction  (~20s)
+//    Writes the complete production script
+//    Uses everything from Call 1
+//    Scores the script (viral score, features)
+//    Returns final result
+//
+//  Total: 2 API calls, ~35-45 seconds, same intelligence depth
+//
+//  Provider registry — all main providers open, Grok/Mistral paid only
+//  Adding a provider = 1 entry in PROVIDERS + 1 case in callAI()
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import fetch from 'node-fetch';
@@ -23,92 +32,104 @@ const BRAVE_SEARCH_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
 
 // ── Provider registry ─────────────────────────────────────────────────────────
 export const PROVIDERS = {
-  GEMINI:        { id: 'gemini',        tier: 'free', name: 'Gemini 2.5 Flash'  },
-  CLAUDE_HAIKU:  { id: 'claude-haiku',  tier: 'free', name: 'Claude Haiku'      },
-  CLAUDE_SONNET: { id: 'claude',        tier: 'free', name: 'Claude Sonnet'     },
-  GPT4O:         { id: 'openai',        tier: 'free', name: 'GPT-4o'            },
-  GPT4O_MINI:    { id: 'openai-mini',   tier: 'free', name: 'GPT-4o Mini'       },
-  GROK:          { id: 'grok',          tier: 'paid', name: 'Grok (xAI)'        },
-  MISTRAL:       { id: 'mistral',       tier: 'paid', name: 'Mistral Large'     },
+  GEMINI:        { id: 'gemini',       tier: 'free', name: 'Gemini 2.5 Flash' },
+  CLAUDE_HAIKU:  { id: 'claude-haiku', tier: 'free', name: 'Claude Haiku'     },
+  CLAUDE_SONNET: { id: 'claude',       tier: 'free', name: 'Claude Sonnet'    },
+  GPT4O:         { id: 'openai',       tier: 'free', name: 'GPT-4o'           },
+  GPT4O_MINI:    { id: 'openai-mini',  tier: 'free', name: 'GPT-4o Mini'      },
+  GROK:          { id: 'grok',         tier: 'paid', name: 'Grok (xAI)'       },
+  MISTRAL:       { id: 'mistral',      tier: 'paid', name: 'Mistral Large'    },
 };
 
-const SYSTEM = `You are an expert viral marketing strategist and world-class video scriptwriter. 
-Be specific, creative, and deeply psychological in your approach.`;
+const SYSTEM = `You are an expert viral marketing strategist and world-class video scriptwriter.
+Be specific, creative, and deeply psychological in your approach.
+Always respond with valid JSON when asked. Never add markdown fences around JSON.`;
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-// ── Provider router ───────────────────────────────────────────────────────────
-export async function callAI(provider = 'gemini', prompt, userPlan = 'free') {
-  const resolved = _resolveProvider(provider, userPlan);
-  console.log(`   🤖 ${resolved}`);
-
-  // Free tier fallback chain: gemini → claude-haiku → openai-mini
-  const freeFallbackChain = ['gemini', 'claude-haiku', 'openai-mini'];
-
-  const tryProvider = async (p) => {
-    switch (p) {
-      case 'gemini':       return await _gemini(prompt);
-      case 'claude':       return await _claude(prompt, 'claude-3-5-sonnet-20241022');
-      case 'claude-haiku': return await _claude(prompt, 'claude-3-haiku-20240307');
-      case 'openai':       return await _openai(prompt, 'gpt-4o');
-      case 'openai-mini':  return await _openai(prompt, 'gpt-4o-mini');
-      case 'grok':         return await _grok(prompt);
-      case 'mistral':      return await _mistral(prompt);
-      default:             return await _gemini(prompt);
-    }
-  };
-
-  // Try the resolved provider first
+function extractJSON(raw, fallback = {}) {
   try {
-    return await tryProvider(resolved);
-  } catch (err) {
-    const isRateLimit = err.message?.includes('quota') || err.message?.includes('rate') ||
-                        err.message?.includes('429') || err.message?.includes('exceeded');
+    const clean = raw.trim().replace(/^```json\n?/, '').replace(/^```\n?/, '').replace(/\n?```$/, '');
+    return JSON.parse(clean);
+  } catch {
+    try {
+      const match = raw.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+      if (match) return JSON.parse(match[0]);
+    } catch {}
+  }
+  return fallback;
+}
 
-    // If rate limit and on free fallback chain, try next provider in chain
-    if (isRateLimit) {
-      const currentIdx = freeFallbackChain.indexOf(resolved);
-      for (let i = currentIdx + 1; i < freeFallbackChain.length; i++) {
-        const fallback = freeFallbackChain[i];
-        // Check if we have the API key for this provider
-        const hasKey = (fallback === 'gemini' && GEMINI_API_KEY) ||
-                       (fallback === 'claude-haiku' && ANTHROPIC_API_KEY) ||
-                       (fallback === 'openai-mini' && OPENAI_API_KEY);
-        if (!hasKey) continue;
-        try {
-          console.warn(`   ⚠️  ${resolved} rate limited — falling back to ${fallback}`);
-          await sleep(2000);
-          return await tryProvider(fallback);
-        } catch (fallbackErr) {
-          const fallbackRateLimit = fallbackErr.message?.includes('quota') ||
-                                    fallbackErr.message?.includes('rate') ||
-                                    fallbackErr.message?.includes('429');
-          if (fallbackRateLimit) continue; // try next in chain
-          throw fallbackErr;
-        }
-      }
-    }
+// ── Provider router with smart fallback ───────────────────────────────────────
+// Fallback order based on what keys are available
+function _getFallbackChain(preferred) {
+  const all = ['claude', 'gemini', 'claude-haiku', 'openai', 'openai-mini'];
+  const chain = [preferred, ...all.filter(p => p !== preferred)];
+  // Filter to only providers we have keys for
+  return chain.filter(p => {
+    if (p === 'gemini')       return !!GEMINI_API_KEY;
+    if (p === 'claude')       return !!ANTHROPIC_API_KEY;
+    if (p === 'claude-haiku') return !!ANTHROPIC_API_KEY;
+    if (p === 'openai')       return !!OPENAI_API_KEY;
+    if (p === 'openai-mini')  return !!OPENAI_API_KEY;
+    return false;
+  });
+}
 
-    // If not rate limit or all fallbacks exhausted, try once more with delay
-    if (isRateLimit) {
-      console.warn(`   ⏳ All providers rate limited — waiting 15s...`);
-      await sleep(15000);
-      return await tryProvider(resolved);
-    }
-
-    throw err;
+async function _tryProvider(provider, prompt) {
+  switch (provider) {
+    case 'gemini':       return await _gemini(prompt);
+    case 'claude':       return await _claude(prompt, 'claude-3-5-sonnet-20241022');
+    case 'claude-haiku': return await _claude(prompt, 'claude-3-haiku-20240307');
+    case 'openai':       return await _openai(prompt, 'gpt-4o');
+    case 'openai-mini':  return await _openai(prompt, 'gpt-4o-mini');
+    case 'grok':         return await _grok(prompt);
+    case 'mistral':      return await _mistral(prompt);
+    default:             return await _gemini(prompt);
   }
 }
 
-function _resolveProvider(requested, userPlan = 'free') {
-  const entry = Object.values(PROVIDERS).find(p => p.id === requested);
-  if (!entry) return 'gemini';
-  if (entry.tier === 'paid' && userPlan === 'free') {
-    console.log(`   ℹ️  ${entry.name} requires paid plan — using Gemini`);
-    return 'gemini';
+export async function callAI(provider = 'gemini', prompt, userPlan = 'free') {
+  const chain = _getFallbackChain(provider);
+  if (!chain.length) throw new Error('No AI providers configured — check API keys in Railway environment variables');
+
+  console.log(`   🤖 ${provider} (chain: ${chain.join(' → ')})`);
+
+  for (let i = 0; i < chain.length; i++) {
+    const p = chain[i];
+    try {
+      const result = await _tryProvider(p, prompt);
+      if (i > 0) console.log(`   ✅ Used ${p} (fallback from ${chain[0]})`);
+      return result;
+    } catch (err) {
+      const isRateLimit = err.message?.includes('quota') || err.message?.includes('rate') ||
+                          err.message?.includes('429')   || err.message?.includes('exceeded') ||
+                          err.message?.includes('limit');
+      const isKeyError  = err.message?.includes('API key') || err.message?.includes('not configured') ||
+                          err.message?.includes('401') || err.message?.includes('403');
+
+      if (isKeyError) {
+        console.warn(`   ⚠️  ${p} — key error, skipping`);
+        continue;
+      }
+      if (isRateLimit && i < chain.length - 1) {
+        console.warn(`   ⚠️  ${p} rate limited — trying ${chain[i + 1]}`);
+        await sleep(1500);
+        continue;
+      }
+      if (i === chain.length - 1) {
+        // Last provider — wait and retry once
+        if (isRateLimit) {
+          console.warn(`   ⏳ All providers busy — waiting 20s then retrying ${chain[0]}`);
+          await sleep(20000);
+          return await _tryProvider(chain[0], prompt);
+        }
+        throw err;
+      }
+      throw err;
+    }
   }
-  return entry.id;
 }
 
 export function getAvailableProviders(userPlan = 'free') {
@@ -129,7 +150,10 @@ async function _gemini(prompt) {
       generationConfig: { temperature: 0.75, maxOutputTokens: 8192 },
     }),
   });
-  if (!res.ok) { const e = await res.json(); throw new Error(`Gemini: ${e.error?.message}`); }
+  if (!res.ok) {
+    const e = await res.json();
+    throw new Error(`Gemini: ${e.error?.message || res.statusText}`);
+  }
   const d = await res.json();
   if (!d.candidates?.[0]?.content?.parts?.length) {
     if (d.promptFeedback?.blockReason) throw new Error(`Gemini blocked: ${d.promptFeedback.blockReason}`);
@@ -142,10 +166,20 @@ async function _claude(prompt, model = 'claude-3-5-sonnet-20241022') {
   if (!ANTHROPIC_API_KEY) throw new Error('Anthropic API key not configured');
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model, max_tokens: 8192, system: SYSTEM, messages: [{ role: 'user', content: prompt }] }),
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model, max_tokens: 8192, system: SYSTEM,
+      messages: [{ role: 'user', content: prompt }],
+    }),
   });
-  if (!res.ok) { const e = await res.json(); throw new Error(`Claude: ${e.error?.message}`); }
+  if (!res.ok) {
+    const e = await res.json();
+    throw new Error(`Claude: ${e.error?.message || res.statusText}`);
+  }
   return (await res.json()).content[0].text;
 }
 
@@ -154,9 +188,16 @@ async function _openai(prompt, model = 'gpt-4o-mini') {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_API_KEY}` },
-    body: JSON.stringify({ model, messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.75 }),
+    body: JSON.stringify({
+      model,
+      messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }],
+      max_tokens: 8192, temperature: 0.75,
+    }),
   });
-  if (!res.ok) { const e = await res.json(); throw new Error(`OpenAI: ${e.error?.message}`); }
+  if (!res.ok) {
+    const e = await res.json();
+    throw new Error(`OpenAI: ${e.error?.message || res.statusText}`);
+  }
   return (await res.json()).choices[0].message.content;
 }
 
@@ -166,7 +207,11 @@ async function _grok(prompt) {
   const res = await fetch('https://api.x.ai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ model: 'grok-2-latest', messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.75 }),
+    body: JSON.stringify({
+      model: 'grok-2-latest',
+      messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }],
+      max_tokens: 8192, temperature: 0.75,
+    }),
   });
   if (!res.ok) { const e = await res.json(); throw new Error(`Grok: ${e.error?.message}`); }
   return (await res.json()).choices[0].message.content;
@@ -178,760 +223,427 @@ async function _mistral(prompt) {
   const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ model: 'mistral-large-latest', messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }], max_tokens: 8192, temperature: 0.75 }),
+    body: JSON.stringify({
+      model: 'mistral-large-latest',
+      messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }],
+      max_tokens: 8192, temperature: 0.75,
+    }),
   });
   if (!res.ok) { const e = await res.json(); throw new Error(`Mistral: ${e.error?.message}`); }
   return (await res.json()).choices[0].message.content;
 }
 
-// ── JSON extractor helper ─────────────────────────────────────────────────────
-function extractJSON(raw, fallback = {}) {
-  try {
-    // Try direct parse first
-    const clean = raw.trim().replace(/^```json\n?/, '').replace(/^```\n?/, '').replace(/\n?```$/, '');
-    return JSON.parse(clean);
-  } catch {
-    try {
-      // Extract first JSON object or array
-      const match = raw.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
-      if (match) return JSON.parse(match[0]);
-    } catch {}
-  }
-  return fallback;
-}
-
-
-// ── Retry with exponential backoff ────────────────────────────────────────────
-async function withRetry(fn, maxRetries = 3, baseDelay = 8000) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      const isRateLimit = err.message?.includes('quota') || err.message?.includes('rate') || err.message?.includes('429');
-      if (isRateLimit && attempt < maxRetries) {
-        const delay = baseDelay * attempt;
-        console.warn(`   ⏳ Rate limit hit — waiting ${delay/1000}s before retry ${attempt}/${maxRetries-1}...`);
-        await new Promise(r => setTimeout(r, delay));
-        continue;
-      }
-      throw err;
-    }
-  }
-}
-
-// ── Sequential delay helper ───────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════════════
-// RESEARCH LAYER
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// ── Web search (optional enrichment) ─────────────────────────────────────────
 async function _searchWeb(query) {
   if (BRAVE_SEARCH_API_KEY) {
     try {
       const res = await fetch(
-        `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`,
+        `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=4`,
         { headers: { Accept: 'application/json', 'X-Subscription-Token': BRAVE_SEARCH_API_KEY } }
       );
-      if (res.ok) return (await res.json()).web?.results?.slice(0, 5).map(r => r.description).filter(Boolean) || [];
+      if (res.ok) {
+        const data = await res.json();
+        return data.web?.results?.slice(0, 4).map(r => r.description).filter(Boolean).join(' | ') || '';
+      }
     } catch {}
   }
-  try {
-    const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
-    if (res.ok) {
-      const d = await res.json();
-      const r = [];
-      if (d.AbstractText) r.push(d.AbstractText);
-      d.RelatedTopics?.slice(0, 4).forEach(t => { if (t.Text) r.push(t.Text); });
-      return r;
-    }
-  } catch {}
-  return [];
+  return '';
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// BRAND CONTEXT BUILDER
-// ═══════════════════════════════════════════════════════════════════════════════
-
+// ── Context builders ──────────────────────────────────────────────────────────
 export function buildBrandContext(brand) {
   if (!brand) return '';
   const lines = [];
-  if (brand.brand_name)          lines.push(`Brand: ${brand.brand_name}`);
-  if (brand.tagline)             lines.push(`Tagline: "${brand.tagline}"`);
-  if (brand.industry)            lines.push(`Industry: ${brand.industry}`);
-  if (brand.brand_story)         lines.push(`Story: ${brand.brand_story}`);
-  if (brand.brand_voice)         lines.push(`Voice: ${brand.brand_voice}`);
-  if (brand.visual_mood?.length) lines.push(`Mood: ${brand.visual_mood.join(', ')}`);
-  if (brand.words_always?.length)lines.push(`Always say: ${brand.words_always.join(', ')}`);
-  if (brand.words_never?.length) lines.push(`Never say: ${brand.words_never.join(', ')}`);
-  if (brand.target_personas)     lines.push(`Audience: ${brand.target_personas}`);
-  if (brand.pain_points)         lines.push(`Pain points: ${brand.pain_points}`);
-  if (brand.audience_desires)    lines.push(`Desires: ${brand.audience_desires}`);
+  if (brand.brand_name)           lines.push(`Brand: ${brand.brand_name}`);
+  if (brand.tagline)              lines.push(`Tagline: "${brand.tagline}"`);
+  if (brand.industry)             lines.push(`Industry: ${brand.industry}`);
+  if (brand.brand_story)          lines.push(`Story: ${brand.brand_story}`);
+  if (brand.brand_voice)          lines.push(`Voice: ${brand.brand_voice}`);
+  if (brand.visual_mood?.length)  lines.push(`Mood: ${brand.visual_mood.join(', ')}`);
+  if (brand.words_always?.length) lines.push(`Always say: ${brand.words_always.join(', ')}`);
+  if (brand.words_never?.length)  lines.push(`Never say: ${brand.words_never.join(', ')}`);
+  if (brand.target_personas)      lines.push(`Personas: ${brand.target_personas}`);
+  if (brand.pain_points)          lines.push(`Pain points: ${brand.pain_points}`);
+  if (brand.audience_desires)     lines.push(`Desires: ${brand.audience_desires}`);
   if (!lines.length) return '';
-  return `\n--- BRAND PROFILE ---\n${lines.join('\n')}\nAll content must reflect this brand consistently.\n---\n`;
+  return `\nBRAND PROFILE:\n${lines.join('\n')}\n`;
 }
-
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PRODUCTION BRIEF CONTEXT BUILDER
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export function buildProductionContext(brief) {
   if (!brief) return '';
   const lines = [];
-
   const formatLabels = {
     single_narrator: 'Single narrator speaking directly to camera',
-    two_character:   'Two-character conversation/dialogue',
-    multi_character: 'Multi-character scene with ensemble cast',
-    voiceover:       'Voiceover only — no on-screen presenter',
-    interview:       'Interview style — host and guest',
+    two_character:   'Two-character conversation/dialogue — label speakers [CHARACTER A] and [CHARACTER B]',
+    multi_character: 'Multi-character ensemble scene — assign distinct roles to each character',
+    voiceover:       'Voiceover narration only — no on-screen presenter, rich visual storytelling',
+    interview:       'Interview format — HOST asks questions, GUEST answers',
   };
+  if (brief.videoFormat)     lines.push(`Format: ${formatLabels[brief.videoFormat] || brief.videoFormat}`);
+  if (brief.primaryMarket && brief.primaryMarket !== 'Global')
+                             lines.push(`Market: ${brief.primaryMarket} — reflect this culture in all visual details, references, and setting`);
+  if (brief.settingStyle)    lines.push(`Setting: ${brief.settingStyle}`);
+  if (brief.energyLevel)     lines.push(`Energy/Tone: ${brief.energyLevel}`);
+  if (brief.musicMood && brief.musicMood !== 'No music specified')
+                             lines.push(`Music: ${brief.musicMood}`);
+  if (brief.logoUrl)         lines.push(`Brand logo available at: ${brief.logoUrl}`);
 
-  if (brief.videoFormat)       lines.push(`Video Format: ${formatLabels[brief.videoFormat] || brief.videoFormat}`);
-  if (brief.primaryMarket)     lines.push(`Primary Market: ${brief.primaryMarket} — reflect this culture in setting, references, and visual details`);
-  if (brief.settingStyle)      lines.push(`Setting Style: ${brief.settingStyle}`);
-  if (brief.energyLevel)       lines.push(`Energy/Tone: ${brief.energyLevel}`);
-  if (brief.musicMood && brief.musicMood !== 'No music specified') lines.push(`Music Mood: ${brief.musicMood}`);
-  if (brief.logoUrl)           lines.push(`Brand Logo: ${brief.logoUrl} — reference brand visual style in scenes`);
-  if (brief.logoDescription)   lines.push(`Logo/Brand Visual: ${brief.logoDescription}`);
-
-  // Narrator profile (for single narrator / voiceover / interview)
-  if (['single_narrator', 'voiceover', 'interview'].includes(brief.videoFormat)) {
-    const narratorParts = [];
-    if (brief.narratorGender && brief.narratorGender !== 'Either') narratorParts.push(brief.narratorGender);
-    if (brief.narratorAge && brief.narratorAge !== 'Any') narratorParts.push(brief.narratorAge);
-    if (brief.narratorEthnicity && brief.narratorEthnicity !== 'Not specified') narratorParts.push(brief.narratorEthnicity);
-    if (narratorParts.length) lines.push(`Narrator/Presenter: ${narratorParts.join(', ')} — use this profile in all (VISUAL) directions`);
-  }
-
-  // Character format instructions
-  if (brief.videoFormat === 'two_character') {
-    lines.push('CHARACTER FORMAT: Write as a two-person dialogue. Label as [CHARACTER A] and [CHARACTER B]. IVey will assign roles based on audience psychology.');
-    lines.push('Dialogue should feel natural and conversational — not scripted. Each character has a distinct voice and perspective.');
-  } else if (brief.videoFormat === 'multi_character') {
-    lines.push('CHARACTER FORMAT: Write as a multi-character scene. Assign clear roles to each character based on the audience profile.');
-    lines.push('Keep it cinematic — characters interact naturally, each serving a narrative purpose.');
-  } else if (brief.videoFormat === 'interview') {
-    lines.push('CHARACTER FORMAT: Write as an interview. HOST asks questions, GUEST answers. Host is curious/skeptical, Guest is the transformed customer or expert.');
-  } else if (brief.videoFormat === 'voiceover') {
-    lines.push('CHARACTER FORMAT: Voiceover narration only. No on-screen presenter. Visual storytelling with spoken narration over imagery.');
-    lines.push('Write visual notes with rich cinematographic detail — the visuals carry the emotion, the voice guides the journey.');
+  const isNarrator = ['single_narrator', 'voiceover', 'interview'].includes(brief.videoFormat);
+  if (isNarrator) {
+    const parts = [brief.narratorGender, brief.narratorAge, brief.narratorEthnicity]
+      .filter(v => v && v !== 'Either' && v !== 'Any' && v !== 'Not specified');
+    if (parts.length) lines.push(`Narrator: ${parts.join(', ')} — include in every (VISUAL) direction`);
   }
 
   if (!lines.length) return '';
-  return `\n--- PRODUCTION BRIEF ---\n${lines.join('\n')}\nAll visual notes, character descriptions, and scene directions must reflect this production brief.\n---\n`;
+  return `\nPRODUCTION BRIEF:\n${lines.join('\n')}\n`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LAYER 1 — AUDIENCE EXCAVATION
+// CALL 1 — INTELLIGENCE BRIEF
 // ═══════════════════════════════════════════════════════════════════════════════
-// Returns structured audience psychology profile as JSON
+// One prompt that does all the thinking:
+// audience psychology + competitive gap + narrative arc + 5 hooks + bracket
 
-export async function excavateAudienceAI({ campaignName, productDescription, targetAudience, brand, productionBrief, ai_provider = 'gemini', userPlan = 'free' }) {
+async function generateIntelligenceBrief({
+  campaignName, productDescription, targetAudience,
+  brand, productionBrief, ai_provider, userPlan,
+  webResearch = '',
+}) {
   const brandCtx = buildBrandContext(brand);
   const prodCtx  = buildProductionContext(productionBrief);
+  const format   = productionBrief?.videoFormat || 'single_narrator';
 
-  const prompt = `You are a deep consumer psychologist and viral marketing strategist.
+  const prompt = `You are a viral marketing strategist, consumer psychologist, and narrative architect.
 
-Before any script is written, you must answer 8 excavation questions about this specific audience.
-This profile will guide every decision in the campaign — hook selection, narrative arc, script tone.
+Complete ALL sections below for this campaign. Be specific — not generic marketing language.
 
-Campaign: ${campaignName}
-Product/Service: ${productDescription}
-Target Audience: ${targetAudience}
-${brandCtx}${prodCtx}
+CAMPAIGN: ${campaignName}
+PRODUCT: ${productDescription}
+AUDIENCE: ${targetAudience}
+${brandCtx}${prodCtx}${webResearch ? `\nMARKET RESEARCH:\n${webResearch}\n` : ''}
 
-Answer all 8 questions with SPECIFICITY. Not generic marketing answers — real psychological insight.
+═══ SECTION 1: AUDIENCE PSYCHOLOGY ═══
+Answer these 8 questions about the SPECIFIC audience above:
+1. 2am thought: What keeps them awake at night — specific worry or longing?
+2. Secret desire: What transformation do they secretly want but won't admit?
+3. Social fear: What judgment from peers are they trying to avoid?
+4. Failed attempt: What solution have they tried that disappointed them?
+5. Their language: 5 exact phrases they use (not marketing speak — real words)
+6. Identity: How do they see themselves? What tribe/values define them?
+7. Permission block: What specific guilt or fear stops them acting?
+8. After state: Exactly how does life look/feel/sound after they have this?
 
-1. THE 2AM THOUGHT: What does this audience say to themselves at 2am when they cannot sleep? What specific worry, regret, or longing keeps them awake?
+═══ SECTION 2: COMPETITIVE GAP ═══
+1. Saturated angles: 3 emotional approaches competitors overuse
+2. Emotional gap: The territory nobody is owning in this space
+3. Competitor weakness: The most common failure in competitor messaging
+4. Positioning opportunity: One sentence — the unique position to claim
 
-2. THE SECRET DESIRE: What transformation do they secretly want but would not admit to their friends or family? What do they dream about having or becoming?
+═══ SECTION 3: BRACKET & NARRATIVE ARC ═══
+1. Choose duration: 30, 45, or 60 seconds (30=simple/impulse, 45=lifestyle, 60=complex/premium)
+2. Bracket reason: One sentence why
+3. Design the 7-stage arc for this SPECIFIC campaign:
+   - PATTERN INTERRUPT (0-8% of duration): What unexpected thing stops the scroll?
+   - TENSION BUILD (8-25%): How do we amplify their specific pain/desire?
+   - IDENTIFICATION (25-42%): What makes them think "this knows me exactly"?
+   - REVELATION (42-67%): How is the product revealed as the answer?
+   - PROOF (67-83%): One specific credible result
+   - PERMISSION (83-92%): What removes their guilt/fear to act?
+   - ACTION (92-100%): The exact single next step
 
-3. THE SOCIAL FEAR: What do they fear their peers, colleagues, or family think of them? What judgment are they most trying to avoid?
+═══ SECTION 4: HOOK LABORATORY ═══
+Generate 5 hooks — one per formula. Each is the exact first spoken line (1-2 sentences max).
+Score each: pattern_interrupt (0-10) + audience_match (0-10) + gap_score (0-10) = total
 
-4. THE FAILED ATTEMPT: What have they already tried that did not work? What solution disappointed them before this one?
+Formulas:
+1. BROKEN PROMISE: Challenge a belief they hold
+2. DRAMATIC RESULT: Lead with transformation (from X to Y in Z time)
+3. CURIOSITY GAP: Open a loop they must close
+4. TRIBAL CALL: Speak directly to their identity
+5. PATTERN BREAK: Start mid-action, no context, no introduction
 
-5. THEIR EXACT LANGUAGE: What specific words, phrases, and expressions do they actually use? Not marketing language — the words they type into Google at midnight.
-
-6. THE IDENTITY STATEMENT: How do they see themselves? What tribe do they belong to? What values or beliefs define them?
-
-7. THE PERMISSION BLOCK: What specific guilt, fear, or objection is stopping them from taking action right now?
-
-8. THE AFTER STATE: Describe EXACTLY how their daily life looks, feels, sounds, and smells after they have this product or experience. Be cinematically specific.
-
-Respond ONLY with valid JSON — no text before or after:
+Respond with ONLY this JSON — no text before or after, no markdown:
 {
-  "two_am_thought": "specific answer",
-  "secret_desire": "specific answer",
-  "social_fear": "specific answer",
-  "failed_attempt": "specific answer",
-  "their_language": ["phrase1", "phrase2", "phrase3", "phrase4", "phrase5"],
-  "identity_statement": "specific answer",
-  "permission_block": "specific answer",
-  "after_state": "cinematically specific description",
-  "hook_insight": "one sentence: the single most powerful emotional lever for this audience"
+  "bracket": {
+    "seconds": 60,
+    "reason": "one sentence"
+  },
+  "audience": {
+    "two_am_thought": "specific",
+    "secret_desire": "specific",
+    "social_fear": "specific",
+    "failed_attempt": "specific",
+    "their_language": ["phrase1","phrase2","phrase3","phrase4","phrase5"],
+    "identity": "specific",
+    "permission_block": "specific",
+    "after_state": "cinematically specific",
+    "hook_insight": "single most powerful emotional lever"
+  },
+  "competitive": {
+    "saturated_angles": ["angle1","angle2","angle3"],
+    "emotional_gap": "specific gap",
+    "competitor_weakness": "specific weakness",
+    "positioning": "one sentence"
+  },
+  "arc": {
+    "name": "memorable arc name",
+    "emotional_throughline": "the thread connecting every stage",
+    "stages": [
+      {"stage":"PATTERN INTERRUPT","timing":"0-5s","direction":"specific instruction","example":"actual example line","visual":"camera direction"},
+      {"stage":"TENSION BUILD","timing":"5-15s","direction":"specific instruction","example":"actual example line","visual":"camera direction"},
+      {"stage":"IDENTIFICATION","timing":"15-25s","direction":"specific instruction","example":"actual example line","visual":"camera direction"},
+      {"stage":"REVELATION","timing":"25-40s","direction":"specific instruction","example":"actual example line","visual":"camera direction"},
+      {"stage":"PROOF","timing":"40-50s","direction":"specific instruction","example":"actual example line","visual":"camera direction"},
+      {"stage":"PERMISSION","timing":"50-56s","direction":"specific instruction","example":"actual example line","visual":"camera direction"},
+      {"stage":"ACTION","timing":"56-60s","direction":"specific instruction","example":"actual example line","visual":"camera direction"}
+    ]
+  },
+  "hooks": [
+    {"formula":"BROKEN PROMISE","hook":"exact first line","visual":"opening camera note","why":"one sentence","pattern_interrupt":8,"audience_match":9,"gap_score":7,"total":24},
+    {"formula":"DRAMATIC RESULT","hook":"exact first line","visual":"opening camera note","why":"one sentence","pattern_interrupt":7,"audience_match":8,"gap_score":8,"total":23},
+    {"formula":"CURIOSITY GAP","hook":"exact first line","visual":"opening camera note","why":"one sentence","pattern_interrupt":9,"audience_match":7,"gap_score":8,"total":24},
+    {"formula":"TRIBAL CALL","hook":"exact first line","visual":"opening camera note","why":"one sentence","pattern_interrupt":7,"audience_match":9,"gap_score":7,"total":23},
+    {"formula":"PATTERN BREAK","hook":"exact first line","visual":"opening camera note","why":"one sentence","pattern_interrupt":9,"audience_match":8,"gap_score":8,"total":25}
+  ]
 }`;
 
-  console.log('   🧠 L1: Excavating audience psychology...');
-  try {
-    const raw = await withRetry(() => callAI(ai_provider, prompt, userPlan));
-    const profile = extractJSON(raw, {});
-    if (!profile.two_am_thought) throw new Error('Incomplete profile');
-    console.log(`   ✅ L1: Hook insight — "${profile.hook_insight?.slice(0, 60)}..."`);
-    return profile;
-  } catch (e) {
-    console.warn('   ⚠️  L1 failed, using fallback:', e.message);
-    return {
-      two_am_thought: `Whether investing in ${productDescription} is the right decision`,
-      secret_desire: `To transform their life through ${productDescription}`,
-      social_fear: 'Making the wrong choice and being judged for it',
-      failed_attempt: 'Generic solutions that overpromised and underdelivered',
-      their_language: ['is it worth it', 'does it actually work', 'real results', 'honest review'],
-      identity_statement: `Someone who makes thoughtful decisions and values quality`,
-      permission_block: 'Uncertainty about whether this will actually work for them specifically',
-      after_state: `Their life is meaningfully improved by ${productDescription}`,
-      hook_insight: `This audience needs to feel understood before they will believe any solution`,
-    };
+  console.log('   🧠 Call 1: Intelligence Brief...');
+  const raw    = await callAI(ai_provider, prompt, userPlan);
+  const brief  = extractJSON(raw, null);
+
+  if (!brief?.bracket || !brief?.hooks) {
+    console.warn('   ⚠️  Intelligence brief incomplete — using fallback structure');
+    return _fallbackBrief(campaignName, productDescription, targetAudience);
   }
+
+  // Sort hooks by total score, pick winner
+  brief.hooks = brief.hooks.sort((a, b) => (b.total || 0) - (a.total || 0));
+  brief.winnerHook = brief.hooks[0];
+
+  console.log(`   ✅ Call 1 done — ${brief.bracket.seconds}s | Arc: "${brief.arc?.name}" | Hook: ${brief.winnerHook?.formula} (${brief.winnerHook?.total}/30)`);
+  return brief;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// LAYER 2 — COMPETITIVE LANDSCAPE
-// ═══════════════════════════════════════════════════════════════════════════════
-// Returns competitive analysis and gap identification
-
-export async function analyzeCompetitiveLandscapeAI({ campaignName, productDescription, targetAudience, audienceProfile, ai_provider = 'gemini', userPlan = 'free' }) {
-  console.log('   🔍 L2: Researching competitive landscape...');
-
-  // Parallel web research
-  const [marketResults, audienceResults, trendResults] = await Promise.all([
-    _searchWeb(`${productDescription} marketing video examples viral 2025`),
-    _searchWeb(`${targetAudience} what they want pain points 2025`),
-    _searchWeb(`${campaignName} ${productDescription} competitors advertising`),
-  ]);
-
-  const researchData = [...marketResults, ...audienceResults, ...trendResults]
-    .filter(Boolean).slice(0, 12).join('\n• ');
-
-  const audienceCtx = audienceProfile ? `
-Audience psychology already excavated:
-- They say at 2am: "${audienceProfile.two_am_thought}"
-- Secret desire: "${audienceProfile.secret_desire}"
-- Their language: ${audienceProfile.their_language?.join(', ')}
-` : '';
-
-  const prompt = `You are a competitive intelligence analyst for viral video marketing.
-
-Campaign: ${campaignName}
-Product: ${productDescription}
-Audience: ${targetAudience}
-${audienceCtx}
-
-Market research gathered:
-• ${researchData || 'No external data — use your knowledge of this market'}
-
-Analyze the competitive landscape and identify the EMOTIONAL GAP — the territory competitors are ignoring.
-
-Respond ONLY with valid JSON:
-{
-  "saturated_angles": ["angle competitors are overusing 1", "angle 2", "angle 3"],
-  "emotional_gap": "The specific emotional territory nobody is owning in this space",
-  "competitor_weakness": "The most common failure point in competitor messaging",
-  "trending_hooks": ["hook style that is working in this category right now", "another"],
-  "audience_language_gap": "The words the audience uses that competitors never use",
-  "positioning_opportunity": "One sentence: the unique position IVey should claim for this campaign",
-  "avoid": ["what to avoid in the script — overused phrase or angle 1", "avoid 2"]
-}`;
-
-  try {
-    const raw = await withRetry(() => callAI(ai_provider, prompt, userPlan));
-    const gap = extractJSON(raw, {});
-    console.log(`   ✅ L2: Gap found — "${gap.emotional_gap?.slice(0, 60)}..."`);
-    return gap;
-  } catch (e) {
-    console.warn('   ⚠️  L2 failed, using fallback:', e.message);
-    return {
-      saturated_angles: ['generic benefit claims', 'price-focused messaging', 'feature lists'],
-      emotional_gap: 'The personal transformation and identity shift the product enables',
+function _fallbackBrief(campaignName, productDescription, targetAudience) {
+  return {
+    bracket: { seconds: 60, reason: 'Complex product needing full story arc' },
+    audience: {
+      two_am_thought: `Whether ${productDescription} is the right choice`,
+      secret_desire: `A meaningful transformation through ${productDescription}`,
+      social_fear: 'Making the wrong decision and being judged for it',
+      failed_attempt: 'Generic solutions that overpromised',
+      their_language: ['does it work', 'is it worth it', 'real results', 'honest review', 'what happened'],
+      identity: 'Someone who makes thoughtful, quality decisions',
+      permission_block: 'Uncertainty about whether this will work for them specifically',
+      after_state: `Life is meaningfully better with ${productDescription}`,
+      hook_insight: 'This audience needs to feel understood before they trust any solution',
+    },
+    competitive: {
+      saturated_angles: ['generic benefit claims', 'price messaging', 'feature lists'],
+      emotional_gap: 'The personal identity shift the product enables',
       competitor_weakness: 'Talking about the product instead of the audience',
-      trending_hooks: ['transformation stories', 'before/after reveals', 'behind the scenes authenticity'],
-      audience_language_gap: 'Real unfiltered language vs polished marketing speak',
-      positioning_opportunity: `${campaignName} as the choice that matches who they truly are`,
-      avoid: ['corporate language', 'generic superlatives', 'feature-first framing'],
-    };
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// LAYER 3 — NARRATIVE ARCHITECTURE
-// ═══════════════════════════════════════════════════════════════════════════════
-// Designs the custom emotional arc for this specific campaign
-
-export async function designNarrativeArcAI({ campaignName, productDescription, targetAudience, seconds, audienceProfile, competitiveGap, brand, productionBrief, ai_provider = 'gemini', userPlan = 'free' }) {
-  const brandCtx = buildBrandContext(brand);
-
-  const audienceCtx = audienceProfile ? `
-AUDIENCE PSYCHOLOGY:
-- 2am thought: "${audienceProfile.two_am_thought}"
-- Secret desire: "${audienceProfile.secret_desire}"
-- Social fear: "${audienceProfile.social_fear}"
-- Their language: ${audienceProfile.their_language?.join(', ')}
-- Permission block: "${audienceProfile.permission_block}"
-- After state: "${audienceProfile.after_state}"
-- Hook insight: "${audienceProfile.hook_insight}"
-` : '';
-
-  const gapCtx = competitiveGap ? `
-COMPETITIVE POSITIONING:
-- Emotional gap to own: "${competitiveGap.emotional_gap}"
-- Competitor weakness to exploit: "${competitiveGap.competitor_weakness}"
-- Positioning opportunity: "${competitiveGap.positioning_opportunity}"
-- What to avoid: ${competitiveGap.avoid?.join(', ')}
-` : '';
-
-  const prompt = `You are a narrative architect for viral short-form video.
-
-Design the custom emotional journey for this EXACT campaign.
-This is NOT a template — it is a scene-by-scene psychological roadmap specific to this audience.
-
-Campaign: ${campaignName}
-Product: ${productDescription}
-Audience: ${targetAudience}
-Duration: ${seconds} seconds
-${brandCtx}${audienceCtx}${gapCtx}
-
-Design the 7-stage Narrative Stack for this specific campaign.
-Each stage must be customised to this audience's psychology — not generic descriptions.
-
-The 7 stages:
-1. PATTERN INTERRUPT (0-${Math.round(seconds*0.08)}s): Something unexpected that breaks autopilot
-2. TENSION BUILD (${Math.round(seconds*0.08)}-${Math.round(seconds*0.25)}s): Amplify the desire or pain from the audience profile
-3. IDENTIFICATION (${Math.round(seconds*0.25)}-${Math.round(seconds*0.42)}s): The viewer thinks "this knows me exactly"
-4. REVELATION (${Math.round(seconds*0.42)}-${Math.round(seconds*0.67)}s): The solution is revealed
-5. PROOF (${Math.round(seconds*0.67)}-${Math.round(seconds*0.83)}s): One specific, credible result
-6. PERMISSION (${Math.round(seconds*0.83)}-${Math.round(seconds*0.92)}s): Remove the guilt/fear blocking action
-7. ACTION (${Math.round(seconds*0.92)}-${seconds}s): The exact next step
-
-Respond ONLY with valid JSON:
-{
-  "arc_name": "A memorable name for this narrative approach",
-  "stages": [
-    {
-      "stage": "PATTERN INTERRUPT",
-      "timing": "0-${Math.round(seconds*0.08)}s",
-      "what_happens": "Specific description of what this scene does emotionally",
-      "example_line": "An actual example line the presenter might say",
-      "visual_note": "What the camera should show"
-    }
-  ],
-  "emotional_throughline": "The single emotional thread that runs through every stage",
-  "key_tension": "The specific tension that keeps viewers watching until the end"
-}`;
-
-  console.log('   🎭 L3: Designing narrative architecture...');
-  try {
-    const raw = await withRetry(() => callAI(ai_provider, prompt, userPlan));
-    const arc = extractJSON(raw, {});
-    console.log(`   ✅ L3: Arc — "${arc.arc_name}" | "${arc.emotional_throughline?.slice(0, 50)}..."`);
-    return arc;
-  } catch (e) {
-    console.warn('   ⚠️  L3 failed, using default arc:', e.message);
-    return {
-      arc_name: 'The Transformation Arc',
-      stages: [
-        { stage: 'PATTERN INTERRUPT', timing: `0-${Math.round(seconds*0.08)}s`, what_happens: 'Bold visual or statement that stops the scroll', example_line: 'Everything you think you know about this is wrong.', visual_note: 'Close-up, unexpected angle' },
-        { stage: 'TENSION BUILD', timing: `${Math.round(seconds*0.08)}-${Math.round(seconds*0.25)}s`, what_happens: 'Name the pain the audience knows intimately', example_line: 'You keep waiting for the right moment.', visual_note: 'Relatable scene, real environment' },
-        { stage: 'IDENTIFICATION', timing: `${Math.round(seconds*0.25)}-${Math.round(seconds*0.42)}s`, what_happens: 'Mirror their exact internal experience', example_line: 'You know exactly what I am talking about.', visual_note: 'Direct camera address' },
-        { stage: 'REVELATION', timing: `${Math.round(seconds*0.42)}-${Math.round(seconds*0.67)}s`, what_happens: 'The product is revealed as the answer', example_line: 'That is exactly why we built this.', visual_note: 'Product reveal with context' },
-        { stage: 'PROOF', timing: `${Math.round(seconds*0.67)}-${Math.round(seconds*0.83)}s`, what_happens: 'One specific credible result', example_line: 'In 30 days, everything changed.', visual_note: 'Real result or testimonial' },
-        { stage: 'PERMISSION', timing: `${Math.round(seconds*0.83)}-${Math.round(seconds*0.92)}s`, what_happens: 'Remove the guilt of taking action', example_line: 'You deserve this.', visual_note: 'Warm, direct' },
-        { stage: 'ACTION', timing: `${Math.round(seconds*0.92)}-${seconds}s`, what_happens: 'Exact single next step', example_line: 'Link in bio. Start today.', visual_note: 'Clear CTA graphic' },
-      ],
+      positioning: `${campaignName} as the choice that matches who they truly are`,
+    },
+    arc: {
+      name: 'The Transformation Arc',
       emotional_throughline: 'From stuck and frustrated to transformed and proud',
-      key_tension: 'Will they finally take the step they have been postponing?',
-    };
-  }
+      stages: [
+        { stage: 'PATTERN INTERRUPT', timing: '0-5s',  direction: 'Bold unexpected opening', example: 'Stop. Before you scroll past this.', visual: 'Close-up, unexpected angle' },
+        { stage: 'TENSION BUILD',     timing: '5-15s', direction: 'Name their pain', example: 'You have tried everything.', visual: 'Relatable scene' },
+        { stage: 'IDENTIFICATION',    timing: '15-25s',direction: 'Mirror their experience', example: 'I know exactly how that feels.', visual: 'Direct address' },
+        { stage: 'REVELATION',        timing: '25-40s',direction: 'Reveal the solution', example: 'That is why we built this.', visual: 'Product reveal' },
+        { stage: 'PROOF',             timing: '40-50s',direction: 'One specific result', example: 'In 30 days, everything changed.', visual: 'Real result shown' },
+        { stage: 'PERMISSION',        timing: '50-56s',direction: 'Remove the guilt', example: 'You deserve this.', visual: 'Warm, direct' },
+        { stage: 'ACTION',            timing: '56-60s',direction: 'Single next step', example: 'Link in bio. Start today.', visual: 'Clear CTA' },
+      ],
+    },
+    hooks: [
+      { formula: 'CURIOSITY GAP', hook: `What if everything you know about ${productDescription} is wrong?`, visual: 'Close-up, direct eye contact', why: 'Opens a compelling loop', pattern_interrupt: 8, audience_match: 7, gap_score: 8, total: 23 },
+    ],
+    winnerHook: { formula: 'CURIOSITY GAP', hook: `What if everything you know about ${productDescription} is wrong?`, visual: 'Close-up, direct eye contact', why: 'Opens a compelling loop', pattern_interrupt: 8, audience_match: 7, gap_score: 8, total: 23 },
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LAYER 4 — HOOK LABORATORY
+// CALL 2 — SCRIPT CONSTRUCTION + SCORING
 // ═══════════════════════════════════════════════════════════════════════════════
-// Generates 5 hooks, scores each, returns all + top pick
+// Writes the complete production-ready script using the intelligence brief
+// Scores it in the same response — no separate scoring call
 
-export async function runHookLaboratoryAI({ campaignName, productDescription, targetAudience, seconds, audienceProfile, competitiveGap, brand, productionBrief, ai_provider = 'gemini', userPlan = 'free' }) {
-  const brandCtx = buildBrandContext(brand);
-
-  const audienceCtx = audienceProfile ? `
-Audience psychology:
-- Hook insight: "${audienceProfile.hook_insight}"
-- 2am thought: "${audienceProfile.two_am_thought}"
-- Secret desire: "${audienceProfile.secret_desire}"
-- Their language: ${audienceProfile.their_language?.join(', ')}
-` : '';
-
-  const gapCtx = competitiveGap ? `
-Competitive gap: "${competitiveGap.emotional_gap}"
-Avoid: ${competitiveGap.avoid?.join(', ')}
-` : '';
-
-  const prompt = `You are a viral hook specialist. Generate 5 hooks for this ${seconds}s video, each using a different formula.
-
-Campaign: ${campaignName}
-Product: ${productDescription}
-Audience: ${targetAudience}
-${brandCtx}${audienceCtx}${gapCtx}
-
-THE 5 HOOK FORMULAS (use one each):
-1. BROKEN PROMISE: Challenge a belief they hold. "Everything you have been told about X is wrong"
-2. DRAMATIC RESULT: Lead with transformation. "I went from X to Y in Z days"  
-3. CURIOSITY GAP: Open a loop they must close. "The one thing [authority] does not want you to know"
-4. TRIBAL CALL: Speak to their identity. "If you are the kind of person who [specific identity]..."
-5. PATTERN BREAK: Start mid-action, no context. No introduction. Drop them into a moment.
-
-SCORING each hook (be honest and critical):
-- pattern_interrupt_score (0-10): How unexpected is this? Will it break autopilot?
-- audience_match_score (0-10): Does this directly speak to the excavated psychology?
-- gap_score (0-10): Does this occupy territory competitors are NOT using?
-- total: sum of three scores
-
-The hook must be the EXACT first spoken line — 1-2 sentences maximum.
-The visual_note is what the camera shows in that first moment.
-
-Respond ONLY with valid JSON array:
-[
-  {
-    "formula": "BROKEN PROMISE",
-    "hook": "The exact first spoken line",
-    "visual_note": "What the camera shows",
-    "why_it_works": "One sentence psychological explanation",
-    "pattern_interrupt_score": 8,
-    "audience_match_score": 9,
-    "gap_score": 7,
-    "total": 24
-  }
-]`;
-
-  console.log('   🎣 L4: Running Hook Laboratory...');
-  try {
-    const raw = await withRetry(() => callAI(ai_provider, prompt, userPlan));
-    let hooks = extractJSON(raw, []);
-    if (!Array.isArray(hooks) || hooks.length === 0) throw new Error('No hooks returned');
-
-    // Sort by total score
-    hooks = hooks.sort((a, b) => (b.total || 0) - (a.total || 0));
-    const winner = hooks[0];
-    console.log(`   ✅ L4: Winner — ${winner.formula} (${winner.total}/30) — "${winner.hook?.slice(0, 50)}..."`);
-    return { hooks, winner };
-  } catch (e) {
-    console.warn('   ⚠️  L4 failed, using fallback hook:', e.message);
-    const fallback = {
-      formula: 'CURIOSITY GAP',
-      hook: `What if everything you thought you knew about ${productDescription} was wrong?`,
-      visual_note: 'Close-up shot, direct eye contact, unexpected setting',
-      why_it_works: 'Opens an information gap that the brain is compelled to close',
-      pattern_interrupt_score: 7, audience_match_score: 7, gap_score: 7, total: 21,
-    };
-    return { hooks: [fallback], winner: fallback };
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// LAYER 5 — SCRIPT CONSTRUCTION
-// ═══════════════════════════════════════════════════════════════════════════════
-// Writes 3 drafts, scores each, returns all + winner
-
-async function writeScriptDraft({ draftType, campaignName, productDescription, targetAudience, seconds, audienceProfile, competitiveGap, narrativeArc, winnerHook, brand, productionBrief, ai_provider, userPlan }) {
+async function generateScriptAndScore({
+  campaignName, productDescription, targetAudience,
+  brief, brand, productionBrief, ai_provider, userPlan,
+}) {
   const brandCtx = buildBrandContext(brand);
   const prodCtx  = buildProductionContext(productionBrief);
+  const secs     = brief.bracket.seconds;
+  const arc      = brief.arc;
+  const hook     = brief.winnerHook;
+  const audience = brief.audience;
+  const format   = productionBrief?.videoFormat || 'single_narrator';
 
-  const draftInstructions = {
-    emotional: `DRAFT TYPE: EMOTIONAL
-Lead with feeling. Every line is written from inside the audience's emotional world.
-Minimal product mention until the revelation stage. Maximum empathy and identification.
-The viewer should feel deeply understood before they hear about any solution.`,
-
-    direct: `DRAFT TYPE: DIRECT
-Bold, confident, no-nonsense. Lead with the result.
-Strong declarative statements. Minimal setup, maximum punch.
-For an audience already aware of the category who just needs a reason to choose this.`,
-
-    narrative: `DRAFT TYPE: NARRATIVE
-Story-driven. Follow a specific character the audience identifies with.
-Use a before/after journey. The product is the turning point.
-Best for complex products that need demonstration and emotional investment.`,
+  const formatInstructions = {
+    single_narrator: 'One presenter speaks directly to camera. Write every spoken word.',
+    two_character:   'Two characters in conversation. Label every line [CHARACTER A] or [CHARACTER B]. IVey assigns roles: Character A is the audience member (has the problem), Character B is the knowledgeable guide (has the solution). Dialogue must feel natural — not scripted.',
+    multi_character: 'Multiple characters in a scene. Assign roles from the audience profile. Label each speaker. Keep it cinematic.',
+    voiceover:       'Voiceover narration — no on-screen presenter. Write the narration text only. Make visual notes rich and cinematic — the visuals carry the emotion.',
+    interview:       'Interview format. HOST asks short punchy questions. GUEST gives authentic answers. HOST is curious/skeptical. GUEST is the transformed customer.',
   };
 
-  const audienceCtx = audienceProfile ? `
-AUDIENCE PSYCHOLOGY (use this in every line):
-- 2am thought: "${audienceProfile.two_am_thought}"
-- Secret desire: "${audienceProfile.secret_desire}"
-- Their language: ${audienceProfile.their_language?.join(', ')}
-- After state: "${audienceProfile.after_state}"
-- Permission block: "${audienceProfile.permission_block}"
-` : '';
+  const prompt = `You are a world-class short-form video scriptwriter. Write a complete ${secs}-second production-ready script and score it.
 
-  const arcCtx = narrativeArc ? `
-NARRATIVE ARC: ${narrativeArc.arc_name}
-Emotional throughline: "${narrativeArc.emotional_throughline}"
-Key tension: "${narrativeArc.key_tension}"
-Follow this arc stage by stage:
-${narrativeArc.stages?.map(s => `[${s.timing}] ${s.stage}: ${s.what_happens}`).join('\n')}
-` : '';
+CAMPAIGN: ${campaignName}
+PRODUCT: ${productDescription}
+AUDIENCE: ${targetAudience}
+${brandCtx}${prodCtx}
 
-  const hookCtx = winnerHook ? `
-OPENING HOOK (use this exact opening):
-Hook formula: ${winnerHook.formula}
-First line: "${winnerHook.hook}"
-Opening visual: ${winnerHook.visual_note}
-` : '';
+FORMAT INSTRUCTION: ${formatInstructions[format] || formatInstructions.single_narrator}
 
-  const prompt = `You are a world-class short-form video scriptwriter. Write a complete ${seconds}-second video script.
+INTELLIGENCE BRIEF (from deep analysis — use every detail):
 
-${draftInstructions[draftType]}
+AUDIENCE PSYCHOLOGY:
+- 2am thought: "${audience.two_am_thought}"
+- Secret desire: "${audience.secret_desire}"
+- Social fear: "${audience.social_fear}"
+- Their language: ${audience.their_language?.join(', ')}
+- Permission block: "${audience.permission_block}"
+- After state: "${audience.after_state}"
+- Hook insight: "${audience.hook_insight}"
 
-Campaign: ${campaignName}
-Product: ${productDescription}
-Audience: ${targetAudience}
-Duration: EXACTLY ${seconds} seconds
-${brandCtx}${audienceCtx}${arcCtx}${hookCtx}
+OPENING HOOK — use this EXACTLY as the first line:
+Formula: ${hook?.formula}
+"${hook?.hook}"
+Opening visual: ${hook?.visual}
+
+NARRATIVE ARC — follow this stage by stage:
+${arc?.stages?.map(s => `[${s.timing}] ${s.stage}: ${s.direction}\nExample: "${s.example}"\nVisual: ${s.visual}`).join('\n\n')}
+
+COMPETITIVE POSITIONING:
+- Gap to own: "${brief.competitive?.emotional_gap}"
+- Avoid: ${brief.competitive?.saturated_angles?.join(', ')}
 
 SCRIPT RULES (non-negotiable):
-— Write EVERY word the presenter speaks
-— Short sentences — written for ears, not eyes
+— Write EVERY word spoken — nothing implied
+— Short sentences — written for ears not eyes
 — Natural rhythm — how people actually talk
 — Zero filler — every second earns its place
-— At least 2 sensory details per 30 seconds
-— ONE CTA only — asking for multiple actions gets zero
-— Visual note per scene in (parentheses) format
-— No marketing clichés: no revolutionary, game-changing, limited time offer
-— The hook must land in the first 2 seconds
+— Minimum 2 sensory details per 30 seconds
+— ONE CTA only — link in bio / visit website / one action
+— Visual note per scene in (VISUAL: ...) format
+— No clichés: no revolutionary, game-changing, limited time
+— Cultural setting: ${productionBrief?.primaryMarket || 'Global'}, ${productionBrief?.settingStyle || 'Urban'}
+— Music direction: ${productionBrief?.musicMood || 'not specified'}
 
-FORMAT — use exactly this for each scene:
+FORMAT each scene exactly like this:
 [0:00–0:05]
-(VISUAL: what the camera shows — movement, subject, mood)
-Spoken words here. Short sentences.
+(VISUAL: specific camera direction — movement, subject, mood, cultural setting)
+Spoken words here.
 
-This script goes directly into HeyGen. A voice AI reads every word.
-Write for ears. Rhythm matters more than grammar.
+Write the complete script now, then provide the score.
 
-Start with [0:00] now. Write the complete script.`;
+After the script, respond with this JSON on a new line (no markdown):
+SCORE_JSON:{"score":72,"predicted_views":"1M-10M","features":{"hook_strength":8,"emotion_curve":7,"specificity":8,"audience_match":8,"platform_fit":7,"cta_strength":7,"shareability":7},"strengths":["strength1","strength2"],"improvements":["improvement1","improvement2"]}`;
 
-  const script = await callAI(ai_provider, prompt, userPlan);
-  return script;
-}
+  console.log('   ✍️  Call 2: Writing script...');
+  const raw = await callAI(ai_provider, prompt, userPlan);
 
-async function scoreScript({ script, hook, seconds, platform = 'tiktok', ai_provider = 'gemini', userPlan = 'free' }) {
-  const prompt = `Score this ${seconds}s ${platform} video script for viral potential. Be honest and critical.
+  // Split script from score JSON
+  const scoreMarker = raw.indexOf('SCORE_JSON:');
+  let script = raw;
+  let scoring = { score: 65, predicted_views: 'Unknown', features: {}, strengths: [], improvements: [] };
 
-HOOK: "${hook || script?.slice(0, 100)}"
-SCRIPT EXCERPT: "${script?.slice(0, 600)}"
-
-Score each dimension honestly (0-10):
-- hook_strength: Does it stop the scroll in under 2 seconds? (be harsh)
-- emotion_curve: Does it build tension, peak, and pay off correctly?
-- specificity: Are there concrete, sensory details — or vague generalities?
-- audience_match: Does it feel written FOR this specific person, not a crowd?
-- platform_fit: Is pacing and structure right for short-form video?
-- cta_strength: Does the CTA compel exactly ONE clear action?
-- shareability: Would someone share this? What is the specific trigger?
-
-VIEW BENCHMARKS: 0-30=<10K | 31-50=10K-100K | 51-70=100K-1M | 71-85=1M-10M | 86-100=10M+
-
-Respond ONLY with JSON:
-{
-  "score": 72,
-  "predicted_views": "1M–10M",
-  "features": {
-    "hook_strength": 8,
-    "emotion_curve": 7,
-    "specificity": 8,
-    "audience_match": 8,
-    "platform_fit": 7,
-    "cta_strength": 6,
-    "shareability": 7
-  },
-  "strengths": ["specific strength 1", "specific strength 2"],
-  "improvements": ["specific improvement 1", "specific improvement 2"],
-  "optimized_hook": "A stronger version of the opening line"
-}`;
-
-  try {
-    const raw = await callAI(ai_provider, prompt, userPlan);
-    const scored = extractJSON(raw, {});
-    return {
-      score:           Math.min(100, Math.max(0, scored.score || 50)),
-      predicted_views: scored.predicted_views || 'Unknown',
-      features:        scored.features || {},
-      strengths:       scored.strengths || [],
-      improvements:    scored.improvements || [],
-      optimized_hook:  scored.optimized_hook || '',
-    };
-  } catch {
-    return { score: 50, predicted_views: 'Unknown', features: {}, strengths: [], improvements: [], optimized_hook: '' };
+  if (scoreMarker !== -1) {
+    script  = raw.slice(0, scoreMarker).trim();
+    const scoreRaw = raw.slice(scoreMarker + 'SCORE_JSON:'.length).trim();
+    const parsed   = extractJSON(scoreRaw, {});
+    if (parsed.score) scoring = parsed;
   }
-}
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// BRACKET SELECTOR (used before Layer 3 if no duration specified)
-// ═══════════════════════════════════════════════════════════════════════════════
+  console.log(`   ✅ Call 2 done — Script: ${script.length} chars | Score: ${scoring.score}/100 | ${scoring.predicted_views} views`);
 
-export async function selectVideoBracketAI({ campaignName, productDescription, targetAudience, brand, audienceProfile, ai_provider = 'gemini', userPlan = 'free' }) {
-  const insightCtx = audienceProfile?.hook_insight
-    ? `Audience insight: "${audienceProfile.hook_insight}"`
-    : '';
-
-  const prompt = `Choose the ideal video duration for this campaign.
-Choose ONLY one of: 30, 45, or 60 seconds.
-
-Campaign: ${campaignName}
-Product: ${productDescription}
-Audience: ${targetAudience}
-${insightCtx}
-
-- 30s: Single benefit, impulse product, audience already aware of category
-- 45s: 2-3 benefits, needs some context, lifestyle or service product
-- 60s: Complex product, new category, premium pricing, needs full story arc
-
-Respond ONLY with JSON: {"seconds": 45, "reason": "one sentence"}`;
-
-  try {
-    const raw = await withRetry(() => callAI(ai_provider, prompt, userPlan));
-    const p = extractJSON(raw, {});
-    const s = [30, 45, 60].includes(Number(p.seconds)) ? Number(p.seconds) : 60;
-    console.log(`   🎯 Bracket: ${s}s — ${p.reason}`);
-    return { seconds: s, reason: p.reason || '' };
-  } catch {
-    return { seconds: 60, reason: 'Default — complex campaign' };
-  }
+  return { script, ...scoring };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN ENTRY — generateVideoScriptAI
-// Orchestrates all 5 layers and returns the complete intelligence package
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const generateVideoScriptAI = async ({
   campaignName, productDescription, targetAudience,
-  durationSeconds, brand, productionBrief, ai_provider = 'gemini', userPlan = 'free'
+  durationSeconds, brand, productionBrief,
+  ai_provider = 'gemini', userPlan = 'free',
 }) => {
-  const MAX = 60;
-  console.log(`\n⚡ IVey Engine v3 — "${campaignName}"`);
-  console.log(`   Provider: ${ai_provider} | Plan: ${userPlan}`);
+  console.log(`\n⚡ IVey Engine v4 — "${campaignName}"`);
+  console.log(`   Provider: ${ai_provider} | Plan: ${userPlan} | Format: ${productionBrief?.videoFormat || 'single_narrator'}`);
 
-  // ── L1: Audience Excavation ────────────────────────────────────────────────
-  const audienceProfile = await excavateAudienceAI({
+  // Optional: quick web research (non-blocking, no API call if Brave not configured)
+  let webResearch = '';
+  try {
+    const results = await Promise.all([
+      _searchWeb(`${productDescription} marketing ${productionBrief?.primaryMarket || ''} 2025`),
+      _searchWeb(`${targetAudience} desires pain points`),
+    ]);
+    webResearch = results.filter(Boolean).join('\n');
+    if (webResearch) console.log('   🔍 Web research: found context');
+  } catch {}
+
+  // ── CALL 1: Intelligence Brief ────────────────────────────────────────────
+  const brief = await generateIntelligenceBrief({
     campaignName, productDescription, targetAudience,
-    brand, productionBrief, ai_provider, userPlan,
+    brand, productionBrief, ai_provider, userPlan, webResearch,
   });
 
-  // ── L2: Competitive Landscape ──────────────────────────────────────────────
-  const competitiveGap = await analyzeCompetitiveLandscapeAI({
-    campaignName, productDescription, targetAudience,
-    audienceProfile, ai_provider, userPlan,
-  });
-
-  // ── Bracket selection (uses L1 insight) ────────────────────────────────────
-  let secs = durationSeconds ? Math.min(Number(durationSeconds), MAX) : null;
-  if (secs) {
-    secs = secs <= 30 ? 30 : secs <= 45 ? 45 : 60;
-  }
-  let bracketReason = '';
-  if (!secs) {
-    const bracket = await selectVideoBracketAI({
-      campaignName, productDescription, targetAudience,
-      brand, audienceProfile, ai_provider, userPlan,
-    });
-    secs = bracket.seconds;
-    bracketReason = bracket.reason;
+  // Override bracket if user specified duration
+  if (durationSeconds) {
+    const capped = Math.min(Number(durationSeconds), 60);
+    brief.bracket.seconds = capped <= 30 ? 30 : capped <= 45 ? 45 : 60;
+    brief.bracket.reason  = 'User specified duration';
   }
 
-  // ── L3: Narrative Architecture ─────────────────────────────────────────────
-  const narrativeArc = await designNarrativeArcAI({
+  // ── CALL 2: Script + Score ────────────────────────────────────────────────
+  const result = await generateScriptAndScore({
     campaignName, productDescription, targetAudience,
-    seconds: secs, audienceProfile, competitiveGap,
-    brand, productionBrief, ai_provider, userPlan,
+    brief, brand, productionBrief, ai_provider, userPlan,
   });
 
-  // ── L4: Hook Laboratory ────────────────────────────────────────────────────
-  const { hooks, winner: winnerHook } = await runHookLaboratoryAI({
-    campaignName, productDescription, targetAudience,
-    seconds: secs, audienceProfile, competitiveGap,
-    brand, productionBrief, ai_provider, userPlan,
-  });
-
-  // ── L5: Write 3 drafts sequentially with delays to respect rate limits ──────
-  console.log('   ✍️  L5: Writing 3 script drafts...');
-  const draftArgs = { campaignName, productDescription, targetAudience, seconds: secs, audienceProfile, competitiveGap, narrativeArc, winnerHook, brand, productionBrief, ai_provider, userPlan };
-
-  console.log('   ✍️  Draft 1/3: Emotional...');
-  const emotionalDraft = await withRetry(() => writeScriptDraft({ draftType: 'emotional', ...draftArgs }));
-  await sleep(3000);
-
-  console.log('   ✍️  Draft 2/3: Direct...');
-  const directDraft = await withRetry(() => writeScriptDraft({ draftType: 'direct', ...draftArgs }));
-  await sleep(3000);
-
-  console.log('   ✍️  Draft 3/3: Narrative...');
-  const narrativeDraft = await withRetry(() => writeScriptDraft({ draftType: 'narrative', ...draftArgs }));
-  await sleep(2000);
-
-  // ── Score all 3 drafts sequentially ───────────────────────────────────────
-  console.log('   📊 Scoring draft 1/3...');
-  const emotionalScore = await withRetry(() => scoreScript({ script: emotionalDraft, hook: winnerHook?.hook, seconds: secs, ai_provider, userPlan }));
-  await sleep(2000);
-
-  console.log('   📊 Scoring draft 2/3...');
-  const directScore = await withRetry(() => scoreScript({ script: directDraft, hook: winnerHook?.hook, seconds: secs, ai_provider, userPlan }));
-  await sleep(2000);
-
-  console.log('   📊 Scoring draft 3/3...');
-  const narrativeScore = await withRetry(() => scoreScript({ script: narrativeDraft, hook: winnerHook?.hook, seconds: secs, ai_provider, userPlan }));
-
-  // ── Pick winner ────────────────────────────────────────────────────────────
-  const drafts = [
-    { type: 'emotional',  label: 'Emotional',  script: emotionalDraft,  ...emotionalScore  },
-    { type: 'direct',     label: 'Direct',     script: directDraft,     ...directScore     },
-    { type: 'narrative',  label: 'Narrative',  script: narrativeDraft,  ...narrativeScore  },
-  ];
-  drafts.sort((a, b) => b.score - a.score);
-  const primaryDraft = drafts[0];
-
-  console.log(`\n✅ IVey Engine v3 complete — "${campaignName}"`);
-  console.log(`   📺 ${secs}s | 🏆 ${primaryDraft.label} draft wins (${primaryDraft.score}/100) | ${primaryDraft.predicted_views} views`);
-  console.log(`   🎣 Hook: ${winnerHook?.formula} | 🧠 Arc: ${narrativeArc.arc_name}`);
+  console.log(`\n✅ IVey Engine v4 complete — "${campaignName}"`);
+  console.log(`   📺 ${brief.bracket.seconds}s | 🏆 Score: ${result.score}/100 | ${result.predicted_views}`);
+  console.log(`   🎣 Hook: ${brief.winnerHook?.formula} | 🎭 Arc: ${brief.arc?.name}`);
 
   return {
-    // Primary script (highest scoring)
-    script:          primaryDraft.script,
-    seconds:         secs,
-    bracketReason,
+    // Primary output
+    script:         result.script,
+    seconds:        brief.bracket.seconds,
+    bracketReason:  brief.bracket.reason,
 
-    // Winning draft info
-    winningDraft:    primaryDraft.type,
-    viralScore:      primaryDraft.score,
-    predictedViews:  primaryDraft.predicted_views,
-    scoreFeatures:   primaryDraft.features,
-    strengths:       primaryDraft.strengths,
-    improvements:    primaryDraft.improvements,
-    optimizedHook:   primaryDraft.optimized_hook,
+    // Scores
+    viralScore:     result.score,
+    predictedViews: result.predicted_views,
+    scoreFeatures:  result.features,
+    strengths:      result.strengths,
+    improvements:   result.improvements,
 
-    // All 3 drafts for user to browse
-    drafts: drafts.map(d => ({
-      type:           d.type,
-      label:          d.label,
-      script:         d.script,
-      score:          d.score,
-      predicted_views: d.predicted_views,
-      strengths:      d.strengths,
-      improvements:   d.improvements,
-    })),
-
-    // Intelligence layers — surfaced to UI
-    audienceProfile,
-    competitiveGap,
-    narrativeArc,
-    hooks,
-    winnerHook,
+    // Intelligence — surfaced to UI
+    audienceProfile:  brief.audience,
+    competitiveGap:   brief.competitive,
+    narrativeArc:     brief.arc,
+    hooks:            brief.hooks,
+    winnerHook:       brief.winnerHook,
     productionBrief,
+
+    // No multi-draft in v4 — single best script
+    drafts: [{
+      type:            'primary',
+      label:           'IVey Script',
+      script:          result.script,
+      score:           result.score,
+      predicted_views: result.predicted_views,
+      strengths:       result.strengths,
+      improvements:    result.improvements,
+    }],
+    winningDraft:   'primary',
+    optimizedHook:  brief.winnerHook?.hook || '',
   };
 };
 
@@ -943,51 +655,27 @@ export const generateMarketingStrategyAI = async (campaignData, userPlan = 'free
   const { name, product_description, target_audience, output_formats, ai_provider, brand } = campaignData;
   console.log(`\n📊 Strategy: ${name}`);
 
-  const [brandCtx, research] = await Promise.all([
-    Promise.resolve(buildBrandContext(brand)),
-    (async () => {
-      const results = await Promise.all([
-        _searchWeb(`${product_description || name} marketing 2025`),
-        _searchWeb(`${target_audience} content preferences video 2025`),
-      ]);
-      const all = [...results[0], ...results[1]].filter(Boolean);
-      return all.length ? `\n--- MARKET RESEARCH ---\n${all.map(s => `• ${s}`).join('\n')}\n---\n` : '';
-    })(),
-  ]);
+  const brandCtx = buildBrandContext(brand);
+  const research = await _searchWeb(`${product_description} marketing strategy 2025`);
 
   const prompt = `Generate a video-first marketing strategy.
-${brandCtx}${research}
-
+${brandCtx}${research ? `\nMARKET RESEARCH:\n${research}\n` : ''}
 Campaign: ${name}
 Product: ${product_description}
 Audience: ${target_audience}
 Formats: ${output_formats?.join(', ') || 'video, social'}
 
-## 1. CAMPAIGN INTELLIGENCE
-Key market insight and opportunity.
+Cover:
+## 1. CAMPAIGN INTELLIGENCE — key insight and opportunity
+## 2. VIDEO CONTENT STRATEGY — hook angle, emotional arc, bracket recommendation
+## 3. TARGET AUDIENCE DEEP DIVE — fears, desires, language, shareability triggers
+## 4. CONTENT PILLARS — 3-4 themes with percentage split
+## 5. PLATFORM DISTRIBUTION — where, when, how often
+## 6. VIRAL TRIGGERS — specific elements that drive shares
+## 7. SUCCESS METRICS — realistic KPIs
+## 8. 30-DAY ACTION PLAN — week by week
 
-## 2. VIDEO CONTENT STRATEGY
-Primary approach — hook angle, emotional arc, bracket recommendation (30/45/60s).
-
-## 3. TARGET AUDIENCE DEEP DIVE
-Who they are, what they fear, what they desire, what makes them share.
-
-## 4. CONTENT PILLARS
-3-4 themes with percentage split and rationale.
-
-## 5. PLATFORM DISTRIBUTION
-Where to post, when, how often. Platform-specific tactics.
-
-## 6. VIRAL TRIGGERS
-Specific elements to include that drive shares, comments, saves.
-
-## 7. SUCCESS METRICS
-Realistic KPIs based on campaign type.
-
-## 8. 30-DAY ACTION PLAN
-Week by week execution roadmap.
-
-Be specific, actionable, and reference the market research above.`;
+Be specific and actionable.`;
 
   const strategy = await callAI(ai_provider || 'gemini', prompt, userPlan);
   console.log('   ✅ Strategy done');
@@ -998,7 +686,10 @@ Be specific, actionable, and reference the market research above.`;
 // CAPTION GENERATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const generateCaptionAI = async ({ campaignName, productDescription, targetAudience, format, platform, brand, ai_provider = 'gemini', userPlan = 'free' }) => {
+export const generateCaptionAI = async ({
+  campaignName, productDescription, targetAudience,
+  format, platform, brand, ai_provider = 'gemini', userPlan = 'free',
+}) => {
   const rules = {
     twitter:   'Max 280 chars. Punchy hook. 2-3 hashtags. One clear CTA.',
     instagram: '150-300 chars. Emoji-friendly. 10-15 hashtags.',
@@ -1008,26 +699,19 @@ export const generateCaptionAI = async ({ campaignName, productDescription, targ
     youtube:   '100-150 chars. Curiosity-driven. Include keywords.',
   };
   const brandCtx = buildBrandContext(brand);
-  const voice = brand?.brand_voice ? `Voice: ${brand.brand_voice}. Use: ${brand.words_always?.join(', ') || 'none'}. Avoid: ${brand.words_never?.join(', ') || 'none'}.` : '';
 
-  const prompt = `Write a ${platform} caption.
-${brandCtx}${voice ? `\n${voice}\n` : ''}
+  const prompt = `Write a ${platform} caption. Output ONLY the caption — no explanation.
+${brandCtx}
 Rules: ${rules[platform] || 'Engaging, clear CTA, hashtags'}
 Campaign: ${campaignName}
 Product: ${productDescription}
 Audience: ${targetAudience}
-Format: ${format}
+Format: ${format}`;
 
-Output ONLY the final caption. No explanation. No options. Ready to copy-paste.`;
-
-  const caption = await callAI(ai_provider || 'gemini', prompt, userPlan);
-  return caption;
+  return await callAI(ai_provider || 'gemini', prompt, userPlan);
 };
 
-// ── Legacy compatibility exports ──────────────────────────────────────────────
-export const generateImagesAI = async () => {
-  console.log('   ℹ️  Image generation paused — IVey is video-first');
-  return [];
-};
-export const generateVisualAI = generateImagesAI;
+// ── Legacy stubs ──────────────────────────────────────────────────────────────
+export const generateImagesAI = async () => [];
+export const generateVisualAI = async () => ({ imageUrl: null });
 export { generateMarketingStrategyAI as generateStrategyAI };
