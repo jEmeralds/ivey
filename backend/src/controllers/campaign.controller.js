@@ -33,15 +33,15 @@ export const getCampaigns = async (req, res) => {
     if (error) return res.status(500).json({ error: 'Failed to fetch campaigns' });
 
     res.json({ campaigns: (campaigns || []).map(c => ({
-      id:              c.id,
-      name:            c.name || '',
-      description:     typeof c.product_description === 'string' ? c.product_description : String(c.product_description || ''),
-      target_audience: c.target_audience || '',
-      ai_provider:     c.ai_provider || 'openai',
-      output_formats:  Array.isArray(c.output_formats) ? c.output_formats : [],
-      status:          c.status || '',
-      created_at:      c.created_at,
-      updated_at:      c.updated_at,
+      id:               c.id,
+      name:             c.name || '',
+      description:      typeof c.product_description === 'string' ? c.product_description : String(c.product_description || ''),
+      target_audience:  c.target_audience || '',
+      ai_provider:      c.ai_provider || 'gemini',
+      output_formats:   Array.isArray(c.output_formats) ? c.output_formats : [],
+      status:           c.status || '',
+      created_at:       c.created_at,
+      updated_at:       c.updated_at,
       brand_profile_id: c.brand_profile_id || null,
     }))});
   } catch (error) {
@@ -65,16 +65,16 @@ export const getCampaignById = async (req, res) => {
     if (error) return res.status(404).json({ error: 'Campaign not found' });
 
     res.json({ campaign: {
-      id:               campaign.id,
-      name:             campaign.name,
-      description:      campaign.product_description,
-      target_audience:  campaign.target_audience,
-      ai_provider:      campaign.ai_provider,
-      output_formats:   campaign.output_formats,
-      status:           campaign.status,
-      created_at:       campaign.created_at,
-      updated_at:       campaign.updated_at,
-      brand_profile_id: campaign.brand_profile_id || null,
+      id:                campaign.id,
+      name:              campaign.name,
+      description:       campaign.product_description,
+      target_audience:   campaign.target_audience,
+      ai_provider:       campaign.ai_provider,
+      output_formats:    campaign.output_formats,
+      status:            campaign.status,
+      created_at:        campaign.created_at,
+      updated_at:        campaign.updated_at,
+      brand_profile_id:  campaign.brand_profile_id || null,
       generated_content: campaign.generated_ideas || [],
     }});
   } catch (error) {
@@ -107,7 +107,7 @@ export const createCampaign = async (req, res) => {
         website_url:         websiteUrl || null,
         product_description: description,
         target_audience:     targetAudience,
-        ai_provider:         aiProvider || 'openai',
+        ai_provider:         aiProvider || 'gemini',
         output_formats:      outputFormats,
         brand_profile_id:    brandProfileId || null,
         video_duration:      videoDuration || null,
@@ -130,11 +130,11 @@ export const updateCampaign = async (req, res) => {
     const { name, description, targetAudience, aiProvider, outputFormats } = req.body;
 
     const updateData = { updated_at: new Date().toISOString() };
-    if (name)          updateData.name                = name;
-    if (description)   updateData.product_description = description;
-    if (targetAudience) updateData.target_audience    = targetAudience;
-    if (aiProvider)    updateData.ai_provider         = aiProvider;
-    if (outputFormats) updateData.output_formats      = outputFormats;
+    if (name)           updateData.name                = name;
+    if (description)    updateData.product_description = description;
+    if (targetAudience) updateData.target_audience     = targetAudience;
+    if (aiProvider)     updateData.ai_provider         = aiProvider;
+    if (outputFormats)  updateData.output_formats      = outputFormats;
 
     const { data: campaign, error } = await supabaseAdmin
       .from('campaigns').update(updateData).eq('id', id).eq('user_id', userId).select().single();
@@ -163,55 +163,9 @@ export const deleteCampaign = async (req, res) => {
   }
 };
 
-// ── Generate images (main generation endpoint) ────────────────────────────────
+// ── Generate images (legacy — returns empty, IVey is video-first) ─────────────
 export const generateIdeas = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.userId;
-
-    const { data: campaign, error: campaignError } = await supabaseAdmin
-      .from('campaigns').select('*').eq('id', id).eq('user_id', userId).single();
-
-    if (campaignError || !campaign) return res.status(404).json({ error: 'Campaign not found' });
-
-    const brand = await getBrandForCampaign(campaign, userId);
-    if (brand) console.log(`🎨 Brand: ${brand.brand_name}`);
-    else       console.log('⚠️  No brand profile — generating without brand context');
-
-    // Get any uploaded media to use as reference
-    const { data: media } = await supabaseAdmin
-      .from('campaign_media').select('*').eq('campaign_id', id);
-
-    const referenceImageUrl = media
-      ?.find(m => m.file_type?.startsWith('image/'))
-      ? `${process.env.SUPABASE_URL}/storage/v1/object/public/campaign-media/${media.find(m => m.file_type?.startsWith('image/')).file_path}`
-      : null;
-
-    const { generateImagesAI } = await import('../services/ai.service.js');
-
-    const generatedContent = await generateImagesAI({
-      name:                campaign.name,
-      product_description: campaign.product_description,
-      target_audience:     campaign.target_audience,
-      output_formats:      campaign.output_formats,
-      ai_provider:         campaign.ai_provider || 'openai',
-      brand,
-    }, referenceImageUrl);
-
-    res.json({ message: 'Images generated successfully', generatedContent });
-  } catch (error) {
-    console.error('Generate images error:', error);
-    if (error.message?.includes('API key not configured')) {
-      return res.status(503).json({ error: 'OpenAI API key required for image generation.' });
-    }
-    if (error.message?.includes('billing') || error.message?.includes('quota')) {
-      return res.status(402).json({ error: 'OpenAI billing limit reached.' });
-    }
-    if (error.message?.includes('content_policy') || error.message?.includes('safety')) {
-      return res.status(422).json({ error: 'Image blocked by content policy. Try rephrasing your description.' });
-    }
-    res.status(500).json({ error: error.message || 'Failed to generate images' });
-  }
+  res.json({ message: 'IVey is video-first. Use /generate-script instead.', generatedContent: [] });
 };
 
 // ── Generate marketing strategy ───────────────────────────────────────────────
@@ -240,16 +194,11 @@ export const generateMarketingStrategy = async (req, res) => {
     res.json({ message: 'Strategy generated successfully', strategy });
   } catch (error) {
     console.error('Generate strategy error:', error);
-    if (error.message?.includes('API key not configured')) {
-      return res.status(503).json({ error: 'AI service not configured.' });
-    }
     res.status(500).json({ error: error.message || 'Failed to generate strategy' });
   }
 };
 
 // ── Generate caption at share time ───────────────────────────────────────────
-// POST /api/campaigns/:id/caption
-// Body: { format, platform, ai_provider }
 export const generateCaption = async (req, res) => {
   try {
     const { id } = req.params;
@@ -283,59 +232,15 @@ export const generateCaption = async (req, res) => {
   }
 };
 
-// ── Generate visual (single image, legacy endpoint) ───────────────────────────
+// ── Generate visual (legacy stub) ─────────────────────────────────────────────
 export const generateVisual = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.userId;
-    const { format, adCopy, referenceMediaId, isThumbnail } = req.body;
-
-    const { data: campaign, error: campaignError } = await supabaseAdmin
-      .from('campaigns').select('*').eq('id', id).eq('user_id', userId).single();
-
-    if (campaignError || !campaign) return res.status(404).json({ error: 'Campaign not found' });
-    if (!format) return res.status(400).json({ error: 'Format is required' });
-
-    let referenceImageUrl = null;
-    if (referenceMediaId) {
-      const { data: mediaItem } = await supabaseAdmin
-        .from('campaign_media').select('file_path, file_type').eq('id', referenceMediaId).single();
-      if (mediaItem?.file_type?.startsWith('image/')) {
-        referenceImageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/campaign-media/${mediaItem.file_path}`;
-      }
-    }
-
-    const { generateVisualAI } = await import('../services/ai.service.js');
-
-    const result = await generateVisualAI({
-      campaignName:       campaign.name,
-      productDescription: campaign.product_description,
-      targetAudience:     campaign.target_audience,
-      format,
-      adCopy:             adCopy || '',
-      referenceImageUrl,
-      isThumbnail:        isThumbnail || false,
-    });
-
-    res.json({
-      message:       'Visual generated successfully',
-      imageUrl:      result.imageUrl,
-      revisedPrompt: result.revisedPrompt,
-      usedReference: result.usedReference,
-      format:        result.format,
-      generatedAt:   result.generatedAt,
-    });
-  } catch (error) {
-    console.error('Generate visual error:', error);
-    if (error.message?.includes('API key not configured')) return res.status(503).json({ error: 'OpenAI API key required.' });
-    if (error.message?.includes('billing') || error.message?.includes('quota')) return res.status(402).json({ error: 'OpenAI billing limit reached.' });
-    if (error.message?.includes('content_policy') || error.message?.includes('safety')) return res.status(422).json({ error: 'Image blocked by content policy.' });
-    res.status(500).json({ error: error.message || 'Failed to generate visual' });
-  }
+  res.json({ message: 'Visual generation paused — IVey is video-first.', imageUrl: null });
 };
 
-// ── Generate video script ─────────────────────────────────────────────────────
+// ── Generate video script — 5-layer intelligence engine ──────────────────────
 // POST /api/campaigns/:id/generate-script
+// Returns: script, all 3 drafts, audience profile, competitive gap,
+//          narrative arc, all hooks, viral scores
 export const generateVideoScript = async (req, res) => {
   try {
     const { id }     = req.params;
@@ -349,8 +254,6 @@ export const generateVideoScript = async (req, res) => {
 
     const brand = await getBrandForCampaign(campaign, userId);
 
-    // Pass duration only if explicitly provided — otherwise AI selects bracket
-    // Always capped at 60s inside generateVideoScriptAI
     const requestedDuration = duration_seconds
       ? Number(duration_seconds)
       : (campaign.video_duration || brand?.default_video_length || null);
@@ -366,11 +269,32 @@ export const generateVideoScript = async (req, res) => {
       ai_provider:        ai_provider || campaign.ai_provider || 'gemini',
     });
 
+    // Return the full intelligence package to the frontend
     res.json({
-      script:        result.script,
-      seconds:       result.seconds,
-      bracket:       `${result.seconds}s`,
-      bracketReason: result.bracketReason || '',
+      // Primary output
+      script:         result.script,
+      seconds:        result.seconds,
+      bracket:        `${result.seconds}s`,
+      bracketReason:  result.bracketReason || '',
+
+      // Winning draft info
+      winningDraft:   result.winningDraft,
+      viralScore:     result.viralScore,
+      predictedViews: result.predictedViews,
+      scoreFeatures:  result.scoreFeatures,
+      strengths:      result.strengths,
+      improvements:   result.improvements,
+      optimizedHook:  result.optimizedHook,
+
+      // All 3 drafts for user to browse
+      drafts:         result.drafts,
+
+      // Intelligence layers
+      audienceProfile:  result.audienceProfile,
+      competitiveGap:   result.competitiveGap,
+      narrativeArc:     result.narrativeArc,
+      hooks:            result.hooks,
+      winnerHook:       result.winnerHook,
     });
   } catch (error) {
     console.error('Generate script error:', error);
