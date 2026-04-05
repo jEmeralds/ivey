@@ -147,7 +147,7 @@ async function _gemini(prompt) {
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: SYSTEM }] },
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.75, maxOutputTokens: 8192 },
+      generationConfig: { temperature: 0.75, maxOutputTokens: 4096 },
     }),
   });
   if (!res.ok) {
@@ -172,7 +172,7 @@ async function _claude(prompt, model = 'claude-3-haiku-20240307') {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model, max_tokens: 8192, system: SYSTEM,
+      model, max_tokens: 4096, system: SYSTEM,
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -191,7 +191,7 @@ async function _openai(prompt, model = 'gpt-4o-mini') {
     body: JSON.stringify({
       model,
       messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }],
-      max_tokens: 8192, temperature: 0.75,
+      max_tokens: 4096, temperature: 0.75,
     }),
   });
   if (!res.ok) {
@@ -210,7 +210,7 @@ async function _grok(prompt) {
     body: JSON.stringify({
       model: 'grok-2-latest',
       messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }],
-      max_tokens: 8192, temperature: 0.75,
+      max_tokens: 4096, temperature: 0.75,
     }),
   });
   if (!res.ok) { const e = await res.json(); throw new Error(`Grok: ${e.error?.message}`); }
@@ -226,7 +226,7 @@ async function _mistral(prompt) {
     body: JSON.stringify({
       model: 'mistral-large-latest',
       messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }],
-      max_tokens: 8192, temperature: 0.75,
+      max_tokens: 4096, temperature: 0.75,
     }),
   });
   if (!res.ok) { const e = await res.json(); throw new Error(`Mistral: ${e.error?.message}`); }
