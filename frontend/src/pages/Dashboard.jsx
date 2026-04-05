@@ -1,5 +1,6 @@
 ﻿// frontend/src/pages/Dashboard.jsx
 import { useState, useEffect } from 'react';
+import IVeyLogo from '../components/IVeyLogo';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getCampaigns, deleteCampaign } from '../services/api';
 import BrandPage from './BrandPage';
@@ -181,12 +182,7 @@ const Dashboard = () => {
         md:translate-x-0 md:static md:z-auto md:h-auto md:shadow-none
       `}>
         <div className="flex items-center justify-between px-5 h-16 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-gradient-to-r from-amber-400 to-amber-600 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            </div>
-            <span className="font-bold text-gray-900 dark:text-white text-base">IVey</span>
-          </Link>
+          <IVeyLogo size={28} />
           <button onClick={() => setSidebarOpen(false)} className="md:hidden p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
@@ -373,12 +369,7 @@ const Dashboard = () => {
           <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-1 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gradient-to-r from-amber-400 to-amber-600 rounded-md flex items-center justify-center">
-              <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            </div>
-            <span className="font-bold text-gray-900 dark:text-white text-sm">IVey</span>
-          </div>
+          <IVeyLogo size={24} />
           <span className="ml-auto text-sm font-medium text-gray-500 dark:text-gray-400 capitalize">{activeSection}</span>
         </div>
 
