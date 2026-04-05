@@ -1,4 +1,5 @@
 ﻿import { Link, useNavigate, useLocation } from 'react-router-dom';
+import IVeyLogo from './IVeyLogo';
 
 const Footer = () => {
   const navigate  = useNavigate();
@@ -34,13 +35,8 @@ const Footer = () => {
 
           {/* Brand */}
           <div className="md:col-span-1">
-            <Link to="/" className="flex items-center gap-2.5 mb-4 group w-fit">
-              <div className="w-8 h-8 bg-gradient-to-r from-amber-400 to-amber-600 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-              </div>
-              <span className="text-lg font-bold text-white">IVey</span>
+            <Link to="/" className="flex items-center mb-4 w-fit hover:opacity-90 transition-opacity">
+              <IVeyLogo size={30} />
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed mb-5">
               Generate viral marketing content with AI in seconds. Built for creators and brands who want to move fast.
@@ -137,11 +133,7 @@ const Footer = () => {
         {/* Bottom bar */}
         <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-6 h-6 bg-gradient-to-r from-amber-400 to-amber-600 rounded flex items-center justify-center">
-              <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
-              </svg>
-            </div>
+            <IVeyLogo size={20} iconOnly />
             <p className="text-gray-500 text-sm">© {new Date().getFullYear()} IVey. All rights reserved.</p>
           </div>
           <div className="flex items-center gap-5">

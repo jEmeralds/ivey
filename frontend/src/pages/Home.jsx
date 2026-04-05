@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react';
+import IVeyLogo from '../components/IVeyLogo';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import GallerySection from '../components/GallerySection';
@@ -174,9 +175,7 @@ const DemoModal = ({ onClose, onCTA }) => {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700 sticky top-0 bg-gray-900 z-10">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-amber-400 to-amber-600 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            </div>
+            <IVeyLogo size={32} iconOnly />
             <div>
               <h2 className="text-sm font-bold text-gray-900 dark:text-white">IVey — Live Demo</h2>
               <p className="text-xs text-gray-500 dark:text-gray-500">Watch AI build a campaign in real time</p>

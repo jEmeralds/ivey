@@ -1,4 +1,5 @@
 ﻿import { useState } from 'react';
+import IVeyLogo from './IVeyLogo';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeProvider';
 import { useAuth } from '../context/authContext';
@@ -55,13 +56,8 @@ const Navbar = () => {
           <div className="flex items-center justify-between h-16">
 
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2.5 flex-shrink-0 group">
-              <div className="w-9 h-9 bg-gradient-to-r from-amber-400 to-amber-600 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">IVey</span>
+            <Link to="/" className="flex items-center flex-shrink-0 hover:opacity-90 transition-opacity">
+              <IVeyLogo size={34} />
             </Link>
 
             {/* Desktop nav links */}
