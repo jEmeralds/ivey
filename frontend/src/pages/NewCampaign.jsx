@@ -36,20 +36,19 @@ const SETTINGS      = ['Urban', 'Rural', 'Corporate / Office', 'Lifestyle / Home
 const ENERGY_LEVELS = ['Calm & Trusted', 'Warm & Friendly', 'Bold & Direct', 'Exciting & Energetic', 'Inspirational', 'Humorous & Light'];
 const MUSIC_MOODS   = ['No music specified', 'Afrobeats', 'Western Pop', 'R&B / Soul', 'Traditional / Cultural', 'Corporate / Neutral', 'Cinematic / Epic', 'Acoustic / Warm', 'Electronic / Modern'];
 
-// ── Logo scraper from website URL ─────────────────────────────────────────────
-const scrapeLogoFromUrl = async (websiteUrl) => {
+// ── Brand URL analyzer — calls backend which runs Claude Vision ───────────────
+const analyzeBrandUrl = async (websiteUrl) => {
   if (!websiteUrl) return null;
   try {
-    const url = new URL(websiteUrl);
-    // Try common favicon/logo paths
-    const candidates = [
-      `${url.origin}/logo.png`,
-      `${url.origin}/logo.svg`,
-      `${url.origin}/favicon.ico`,
-      `${url.origin}/favicon.png`,
-      `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128`,
-    ];
-    return candidates[0]; // Return first candidate — backend will validate
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_URL}/brand/analyze-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ url: websiteUrl }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.intelligence || null;
   } catch {
     return null;
   }
@@ -109,8 +108,9 @@ const NewCampaign = () => {
   const [error,          setError]          = useState('');
   const [brands,         setBrands]         = useState([]);
   const [brandsLoading,  setBrandsLoading]  = useState(true);
-  const [logoPreview,    setLogoPreview]    = useState(null);
-  const [scrapingLogo,   setScrapingLogo]   = useState(false);
+  const [logoPreview,      setLogoPreview]      = useState(null);
+  const [scrapingLogo,     setScrapingLogo]     = useState(false);
+  const [brandIntelligence, setBrandIntelligence] = useState(null);
 
   const [formData, setFormData] = useState({
     // Core
@@ -165,20 +165,27 @@ const NewCampaign = () => {
     fetchBrands();
   }, []);
 
-  // ── Auto-scrape logo when URL changes ──────────────────────────────────────
+  // ── Auto-analyze brand when URL changes ────────────────────────────────────
   useEffect(() => {
     if (!formData.websiteUrl) return;
     const timer = setTimeout(async () => {
       setScrapingLogo(true);
+      setBrandIntelligence(null);
       try {
-        const logoUrl = await scrapeLogoFromUrl(formData.websiteUrl);
-        if (logoUrl) {
-          setProd('logoUrl', logoUrl);
-          setLogoPreview(logoUrl);
+        const intelligence = await analyzeBrandUrl(formData.websiteUrl);
+        if (intelligence) {
+          setBrandIntelligence(intelligence);
+          setProd('logoUrl', intelligence.logo_url || '');
+          setProd('logoDescription', intelligence.visual_identity?.logo_description || '');
+          setLogoPreview(intelligence.logo_url || null);
+          // Auto-fill brand name if empty
+          if (!formData.brandName && intelligence.brand_name) {
+            setFormData(prev => ({ ...prev, brandName: intelligence.brand_name }));
+          }
         }
       } catch {}
       finally { setScrapingLogo(false); }
-    }, 1000);
+    }, 1500);
     return () => clearTimeout(timer);
   }, [formData.websiteUrl]);
 
@@ -205,7 +212,8 @@ const NewCampaign = () => {
       const response = await createCampaign({
         ...formData,
         outputFormats,
-        productionBrief: formData.production, // pass full brief to backend
+        productionBrief: formData.production,
+        brandIntelligence: brandIntelligence || null,
       });
       navigate(`/campaigns/${response.campaign.id}`, { state: { from: 'campaigns' } });
     } catch (err) {
@@ -293,14 +301,45 @@ const NewCampaign = () => {
                     </div>
                   )}
                 </div>
-                {logoPreview && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <img src={logoPreview} alt="Logo" className="w-8 h-8 rounded object-contain bg-gray-100 dark:bg-gray-700 p-1"
-                      onError={() => setLogoPreview(null)} />
-                    <span className="text-xs text-emerald-500">✓ Logo detected from website</span>
+                {scrapingLogo && (
+                  <p className="text-xs text-emerald-500 mt-2 flex items-center gap-1.5">
+                    <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    Analyzing brand identity...
+                  </p>
+                )}
+                {brandIntelligence && !scrapingLogo && (
+                  <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/40 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      {logoPreview && (
+                        <img src={logoPreview} alt="Logo" className="w-10 h-10 rounded-lg object-contain bg-white dark:bg-gray-700 p-1 flex-shrink-0 border border-gray-200 dark:border-gray-600"
+                          onError={() => setLogoPreview(null)} />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-1">✓ Brand Intelligence Extracted</p>
+                        <div className="space-y-0.5">
+                          {brandIntelligence.visual_identity?.logo_description && (
+                            <p className="text-xs text-gray-600 dark:text-gray-400">🎨 {brandIntelligence.visual_identity.logo_description}</p>
+                          )}
+                          {brandIntelligence.visual_identity?.primary_color && (
+                            <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                              <span className="w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" style={{background: brandIntelligence.visual_identity.primary_color}}/>
+                              Primary: {brandIntelligence.visual_identity.primary_color}
+                            </p>
+                          )}
+                          {brandIntelligence.brand_voice && (
+                            <p className="text-xs text-gray-600 dark:text-gray-400">🎙 Voice: {brandIntelligence.brand_voice}</p>
+                          )}
+                          {brandIntelligence.visual_identity?.visual_style && (
+                            <p className="text-xs text-gray-600 dark:text-gray-400">✨ Style: {brandIntelligence.visual_identity.visual_style}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
-                <p className={hint}>IVey will extract your logo and brand colors automatically</p>
+                {!brandIntelligence && !scrapingLogo && (
+                  <p className={hint}>IVey will extract your logo, colors, and brand identity automatically</p>
+                )}
               </div>
             </div>
           </FormSection>

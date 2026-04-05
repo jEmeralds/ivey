@@ -30,6 +30,18 @@ const ANTHROPIC_API_KEY    = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY       = process.env.OPENAI_API_KEY;
 const BRAVE_SEARCH_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
 
+// ── Model config — override via Railway env vars to swap models without redeploy
+const MODELS = {
+  gemini:       process.env.GEMINI_MODEL        || 'gemini-2.5-flash',
+  claude:       process.env.CLAUDE_MODEL        || 'claude-3-haiku-20240307',
+  claudeHaiku:  process.env.CLAUDE_HAIKU_MODEL  || 'claude-3-haiku-20240307',
+  openai:       process.env.OPENAI_MODEL        || 'gpt-4o',
+  openaiMini:   process.env.OPENAI_MINI_MODEL   || 'gpt-4o-mini',
+};
+
+// ── Script duration cap — override via env var
+const MAX_SCRIPT_SECONDS = parseInt(process.env.MAX_SCRIPT_SECONDS || '45');
+
 // ── Provider registry ─────────────────────────────────────────────────────────
 export const PROVIDERS = {
   GEMINI:        { id: 'gemini',       tier: 'free', name: 'Gemini 2.5 Flash' },
@@ -80,10 +92,10 @@ function _getFallbackChain(preferred) {
 async function _tryProvider(provider, prompt) {
   switch (provider) {
     case 'gemini':       return await _gemini(prompt);
-    case 'claude':       return await _claude(prompt, 'claude-3-haiku-20240307');
-    case 'claude-haiku': return await _claude(prompt, 'claude-3-haiku-20240307');
-    case 'openai':       return await _openai(prompt, 'gpt-4o');
-    case 'openai-mini':  return await _openai(prompt, 'gpt-4o-mini');
+    case 'claude':       return await _claude(prompt, MODELS.claude);
+    case 'claude-haiku': return await _claude(prompt, MODELS.claudeHaiku);
+    case 'openai':       return await _openai(prompt, MODELS.openai);
+    case 'openai-mini':  return await _openai(prompt, MODELS.openaiMini);
     case 'grok':         return await _grok(prompt);
     case 'mistral':      return await _mistral(prompt);
     default:             return await _gemini(prompt);
@@ -141,7 +153,7 @@ export function getAvailableProviders(userPlan = 'free') {
 // ── Raw provider implementations ──────────────────────────────────────────────
 async function _gemini(prompt) {
   if (!GEMINI_API_KEY) throw new Error('Gemini API key not configured');
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODELS.gemini}:generateContent?key=${GEMINI_API_KEY}`;
   const res = await fetch(url, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -162,7 +174,7 @@ async function _gemini(prompt) {
   return d.candidates[0].content.parts[0].text;
 }
 
-async function _claude(prompt, model = 'claude-3-haiku-20240307') {
+async function _claude(prompt, model = MODELS.claude) {
   if (!ANTHROPIC_API_KEY) throw new Error('Anthropic API key not configured');
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -254,19 +266,49 @@ async function _searchWeb(query) {
 export function buildBrandContext(brand) {
   if (!brand) return '';
   const lines = [];
+
+  // Core identity
   if (brand.brand_name)           lines.push(`Brand: ${brand.brand_name}`);
   if (brand.tagline)              lines.push(`Tagline: "${brand.tagline}"`);
   if (brand.industry)             lines.push(`Industry: ${brand.industry}`);
-  if (brand.brand_story)          lines.push(`Story: ${brand.brand_story}`);
-  if (brand.brand_voice)          lines.push(`Voice: ${brand.brand_voice}`);
-  if (brand.visual_mood?.length)  lines.push(`Mood: ${brand.visual_mood.join(', ')}`);
-  if (brand.words_always?.length) lines.push(`Always say: ${brand.words_always.join(', ')}`);
-  if (brand.words_never?.length)  lines.push(`Never say: ${brand.words_never.join(', ')}`);
-  if (brand.target_personas)      lines.push(`Personas: ${brand.target_personas}`);
+  if (brand.brand_story)          lines.push(`Brand story: ${brand.brand_story}`);
+  if (brand.brand_voice)          lines.push(`Voice/tone: ${brand.brand_voice}`);
+
+  // Visual identity — from URL analysis or manual entry
+  if (brand.visual_identity) {
+    const vi = brand.visual_identity;
+    if (vi.logo_description)      lines.push(`Logo: ${vi.logo_description}`);
+    if (vi.primary_color)         lines.push(`Primary color: ${vi.primary_color}`);
+    if (vi.secondary_color)       lines.push(`Secondary color: ${vi.secondary_color}`);
+    if (vi.visual_style)          lines.push(`Visual style: ${vi.visual_style}`);
+    if (vi.mood_words?.length)    lines.push(`Visual mood: ${vi.mood_words.join(', ')}`);
+  }
+
+  // Logo URL — for visual notes in script
+  if (brand.logo_url)             lines.push(`Logo URL: ${brand.logo_url}`);
+
+  // Script visual directions — from URL analysis
+  if (brand.script_visual_notes)  lines.push(`Script visual directions: ${brand.script_visual_notes}`);
+
+  // Colors from manual brand setup
+  if (!brand.visual_identity && brand.visual_mood?.length)
+                                  lines.push(`Visual mood: ${brand.visual_mood.join(', ')}`);
+  if (brand.brand_colors?.length) lines.push(`Brand colors: ${brand.brand_colors.join(', ')}`);
+
+  // Voice rules
+  if (brand.words_always?.length) lines.push(`Always use: ${brand.words_always.join(', ')}`);
+  if (brand.words_never?.length)  lines.push(`Never use: ${brand.words_never.join(', ')}`);
+
+  // Audience intelligence
+  if (brand.target_personas)      lines.push(`Target personas: ${brand.target_personas}`);
   if (brand.pain_points)          lines.push(`Pain points: ${brand.pain_points}`);
-  if (brand.audience_desires)     lines.push(`Desires: ${brand.audience_desires}`);
+  if (brand.audience_desires)     lines.push(`Audience desires: ${brand.audience_desires}`);
+
+  // Key offerings from URL analysis
+  if (brand.key_offerings?.length) lines.push(`Key offerings: ${brand.key_offerings.join(', ')}`);
+
   if (!lines.length) return '';
-  return `\nBRAND PROFILE:\n${lines.join('\n')}\n`;
+  return `\nBRAND PROFILE (use ALL visual details in script visual notes):\n${lines.join('\n')}\n`;
 }
 
 export function buildProductionContext(brief) {
@@ -341,7 +383,7 @@ Answer these 8 questions about the SPECIFIC audience above:
 4. Positioning opportunity: One sentence — the unique position to claim
 
 ═══ SECTION 3: BRACKET & NARRATIVE ARC ═══
-1. Choose duration: 30 or 45 seconds only. Max is 45 seconds.
+1. Choose duration: 30 or ${MAX_SCRIPT_SECONDS} seconds only. Max is ${MAX_SCRIPT_SECONDS} seconds.
 2. Bracket reason: One sentence why
 3. Design the 7-stage arc for this SPECIFIC campaign:
    - PATTERN INTERRUPT (0-8% of duration): What unexpected thing stops the scroll?
@@ -366,7 +408,7 @@ Formulas:
 Respond with ONLY this JSON — no text before or after, no markdown:
 {
   "bracket": {
-    "seconds": 45,
+    "seconds": ${MAX_SCRIPT_SECONDS},
     "reason": "one sentence"
   },
   "audience": {
@@ -427,7 +469,7 @@ Respond with ONLY this JSON — no text before or after, no markdown:
 
 function _fallbackBrief(campaignName, productDescription, targetAudience) {
   return {
-    bracket: { seconds: 45, reason: 'Default 45s bracket' },
+    bracket: { seconds: MAX_SCRIPT_SECONDS, reason: 'Default bracket' },
     audience: {
       two_am_thought: `Whether ${productDescription} is the right choice`,
       secret_desire: `A meaningful transformation through ${productDescription}`,
@@ -601,8 +643,8 @@ export const generateVideoScriptAI = async ({
 
   // Override bracket if user specified duration
   if (durationSeconds) {
-    const capped = Math.min(Number(durationSeconds), 45);
-    brief.bracket.seconds = capped <= 30 ? 30 : 45;
+    const capped = Math.min(Number(durationSeconds), MAX_SCRIPT_SECONDS);
+    brief.bracket.seconds = capped <= 30 ? 30 : MAX_SCRIPT_SECONDS;
     brief.bracket.reason  = 'User specified duration';
   }
 
@@ -715,6 +757,217 @@ Format: ${format}`;
 
   return await callAI(ai_provider || 'gemini', prompt, userPlan);
 };
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BRAND URL ANALYZER
+// Fetches website, extracts visual identity, runs Claude Vision on logo
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function analyzeBrandUrlAI(websiteUrl, ai_provider = 'claude') {
+  console.log(`\n🔍 Brand URL Analysis: ${websiteUrl}`);
+
+  // ── Step 1: Fetch website HTML ──────────────────────────────────────────────
+  let html = '';
+  let finalUrl = websiteUrl;
+  try {
+    const res = await fetch(websiteUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; IVeyBot/1.0)' },
+      signal: AbortSignal.timeout(8000),
+    });
+    html = await res.text();
+    finalUrl = res.url;
+    console.log('   ✅ Website fetched:', html.length, 'chars');
+  } catch (e) {
+    console.warn('   ⚠️  Could not fetch website:', e.message);
+  }
+
+  // ── Step 2: Extract meta tags and assets ────────────────────────────────────
+  const extract = (pattern, fallback = '') => {
+    const m = html.match(pattern);
+    return m ? m[1].trim() : fallback;
+  };
+
+  const urlObj    = new URL(websiteUrl);
+  const origin    = urlObj.origin;
+  const hostname  = urlObj.hostname;
+
+  // Logo candidates — ordered by quality
+  const ogImage     = extract(/og:image[^>]*content="([^"]+)"/i) ||
+                      extract(/property="og:image"[^>]*content="([^"]+)"/i) ||
+                      extract(/content="([^"]+)"[^>]*og:image/i);
+  const appleTouchIcon = extract(/apple-touch-icon[^>]*href="([^"]+)"/i);
+  const favicon192  = extract(/icon[^>]*sizes="192x192"[^>]*href="([^"]+)"/i);
+  const favicon     = extract(/rel="icon"[^>]*href="([^"]+)"/i) ||
+                      extract(/rel="shortcut icon"[^>]*href="([^"]+)"/i);
+
+  // Resolve relative URLs
+  const resolveUrl = (u) => {
+    if (!u) return null;
+    if (u.startsWith('http')) return u;
+    if (u.startsWith('//')) return `https:${u}`;
+    if (u.startsWith('/')) return `${origin}${u}`;
+    return `${origin}/${u}`;
+  };
+
+  // Pick best logo — prefer OG image (usually largest), then apple touch icon
+  const logoUrl = resolveUrl(ogImage) ||
+                  resolveUrl(appleTouchIcon) ||
+                  resolveUrl(favicon192) ||
+                  `https://www.google.com/s2/favicons?domain=${hostname}&sz=256`;
+
+  // Meta content
+  const title       = extract(/<title>([^<]+)<\/title>/i) ||
+                      extract(/og:title[^>]*content="([^"]+)"/i) ||
+                      hostname;
+  const description = extract(/og:description[^>]*content="([^"]+)"/i) ||
+                      extract(/name="description"[^>]*content="([^"]+)"/i) ||
+                      extract(/content="([^"]+)"[^>]*name="description"/i);
+  const themeColor  = extract(/name="theme-color"[^>]*content="([^"]+)"/i) ||
+                      extract(/content="([^"]+)"[^>]*name="theme-color"/i);
+
+  // Extract visible text from hero/header area (first 3000 chars of body)
+  const bodyText = html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .slice(0, 3000)
+    .trim();
+
+  console.log(`   📋 Title: ${title}`);
+  console.log(`   🖼️  Logo: ${logoUrl}`);
+  console.log(`   🎨 Theme color: ${themeColor || 'not found'}`);
+
+  // ── Step 3: Vision analysis of logo + brand copy ────────────────────────────
+  const visionPrompt = `Analyze this brand's visual identity and extract structured intelligence for video script generation.
+
+Website: ${websiteUrl}
+Page title: ${title}
+Meta description: ${description || 'not available'}
+Theme color: ${themeColor || 'not specified'}
+Homepage copy excerpt: "${bodyText.slice(0, 1500)}"
+Logo URL: ${logoUrl}
+
+Based on everything above, provide a complete brand intelligence profile.
+Focus on what a video scriptwriter needs: visual details, tone, audience, and identity.
+
+Respond ONLY with valid JSON — no text before or after:
+{
+  "brand_name": "extracted or inferred brand name",
+  "tagline": "extracted tagline or slogan",
+  "industry": "industry category",
+  "brand_voice": "tone description — e.g. bold and confident, warm and nurturing",
+  "visual_identity": {
+    "primary_color": "#hexcode or color name",
+    "secondary_color": "#hexcode or color name",
+    "logo_description": "detailed visual description of the logo — shape, colors, style, mood",
+    "visual_style": "clean minimal / bold graphic / luxury / playful / corporate / natural",
+    "mood_words": ["word1", "word2", "word3"]
+  },
+  "brand_story": "2-3 sentence brand story inferred from the copy",
+  "key_offerings": ["main product/service 1", "main product/service 2"],
+  "target_audience": "description of who this brand serves",
+  "pain_points": "what problems this brand solves",
+  "audience_desires": "what the audience wants",
+  "script_visual_notes": "specific instructions for video visual notes — e.g. always show logo bottom-right, use emerald green overlays, outdoor natural settings",
+  "words_always": ["brand language to always use"],
+  "words_never": ["language that conflicts with brand voice"]
+}`;
+
+  try {
+    // Try with vision if we have a logo image
+    let analysisRaw;
+    if (logoUrl && ANTHROPIC_API_KEY) {
+      try {
+        // Fetch logo as base64 for vision
+        const imgRes = await fetch(logoUrl, { signal: AbortSignal.timeout(5000) });
+        if (imgRes.ok) {
+          const imgBuffer = await imgRes.arrayBuffer();
+          const base64    = Buffer.from(imgBuffer).toString('base64');
+          const mimeType  = imgRes.headers.get('content-type')?.split(';')[0] || 'image/png';
+
+          // Only use image if it's actually an image type
+          if (mimeType.startsWith('image/') && base64.length > 100) {
+            console.log(`   👁️  Running vision analysis on logo (${mimeType})...`);
+            const visionRes = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': ANTHROPIC_API_KEY,
+                'anthropic-version': '2023-06-01',
+              },
+              body: JSON.stringify({
+                model: 'claude-3-haiku-20240307',
+                max_tokens: 2048,
+                messages: [{
+                  role: 'user',
+                  content: [
+                    { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
+                    { type: 'text', text: visionPrompt },
+                  ],
+                }],
+              }),
+            });
+            if (visionRes.ok) {
+              const visionData = await visionRes.json();
+              analysisRaw = visionData.content?.[0]?.text;
+              console.log('   ✅ Vision analysis complete');
+            }
+          }
+        }
+      } catch (visionErr) {
+        console.warn('   ⚠️  Vision failed, falling back to text analysis:', visionErr.message);
+      }
+    }
+
+    // Fallback: text-only analysis if vision failed
+    if (!analysisRaw) {
+      console.log('   📝 Running text-only brand analysis...');
+      analysisRaw = await callAI(ai_provider, visionPrompt);
+    }
+
+    const intelligence = extractJSON(analysisRaw, null);
+    if (!intelligence?.brand_name) throw new Error('Incomplete brand analysis');
+
+    // Merge extracted metadata with AI analysis
+    if (themeColor && !intelligence.visual_identity?.primary_color) {
+      intelligence.visual_identity = intelligence.visual_identity || {};
+      intelligence.visual_identity.primary_color = themeColor;
+    }
+    intelligence.logo_url   = logoUrl;
+    intelligence.website_url = websiteUrl;
+
+    console.log(`   ✅ Brand Intelligence: "${intelligence.brand_name}" | ${intelligence.visual_identity?.visual_style} | ${intelligence.brand_voice}`);
+    return intelligence;
+
+  } catch (e) {
+    console.warn('   ⚠️  Brand analysis failed:', e.message);
+    // Return basic fallback with what we could extract
+    return {
+      brand_name:       title || hostname,
+      tagline:          description || '',
+      industry:         '',
+      brand_voice:      'professional and engaging',
+      visual_identity:  {
+        primary_color:    themeColor || '',
+        logo_description: `Logo from ${hostname}`,
+        visual_style:     'professional',
+        mood_words:       ['professional', 'trustworthy'],
+      },
+      brand_story:      description || '',
+      key_offerings:    [],
+      target_audience:  '',
+      pain_points:      '',
+      audience_desires: '',
+      script_visual_notes: `Show ${title} branding throughout`,
+      words_always:     [],
+      words_never:      [],
+      logo_url:         logoUrl,
+      website_url:      websiteUrl,
+    };
+  }
+}
 
 // ── Legacy stubs ──────────────────────────────────────────────────────────────
 export const generateImagesAI = async () => [];

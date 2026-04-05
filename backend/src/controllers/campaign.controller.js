@@ -86,7 +86,7 @@ export const getCampaignById = async (req, res) => {
 export const createCampaign = async (req, res) => {
   try {
     const userId = req.userId;
-    const { name, description, targetAudience, aiProvider, outputFormats, brandName, websiteUrl, brandProfileId, videoDuration, productionBrief } = req.body;
+    const { name, description, targetAudience, aiProvider, outputFormats, brandName, websiteUrl, brandProfileId, videoDuration, productionBrief, brandIntelligence } = req.body;
 
     if (!name || !description || !targetAudience || !outputFormats || outputFormats.length === 0) {
       return res.status(400).json({ error: 'All fields are required' });
@@ -112,6 +112,7 @@ export const createCampaign = async (req, res) => {
         brand_profile_id:    brandProfileId || null,
         video_duration:      videoDuration || null,
         production_brief:    productionBrief || null,
+        brand_intelligence:  brandIntelligence || null,
       }])
       .select()
       .single();
@@ -261,12 +262,31 @@ export const generateVideoScript = async (req, res) => {
 
     const { generateVideoScriptAI } = await import('../services/ai.service.js');
 
+    // Merge brand profile with URL-extracted intelligence
+    // URL intelligence fills in visual details the brand profile may lack
+    const mergedBrand = brand ? { ...brand } : {};
+    const urlIntelligence = campaign.brand_intelligence;
+    if (urlIntelligence) {
+      if (!mergedBrand.logo_url && urlIntelligence.logo_url)
+        mergedBrand.logo_url = urlIntelligence.logo_url;
+      if (!mergedBrand.visual_identity && urlIntelligence.visual_identity)
+        mergedBrand.visual_identity = urlIntelligence.visual_identity;
+      if (!mergedBrand.script_visual_notes && urlIntelligence.script_visual_notes)
+        mergedBrand.script_visual_notes = urlIntelligence.script_visual_notes;
+      if (!mergedBrand.brand_voice && urlIntelligence.brand_voice)
+        mergedBrand.brand_voice = urlIntelligence.brand_voice;
+      if (!mergedBrand.tagline && urlIntelligence.tagline)
+        mergedBrand.tagline = urlIntelligence.tagline;
+      if (!mergedBrand.key_offerings?.length && urlIntelligence.key_offerings?.length)
+        mergedBrand.key_offerings = urlIntelligence.key_offerings;
+    }
+
     const result = await generateVideoScriptAI({
       campaignName:       campaign.name,
       productDescription: campaign.product_description,
       targetAudience:     campaign.target_audience,
       durationSeconds:    requestedDuration,
-      brand,
+      brand:              mergedBrand,
       productionBrief:    campaign.production_brief || null,
       ai_provider:        ai_provider || campaign.ai_provider || 'gemini',
     });
