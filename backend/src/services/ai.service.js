@@ -80,7 +80,7 @@ function _getFallbackChain(preferred) {
 async function _tryProvider(provider, prompt) {
   switch (provider) {
     case 'gemini':       return await _gemini(prompt);
-    case 'claude':       return await _claude(prompt, 'claude-3-5-sonnet-20241022');
+    case 'claude':       return await _claude(prompt, 'claude-3-haiku-20240307');
     case 'claude-haiku': return await _claude(prompt, 'claude-3-haiku-20240307');
     case 'openai':       return await _openai(prompt, 'gpt-4o');
     case 'openai-mini':  return await _openai(prompt, 'gpt-4o-mini');
@@ -162,7 +162,7 @@ async function _gemini(prompt) {
   return d.candidates[0].content.parts[0].text;
 }
 
-async function _claude(prompt, model = 'claude-3-5-sonnet-20241022') {
+async function _claude(prompt, model = 'claude-3-haiku-20240307') {
   if (!ANTHROPIC_API_KEY) throw new Error('Anthropic API key not configured');
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
