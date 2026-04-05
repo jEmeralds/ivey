@@ -43,10 +43,6 @@ const IVeyLogo = ({ iconOnly = false, size = 34, className = '' }) => {
   const dotY = Math.round(ty + Math.max(2, s * 0.12));
   const dotR = Math.max(1.5, s * 0.075);
 
-  const handleClick = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   return (
     <a href="/" onClick={handleClick} className={`inline-flex items-center gap-0 hover:opacity-90 transition-opacity select-none cursor-pointer ${className}`}>
       {/* Circle mark with dot below */}
