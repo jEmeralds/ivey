@@ -4,9 +4,23 @@
 //   iconOnly         show circle mark only, no wordmark
 //   className        extra classes on wrapper
 
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 const IVeyLogo = ({ iconOnly = false, size = 34, className = '' }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleClick = (e) => {
+    e.preventDefault();
+    if (location.pathname === '/') {
+      // Already on home — scroll to top smoothly
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      navigate('/');
+      // Small delay to let page render then scroll to top
+      setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+    }
+  };
   const s   = size;
   const r   = s / 2 - 1;
   const cx  = s / 2;
@@ -29,8 +43,12 @@ const IVeyLogo = ({ iconOnly = false, size = 34, className = '' }) => {
   const dotY = Math.round(ty + Math.max(2, s * 0.12));
   const dotR = Math.max(1.5, s * 0.075);
 
+  const handleClick = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
-    <Link to="/" className={`inline-flex items-center gap-0 hover:opacity-90 transition-opacity select-none ${className}`}>
+    <Link to="/" onClick={handleClick} className={`inline-flex items-center gap-0 hover:opacity-90 transition-opacity select-none ${className}`}>
       {/* Circle mark with dot below */}
       <svg
         width={s}
@@ -82,7 +100,7 @@ const IVeyLogo = ({ iconOnly = false, size = 34, className = '' }) => {
           <circle cx={dotX} cy={wmH + dotR * 0.8} r={dotR} fill="#f59e0b"/>
         </svg>
       )}
-    </Link>
+    </a>
   );
 };
 
