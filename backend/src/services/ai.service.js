@@ -341,7 +341,7 @@ Answer these 8 questions about the SPECIFIC audience above:
 4. Positioning opportunity: One sentence — the unique position to claim
 
 ═══ SECTION 3: BRACKET & NARRATIVE ARC ═══
-1. Choose duration: 30, 45, or 60 seconds (30=simple/impulse, 45=lifestyle, 60=complex/premium)
+1. Choose duration: 30 or 45 seconds only. Max is 45 seconds.
 2. Bracket reason: One sentence why
 3. Design the 7-stage arc for this SPECIFIC campaign:
    - PATTERN INTERRUPT (0-8% of duration): What unexpected thing stops the scroll?
@@ -366,7 +366,7 @@ Formulas:
 Respond with ONLY this JSON — no text before or after, no markdown:
 {
   "bracket": {
-    "seconds": 60,
+    "seconds": 45,
     "reason": "one sentence"
   },
   "audience": {
@@ -427,7 +427,7 @@ Respond with ONLY this JSON — no text before or after, no markdown:
 
 function _fallbackBrief(campaignName, productDescription, targetAudience) {
   return {
-    bracket: { seconds: 60, reason: 'Complex product needing full story arc' },
+    bracket: { seconds: 45, reason: 'Default 45s bracket' },
     audience: {
       two_am_thought: `Whether ${productDescription} is the right choice`,
       secret_desire: `A meaningful transformation through ${productDescription}`,
@@ -540,6 +540,11 @@ FORMAT each scene exactly like this:
 (VISUAL: specific camera direction — movement, subject, mood, cultural setting)
 Spoken words here.
 
+TIMING RULE: This script must run for EXACTLY ${secs} seconds when performed at a natural pace.
+Account for: pauses between scenes, character transitions${productionBrief?.videoFormat === 'two_character' || productionBrief?.videoFormat === 'multi_character' ? ', natural dialogue gaps between speakers' : ''}, music intro/outro if specified.
+When in doubt — write LESS. A tight ${secs}s script is better than an overlong one.
+Do NOT pad with extra lines to fill time. Every line must earn its place.
+
 Write the complete script now, then provide the score.
 
 After the script, respond with this JSON on a new line (no markdown):
@@ -596,8 +601,8 @@ export const generateVideoScriptAI = async ({
 
   // Override bracket if user specified duration
   if (durationSeconds) {
-    const capped = Math.min(Number(durationSeconds), 60);
-    brief.bracket.seconds = capped <= 30 ? 30 : capped <= 45 ? 45 : 60;
+    const capped = Math.min(Number(durationSeconds), 45);
+    brief.bracket.seconds = capped <= 30 ? 30 : 45;
     brief.bracket.reason  = 'User specified duration';
   }
 
