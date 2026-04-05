@@ -4,7 +4,7 @@
 //   iconOnly         show circle mark only, no wordmark
 //   className        extra classes on wrapper
 
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const IVeyLogo = ({ iconOnly = false, size = 34, className = '' }) => {
   const navigate = useNavigate();
@@ -48,7 +48,7 @@ const IVeyLogo = ({ iconOnly = false, size = 34, className = '' }) => {
   };
 
   return (
-    <Link to="/" onClick={handleClick} className={`inline-flex items-center gap-0 hover:opacity-90 transition-opacity select-none ${className}`}>
+    <a href="/" onClick={handleClick} className={`inline-flex items-center gap-0 hover:opacity-90 transition-opacity select-none cursor-pointer ${className}`}>
       {/* Circle mark with dot below */}
       <svg
         width={s}
