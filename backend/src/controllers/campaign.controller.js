@@ -318,6 +318,9 @@ export const generateVideoScript = async (req, res) => {
       hooks:            result.hooks,
       winnerHook:       result.winnerHook,
       productionBrief:  result.productionBrief,
+
+      // HeyGen production setup — extracted from script
+      heygenSetup:      result.heygenSetup || null,
     });
   } catch (error) {
     console.error('Generate script error:', error);

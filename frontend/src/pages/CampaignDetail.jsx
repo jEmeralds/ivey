@@ -201,6 +201,7 @@ const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
         scoreFeatures:   data.scoreFeatures,
         bracketReason:   data.bracketReason,
         productionBrief: data.productionBrief,
+        heygenSetup:     data.heygenSetup || null,
       });
       setActiveTab('script');
     } catch (err) { showToast(err.message, 'error'); }
@@ -394,21 +395,23 @@ const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
                     <div className="flex-1">
                       <p className="text-xs font-bold text-gray-300 mb-2">Brand Colors</p>
                       <div className="flex flex-wrap gap-2">
-                        {[
-                          { label: 'Primary', color: '#10b981', name: 'Emerald' },
-                          { label: 'Accent',  color: '#f59e0b', name: 'Amber'   },
-                          { label: 'Dark',    color: '#111827', name: 'Dark'    },
-                          { label: 'White',   color: '#ffffff', name: 'White'   },
-                        ].map(c => (
-                          <button key={c.color} onClick={() => { navigator.clipboard.writeText(c.color); showToast(`${c.name} copied: ${c.color}`, 'success'); }}
-                            className="flex items-center gap-1.5 px-2 py-1 bg-gray-700 rounded-lg hover:bg-gray-600 transition-all">
-                            <div className="w-3 h-3 rounded-sm border border-gray-500 flex-shrink-0" style={{background: c.color}}/>
-                            <span className="text-xs text-gray-300 font-mono">{c.color}</span>
-                            <span className="text-xs text-gray-500">{c.label}</span>
-                          </button>
-                        ))}
+                        {(() => {
+                          const vi = intel?.heygenSetup;
+                          const brandColors = [
+                            { label: 'Primary',   color: vi?.['brand_kit_primary_color']   || '#10b981' },
+                            { label: 'Secondary', color: vi?.['brand_kit_secondary_color'] || '#f59e0b' },
+                          ];
+                          return brandColors.map(c => (
+                            <button key={c.color} onClick={() => { navigator.clipboard.writeText(c.color); showToast(`${c.label} color copied: ${c.color}`, 'success'); }}
+                              className="flex items-center gap-1.5 px-2 py-1 bg-gray-700 rounded-lg hover:bg-gray-600 transition-all">
+                              <div className="w-3 h-3 rounded-sm border border-gray-500 flex-shrink-0" style={{background: c.color}}/>
+                              <span className="text-xs text-gray-300 font-mono">{c.color}</span>
+                              <span className="text-xs text-gray-500">{c.label}</span>
+                            </button>
+                          ));
+                        })()}
                       </div>
-                      <p className="text-xs text-gray-600 mt-1.5">Click any color to copy the hex code</p>
+                      <p className="text-xs text-gray-600 mt-1.5">Click any color to copy — paste into HeyGen Brand Kit</p>
                     </div>
                   </div>
                 </div>
@@ -444,6 +447,38 @@ const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
                   )}
                 </div>
               </div>
+
+              {/* AI-generated HeyGen setup */}
+              {intel.heygenSetup && (
+                <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">⚡</span>
+                      <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">AI-Generated HeyGen Setup</p>
+                    </div>
+                    <button onClick={() => {
+                      const lines = Object.entries(intel.heygenSetup)
+                        .map(([k,v]) => k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())+': '+v)
+                        .join('\n');
+                      navigator.clipboard.writeText(lines);
+                      showToast('Full setup copied!', 'success');
+                    }} className="text-xs text-amber-400 hover:text-amber-300 border border-amber-500/30 px-2 py-1 rounded-lg transition-colors">
+                      Copy all
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {Object.entries(intel.heygenSetup).map(([key, val]) => (
+                      <div key={key} className="flex items-start gap-3 p-2.5 bg-gray-800/60 rounded-lg">
+                        <span className="text-xs font-bold text-amber-400/80 w-36 flex-shrink-0 capitalize leading-relaxed">{key.replace(/_/g, ' ')}</span>
+                        <span className="text-xs text-gray-200 leading-relaxed flex-1">{val}</span>
+                        <button onClick={() => { navigator.clipboard.writeText(val); showToast('Copied!', 'success'); }}
+                          className="text-xs text-gray-600 hover:text-amber-400 transition-colors flex-shrink-0">copy</button>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-600 mt-3">Generated from your brand profile and production brief. Every field maps directly to a HeyGen setting.</p>
+                </div>
+              )}
 
               {/* Script paste */}
               <div className="p-4 bg-gray-900/60 border border-gray-700 rounded-xl">
@@ -562,8 +597,7 @@ const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
                   `Viral Score: ${viralScore}/100 | Predicted: ${intel.predictedViews}`,
                   '',
                   'Generated by IVey — ivey-steel.vercel.app',
-                ].filter(l => l !== undefined).join('
-');
+                ].filter(l => l !== undefined).join('\n');
                 const blob = new Blob([brief], { type: 'text/plain' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');

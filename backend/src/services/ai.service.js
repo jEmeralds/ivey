@@ -267,53 +267,58 @@ export function buildBrandContext(brand) {
   if (!brand) return '';
   const lines = [];
 
-  // Core identity
-  if (brand.brand_name)           lines.push(`Brand: ${brand.brand_name}`);
+  // ── Core identity ──────────────────────────────────────────────────────────
+  if (brand.brand_name)           lines.push(`Brand name: ${brand.brand_name}`);
   if (brand.tagline)              lines.push(`Tagline: "${brand.tagline}"`);
   if (brand.industry)             lines.push(`Industry: ${brand.industry}`);
   if (brand.brand_story)          lines.push(`Brand story: ${brand.brand_story}`);
   if (brand.brand_voice)          lines.push(`Voice/tone: ${brand.brand_voice}`);
 
-  // Visual identity — from URL analysis or manual entry
-  if (brand.visual_identity) {
-    const vi = brand.visual_identity;
-    if (vi.logo_description)      lines.push(`Logo: ${vi.logo_description}`);
-    if (vi.primary_color)         lines.push(`Primary color: ${vi.primary_color}`);
-    if (vi.secondary_color)       lines.push(`Secondary color: ${vi.secondary_color}`);
-    if (vi.visual_style)          lines.push(`Visual style: ${vi.visual_style}`);
-    if (vi.mood_words?.length)    lines.push(`Visual mood: ${vi.mood_words.join(', ')}`);
+  // ── Visual identity — HeyGen needs these exact values ─────────────────────
+  const vi = brand.visual_identity || {};
+  const primaryColor   = vi.primary_color   || brand.brand_colors?.[0] || null;
+  const secondaryColor = vi.secondary_color || brand.brand_colors?.[1] || null;
+  const logoDesc       = vi.logo_description || null;
+  const visualStyle    = vi.visual_style || null;
+  const moodWords      = vi.mood_words?.length ? vi.mood_words : brand.visual_mood || [];
+
+  lines.push('');
+  lines.push('VISUAL IDENTITY (inject these into every scene visual note):');
+  if (logoDesc)          lines.push(`  Logo description: ${logoDesc}`);
+  if (brand.logo_url)    lines.push(`  Logo URL: ${brand.logo_url}`);
+  if (primaryColor)      lines.push(`  Primary color: ${primaryColor}`);
+  if (secondaryColor)    lines.push(`  Secondary color: ${secondaryColor}`);
+  if (visualStyle)       lines.push(`  Visual style: ${visualStyle}`);
+  if (moodWords.length)  lines.push(`  Mood: ${moodWords.join(', ')}`);
+  if (brand.script_visual_notes)
+                         lines.push(`  Visual directions: ${brand.script_visual_notes}`);
+
+  // ── Voice rules ────────────────────────────────────────────────────────────
+  if (brand.words_always?.length || brand.words_never?.length) {
+    lines.push('');
+    lines.push('BRAND VOICE RULES:');
+    if (brand.words_always?.length) lines.push(`  Always say: ${brand.words_always.join(', ')}`);
+    if (brand.words_never?.length)  lines.push(`  Never say: ${brand.words_never.join(', ')}`);
   }
 
-  // Logo URL — for visual notes in script
-  if (brand.logo_url)             lines.push(`Logo URL: ${brand.logo_url}`);
+  // ── Audience ───────────────────────────────────────────────────────────────
+  if (brand.target_personas || brand.pain_points || brand.audience_desires || brand.key_offerings?.length) {
+    lines.push('');
+    lines.push('BRAND AUDIENCE:');
+    if (brand.target_personas)       lines.push(`  Personas: ${brand.target_personas}`);
+    if (brand.pain_points)           lines.push(`  Pain points: ${brand.pain_points}`);
+    if (brand.audience_desires)      lines.push(`  Desires: ${brand.audience_desires}`);
+    if (brand.key_offerings?.length) lines.push(`  Key offerings: ${brand.key_offerings.join(', ')}`);
+  }
 
-  // Script visual directions — from URL analysis
-  if (brand.script_visual_notes)  lines.push(`Script visual directions: ${brand.script_visual_notes}`);
-
-  // Colors from manual brand setup
-  if (!brand.visual_identity && brand.visual_mood?.length)
-                                  lines.push(`Visual mood: ${brand.visual_mood.join(', ')}`);
-  if (brand.brand_colors?.length) lines.push(`Brand colors: ${brand.brand_colors.join(', ')}`);
-
-  // Voice rules
-  if (brand.words_always?.length) lines.push(`Always use: ${brand.words_always.join(', ')}`);
-  if (brand.words_never?.length)  lines.push(`Never use: ${brand.words_never.join(', ')}`);
-
-  // Audience intelligence
-  if (brand.target_personas)      lines.push(`Target personas: ${brand.target_personas}`);
-  if (brand.pain_points)          lines.push(`Pain points: ${brand.pain_points}`);
-  if (brand.audience_desires)     lines.push(`Audience desires: ${brand.audience_desires}`);
-
-  // Key offerings from URL analysis
-  if (brand.key_offerings?.length) lines.push(`Key offerings: ${brand.key_offerings.join(', ')}`);
-
-  if (!lines.length) return '';
-  return `\nBRAND PROFILE (use ALL visual details in script visual notes):\n${lines.join('\n')}\n`;
+  if (lines.filter(l => l.trim()).length === 0) return '';
+  return `\nBRAND PROFILE:\n${lines.join('\n')}\n`;
 }
 
 export function buildProductionContext(brief) {
   if (!brief) return '';
   const lines = [];
+
   const formatLabels = {
     single_narrator: 'Single narrator speaking directly to camera',
     two_character:   'Two-character conversation/dialogue — label speakers [CHARACTER A] and [CHARACTER B]',
@@ -321,24 +326,66 @@ export function buildProductionContext(brief) {
     voiceover:       'Voiceover narration only — no on-screen presenter, rich visual storytelling',
     interview:       'Interview format — HOST asks questions, GUEST answers',
   };
-  if (brief.videoFormat)     lines.push(`Format: ${formatLabels[brief.videoFormat] || brief.videoFormat}`);
-  if (brief.primaryMarket && brief.primaryMarket !== 'Global')
-                             lines.push(`Market: ${brief.primaryMarket} — reflect this culture in all visual details, references, and setting`);
-  if (brief.settingStyle)    lines.push(`Setting: ${brief.settingStyle}`);
-  if (brief.energyLevel)     lines.push(`Energy/Tone: ${brief.energyLevel}`);
-  if (brief.musicMood && brief.musicMood !== 'No music specified')
-                             lines.push(`Music: ${brief.musicMood}`);
-  if (brief.logoUrl)         lines.push(`Brand logo available at: ${brief.logoUrl}`);
 
-  const isNarrator = ['single_narrator', 'voiceover', 'interview'].includes(brief.videoFormat);
+  lines.push('PRODUCTION BRIEF (every field below must appear in script visual notes):');
+  if (brief.videoFormat)
+    lines.push(`  Video format: ${formatLabels[brief.videoFormat] || brief.videoFormat}`);
+
+  // Narrator — HeyGen needs exact presenter description for avatar selection
+  const isNarrator = ['single_narrator', 'interview'].includes(brief.videoFormat);
+  const isVoiceover = brief.videoFormat === 'voiceover';
   if (isNarrator) {
     const parts = [brief.narratorGender, brief.narratorAge, brief.narratorEthnicity]
       .filter(v => v && v !== 'Either' && v !== 'Any' && v !== 'Not specified');
-    if (parts.length) lines.push(`Narrator: ${parts.join(', ')} — include in every (VISUAL) direction`);
+    if (parts.length) {
+      lines.push(`  Presenter: ${parts.join(', ')}`);
+      lines.push(`  → HeyGen avatar should match this description exactly`);
+    }
+  }
+  if (isVoiceover) {
+    lines.push('  No on-screen presenter — camera tells the visual story');
   }
 
-  if (!lines.length) return '';
-  return `\nPRODUCTION BRIEF:\n${lines.join('\n')}\n`;
+  // Market and setting — be extremely specific
+  if (brief.primaryMarket && brief.primaryMarket !== 'Global') {
+    lines.push(`  Market: ${brief.primaryMarket}`);
+    lines.push(`  → All locations, names, references, and cultural cues must be specific to ${brief.primaryMarket}`);
+  }
+  if (brief.settingStyle)
+    lines.push(`  Setting style: ${brief.settingStyle}`);
+
+  // Combine market + setting into a specific location instruction
+  if (brief.primaryMarket && brief.settingStyle) {
+    const settingExample = {
+      'Urban':               `${brief.primaryMarket} city streets, modern buildings, busy atmosphere`,
+      'Rural':               `${brief.primaryMarket} countryside, natural landscape, open space`,
+      'Corporate / Office':  `${brief.primaryMarket} modern office, professional environment`,
+      'Lifestyle / Home':    `${brief.primaryMarket} home interior, warm domestic setting`,
+      'Nature / Outdoors':   `${brief.primaryMarket} natural outdoor environment, landscape`,
+      'Studio / Clean':      'Clean studio background, minimal, professional',
+      'Luxury':              `High-end ${brief.primaryMarket} environment, premium aesthetic`,
+      'Street / Market':     `${brief.primaryMarket} street market, local atmosphere, authentic`,
+    };
+    const example = settingExample[brief.settingStyle] || `${brief.primaryMarket} ${brief.settingStyle}`;
+    lines.push(`  → Location example: "${example}"`);
+  }
+
+  // Energy and tone
+  if (brief.energyLevel)
+    lines.push(`  Energy/Tone: ${brief.energyLevel}`);
+
+  // Music — HeyGen supports background music tracks
+  if (brief.musicMood && brief.musicMood !== 'No music specified') {
+    lines.push(`  Music: ${brief.musicMood} style, -18dB background, does not compete with voice`);
+    lines.push(`  → Specify in first scene visual note: music begins, fades under dialogue`);
+  }
+
+  // Logo
+  if (brief.logoUrl)
+    lines.push(`  Logo URL for HeyGen overlay: ${brief.logoUrl}`);
+
+  if (lines.length <= 1) return '';
+  return `\nPRODUCTION CONTEXT:\n${lines.join('\n')}\n`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -570,26 +617,68 @@ SCRIPT RULES (non-negotiable):
 — Short sentences — written for ears not eyes
 — Natural rhythm — how people actually talk
 — Zero filler — every second earns its place
-— Minimum 2 sensory details per 30 seconds
-— ONE CTA only — link in bio / visit website / one action
-— Visual note per scene in (VISUAL: ...) format
+— ONE CTA only — one action at the end
 — No clichés: no revolutionary, game-changing, limited time
-— Cultural setting: ${productionBrief?.primaryMarket || 'Global'}, ${productionBrief?.settingStyle || 'Urban'}
-— Music direction: ${productionBrief?.musicMood || 'not specified'}
 
-FORMAT each scene exactly like this:
+VISUAL NOTE RULES — this is the most important section:
+Every single (VISUAL:) note MUST contain ALL of the following elements. No exceptions.
+Do not write a generic visual note. Use the exact brand details provided above.
+
+1. PRESENTER — always name the presenter using the narrator profile:
+   e.g. "Female, 30s, East African presenter, warm confident energy, direct eye contact"
+   If voiceover format — describe what the camera sees instead, no presenter.
+
+2. SETTING — use the exact market and setting style from the production brief:
+   e.g. "Nairobi urban street at golden hour" / "Kenyan savanna, red earth, wide shot"
+   Never write "modern setting" or "urban environment" — be specific to the market.
+
+3. BRAND VISUALS — inject the brand into every scene:
+   - Logo: use the exact logo description from brand profile
+     e.g. "MOONRALDS SAFARIS emerald green circular logo, bottom-right corner, 70% opacity"
+   - Colors: name the exact primary and secondary colors from brand profile
+     e.g. "emerald green (#10b981) overlay fades in" / "amber (#f59e0b) CTA text"
+   - Visual style and mood from brand profile — reference them directly
+
+4. CAMERA — be specific about shot type and movement:
+   e.g. "close-up, slow push in" / "wide establishing shot, camera drifts right"
+   Never write "show the presenter" or "cut to product"
+
+5. MUSIC — first scene only, specify the music direction:
+   e.g. "warm Afrobeats instrumental begins, -18dB, builds through scene"
+
+FORMAT each scene EXACTLY like this — no shortcuts:
 [0:00–0:05]
-(VISUAL: specific camera direction — movement, subject, mood, cultural setting)
+(VISUAL: [Camera shot + movement]. [Presenter description + energy]. [Specific setting — market + environment]. [Brand logo placement + color overlay]. [Music direction — first scene only].)
 Spoken words here.
+
+EXAMPLE of a correctly formatted visual note:
+(VISUAL: Slow push-in, medium close-up. Female, 30s, East African presenter, warm confident energy, direct eye contact, slight smile. Nairobi urban rooftop at golden hour, city skyline behind her. MOONRALDS SAFARIS emerald green circular logo bottom-right corner 70% opacity. Warm Afrobeats instrumental begins -18dB.)
+
+EXAMPLE of an INCORRECTLY formatted visual note — never do this:
+(VISUAL: Show the presenter speaking to camera in a modern setting.)
 
 TIMING RULE: This script must run for EXACTLY ${secs} seconds when performed at a natural pace.
 Account for: pauses between scenes, character transitions${productionBrief?.videoFormat === 'two_character' || productionBrief?.videoFormat === 'multi_character' ? ', natural dialogue gaps between speakers' : ''}, music intro/outro if specified.
 When in doubt — write LESS. A tight ${secs}s script is better than an overlong one.
 Do NOT pad with extra lines to fill time. Every line must earn its place.
 
-Write the complete script now, then provide the score.
+Write the complete script now. Then append a HeyGen setup block. Then provide the score.
 
-After the script, respond with this JSON on a new line (no markdown):
+After the script, append this block EXACTLY (fill in the values from the brand and production context above):
+
+---HEYGEN SETUP---
+Avatar: [describe the exact presenter — gender, age, ethnicity, energy — so the user knows which HeyGen avatar to select]
+Background: [exact setting description — location, time of day, atmosphere]
+Brand kit primary color: [exact hex code]
+Brand kit secondary color: [exact hex code]
+Logo placement: [position, opacity, timing — e.g. bottom-right corner, 70% opacity, throughout]
+Music: [exact music style and volume — e.g. Afrobeats instrumental, -18dB, begins at 0:00]
+Lower third: [brand name, timing — e.g. "MOONRALDS SAFARIS" appears at 0:03, fades at 0:08]
+CTA overlay: [CTA text, timing — e.g. "Link in bio" at 0:37]
+Export format: 1080x1920 (9:16) for TikTok/Reels
+---END HEYGEN SETUP---
+
+After the HeyGen setup block, respond with this JSON on a new line (no markdown):
 SCORE_JSON:{"score":72,"predicted_views":"1M-10M","features":{"hook_strength":8,"emotion_curve":7,"specificity":8,"audience_match":8,"platform_fit":7,"cta_strength":7,"shareability":7},"strengths":["strength1","strength2"],"improvements":["improvement1","improvement2"]}`;
 
   console.log('   ✍️  Call 2: Writing script...');
@@ -607,9 +696,27 @@ SCORE_JSON:{"score":72,"predicted_views":"1M-10M","features":{"hook_strength":8,
     if (parsed.score) scoring = parsed;
   }
 
+  // Extract HeyGen setup block from script
+  let heygenSetup = null;
+  const heygenStart = script.indexOf('---HEYGEN SETUP---');
+  const heygenEnd   = script.indexOf('---END HEYGEN SETUP---');
+  if (heygenStart !== -1 && heygenEnd !== -1) {
+    const setupRaw = script.slice(heygenStart + '---HEYGEN SETUP---'.length, heygenEnd).trim();
+    heygenSetup    = {};
+    setupRaw.split('\n').forEach(line => {
+      const colonIdx = line.indexOf(':');
+      if (colonIdx === -1) return;
+      const key = line.slice(0, colonIdx).trim().toLowerCase().replace(/\s+/g, '_');
+      const val = line.slice(colonIdx + 1).trim();
+      if (key && val) heygenSetup[key] = val;
+    });
+    // Remove setup block from script — keep script clean for HeyGen paste
+    script = (script.slice(0, heygenStart) + script.slice(heygenEnd + '---END HEYGEN SETUP---'.length)).trim();
+  }
+
   console.log(`   ✅ Call 2 done — Script: ${script.length} chars | Score: ${scoring.score}/100 | ${scoring.predicted_views} views`);
 
-  return { script, ...scoring };
+  return { script, heygenSetup, ...scoring };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
