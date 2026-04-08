@@ -112,7 +112,8 @@ const SelectGroup = ({ options, value, onChange, color = 'emerald' }) => {
 // ── Main component ────────────────────────────────────────────────────────────
 const NewCampaign = () => {
   const navigate = useNavigate();
- const [products,       setProducts]       = useState([]);
+  const [loading,        setLoading]        = useState(false);
+  const [products,       setProducts]       = useState([]);
   const [error,          setError]          = useState('');
   const [brands,         setBrands]         = useState([]);
   const [brandsLoading,  setBrandsLoading]  = useState(true);
