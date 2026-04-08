@@ -52,7 +52,7 @@ const DeleteButton = ({ onConfirm, deleting }) => {
 };
 
 // ── Products section — shows brand selector then products ─────────────────────
-const ProductsSection = () => {
+const ProductsSection = ({ preselectedBrandId = null, onClearBrand }) => {
   const [brands,        setBrands]        = useState([]);
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [loading,       setLoading]       = useState(true);
@@ -67,13 +67,23 @@ const ProductsSection = () => {
         const data = await r.json();
         const list = data.brands || [];
         setBrands(list);
-        // Auto-select if only one brand
-        if (list.length === 1) setSelectedBrand(list[0]);
+        // If coming from BrandPage "Products" button, preselect that brand
+        if (preselectedBrandId) {
+          const found = list.find(b => b.id === preselectedBrandId);
+          if (found) setSelectedBrand(found);
+        } else if (list.length === 1) {
+          setSelectedBrand(list[0]);
+        }
       } catch {}
       finally { setLoading(false); }
     };
     load();
-  }, []);
+  }, [preselectedBrandId]);
+
+  const handleBack = () => {
+    setSelectedBrand(null);
+    if (onClearBrand) onClearBrand();
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
@@ -94,7 +104,7 @@ const ProductsSection = () => {
     <ProductsPage
       brandId={selectedBrand.id}
       embedded
-      onBack={() => setSelectedBrand(null)}
+      onBack={handleBack}
     />
   );
 
@@ -138,6 +148,7 @@ const Dashboard = () => {
   };
 
   const [activeSection, setActiveSection] = useState(getInitialSection);
+  const [activeBrandId, setActiveBrandId] = useState(null);
   const [sidebarOpen,   setSidebarOpen]   = useState(false);
   const [campaigns,     setCampaigns]     = useState([]);
   const [loading,       setLoading]       = useState(true);
@@ -410,8 +421,8 @@ const Dashboard = () => {
         <main className="flex-1 p-4 md:p-8 pb-24 md:pb-8 max-w-5xl w-full mx-auto">
           {activeSection === 'overview'   && <OverviewSection/>}
           {activeSection === 'campaigns'  && <CampaignsSection/>}
-          {activeSection === 'brands'     && <BrandPage embedded onViewProducts={(brandId) => goTo('products')} />}
-          {activeSection === 'products'   && <ProductsSection/>}
+          {activeSection === 'brands'     && <BrandPage embedded onViewProducts={(brandId) => { setActiveBrandId(brandId); goTo('products'); }} />}
+          {activeSection === 'products'   && <ProductsSection preselectedBrandId={activeBrandId} onClearBrand={() => setActiveBrandId(null)} />}
           {activeSection === 'social'     && (
             <div className="space-y-4">
               <div>
