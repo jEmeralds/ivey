@@ -52,6 +52,48 @@ const DeleteButton = ({ onConfirm, deleting }) => {
 };
 
 // ── Products section — shows brand selector then products ─────────────────────
+// ── Brand card with live product count ───────────────────────────────────────
+const BrandProductCard = ({ brand: b, onSelect }) => {
+  const [count, setCount] = useState(null);
+  const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
+  const token   = () => localStorage.getItem('token');
+
+  useEffect(() => {
+    fetch(`${API_URL}/products?brand_id=${b.id}`, { headers: { Authorization: `Bearer ${token()}` } })
+      .then(r => r.json())
+      .then(d => setCount((d.products || []).length))
+      .catch(() => setCount(0));
+  }, [b.id]);
+
+  return (
+    <button onClick={onSelect}
+      className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl hover:border-emerald-500 dark:hover:border-emerald-500 transition-all text-left group">
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black flex-shrink-0"
+        style={{ background: b.brand_colors?.[0] || '#10b981', color: '#fff' }}>
+        {b.brand_name?.charAt(0).toUpperCase()}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-gray-900 dark:text-white text-sm">{b.brand_name}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          {b.industry && <p className="text-xs text-gray-500">{b.industry}</p>}
+          {count !== null && (
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+              count === 0
+                ? 'bg-gray-100 dark:bg-gray-700 text-gray-400'
+                : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+            }`}>
+              {count === 0 ? 'No products' : `${count} product${count !== 1 ? 's' : ''}`}
+            </span>
+          )}
+        </div>
+      </div>
+      <svg className="w-4 h-4 text-gray-400 group-hover:text-emerald-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+      </svg>
+    </button>
+  );
+};
+
 const ProductsSection = ({ preselectedBrandId = null, onClearBrand }) => {
   const [brands,        setBrands]        = useState([]);
   const [selectedBrand, setSelectedBrand] = useState(null);
@@ -113,24 +155,13 @@ const ProductsSection = ({ preselectedBrandId = null, onClearBrand }) => {
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">Products</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Select a brand to manage its products</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          Select a brand to view and manage its products
+        </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {brands.map(b => (
-          <button key={b.id} onClick={() => setSelectedBrand(b)}
-            className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl hover:border-emerald-500 dark:hover:border-emerald-500 transition-all text-left group">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black flex-shrink-0"
-              style={{ background: b.brand_colors?.[0] || '#10b981', color: '#fff' }}>
-              {b.brand_name?.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-gray-900 dark:text-white text-sm">{b.brand_name}</p>
-              {b.industry && <p className="text-xs text-gray-500 mt-0.5">{b.industry}</p>}
-            </div>
-            <svg className="w-4 h-4 text-gray-400 group-hover:text-emerald-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
-            </svg>
-          </button>
+          <BrandProductCard key={b.id} brand={b} onSelect={() => setSelectedBrand(b)} />
         ))}
       </div>
     </div>
