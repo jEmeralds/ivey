@@ -18,6 +18,7 @@ import Support from './pages/Support';
 import SocialAdminDashboard from './pages/SocialAdminDashboard';
 import BrandPage from './pages/BrandPage';
 import GallerySection from './components/GallerySection';
+import ProductsPage from './pages/ProductsPage';
 
 
 function App() {
@@ -45,6 +46,7 @@ function App() {
               <Route path="*" element={<Home />} />
               <Route path="/brand" element={<BrandPage />} />
               <Route path="/gallery" element={<GallerySection />} />
+              <Route path="/brands/:brandId/products" element={<ProductsPage />} />
             </Routes>
           </main>
           <ChatWidget />

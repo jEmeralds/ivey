@@ -411,7 +411,7 @@ Complete ALL sections below for this campaign. Be specific — not generic marke
 CAMPAIGN: ${campaignName}
 PRODUCT: ${productDescription}
 AUDIENCE: ${targetAudience}
-${brandCtx}${prodCtx}${webResearch ? `\nMARKET RESEARCH:\n${webResearch}\n` : ''}
+${brandCtx}${prodCtx}${productCtx}${webResearch ? `\nMARKET RESEARCH:\n${webResearch}\n` : ''}
 
 ═══ SECTION 1: AUDIENCE PSYCHOLOGY ═══
 Answer these 8 questions about the SPECIFIC audience above:
@@ -564,10 +564,12 @@ function _fallbackBrief(campaignName, productDescription, targetAudience) {
 async function generateScriptAndScore({
   campaignName, productDescription, targetAudience,
   brief, brand, productionBrief, ai_provider, userPlan,
+  product, campaignType,
 }) {
-  const brandCtx = buildBrandContext(brand);
-  const prodCtx  = buildProductionContext(productionBrief);
-  const secs     = brief.bracket.seconds;
+  const brandCtx   = buildBrandContext(brand);
+  const prodCtx    = buildProductionContext(productionBrief);
+  const productCtx = product ? buildProductContext(product) : '';
+  const secs       = brief.bracket.seconds;
   const arc      = brief.arc;
   const hook     = brief.winnerHook;
   const audience = brief.audience;
@@ -586,7 +588,7 @@ async function generateScriptAndScore({
 CAMPAIGN: ${campaignName}
 PRODUCT: ${productDescription}
 AUDIENCE: ${targetAudience}
-${brandCtx}${prodCtx}
+${brandCtx}${prodCtx}${productCtx}
 
 FORMAT INSTRUCTION: ${formatInstructions[format] || formatInstructions.single_narrator}
 
@@ -817,6 +819,7 @@ export const generateVideoScriptAI = async ({
   const result = await generateScriptAndScore({
     campaignName, productDescription, targetAudience,
     brief, brand, productionBrief, ai_provider, userPlan,
+    product, campaignType,
   });
 
   console.log(`\n✅ IVey Engine v4 complete — "${campaignName}"`);
@@ -923,6 +926,57 @@ Format: ${format}`;
   return await callAI(ai_provider || 'gemini', prompt, userPlan);
 };
 
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRODUCT CONTEXT BUILDER
+// Injects product details into the script engine for product ad campaigns
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function buildProductContext(product) {
+  if (!product) return '';
+  const lines = [];
+
+  lines.push('PRODUCT PROFILE (this is a PRODUCT AD — the script must showcase this specific product):');
+  if (product.product_name)    lines.push(`  Product: ${product.product_name}`);
+  if (product.tagline)         lines.push(`  Tagline: "${product.tagline}"`);
+  if (product.category)        lines.push(`  Category: ${product.category}`);
+  if (product.price)           lines.push(`  Price: ${product.price}`);
+  if (product.description)     lines.push(`  Description: ${product.description}`);
+
+  const features = (product.features || []).filter(f => f?.trim());
+  if (features.length) {
+    lines.push(`  Key features:`);
+    features.forEach((f, i) => lines.push(`    ${i+1}. ${f}`));
+  }
+
+  if (product.how_to_use)      lines.push(`  How it's used: ${product.how_to_use}`);
+  if (product.demo_notes)      lines.push(`  Visual demo notes: ${product.demo_notes}`);
+  if (product.order_link)      lines.push(`  Order/buy link: ${product.order_link}`);
+
+  // Product images — inject URLs so HeyGen can use them
+  const images = (product.images || []).filter(img => img.url);
+  if (images.length) {
+    lines.push(`  Product images (use these in visual notes — exact URLs for HeyGen):`);
+    images.forEach((img, i) => {
+      lines.push(`    Image ${i+1}: ${img.url}${img.is_hero ? ' [HERO — main product shot]' : ''}${img.caption ? ` — ${img.caption}` : ''}`);
+    });
+    lines.push(`  → Every (VISUAL:) note must reference these product images. Use the hero image prominently.`);
+    lines.push(`  → Tell HeyGen: "overlay product image at [position]" or "background: product image [URL]"`);
+  }
+
+  lines.push('');
+  lines.push('PRODUCT AD SCRIPT STRUCTURE (follow this — not the brand awareness structure):');
+  lines.push('  Scene 1: Hook — product in action or problem it solves');
+  lines.push('  Scene 2: Product reveal — show it clearly, hero image moment');
+  lines.push('  Scene 3-N: Feature demonstration — one feature per scene, fast cuts');
+  lines.push('  Scene N-1: Social proof or result — what happens after using it');
+  lines.push('  Final scene: CTA — price + where to order/buy');
+
+  return `
+${lines.join('\n')}
+`;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // BRAND URL ANALYZER

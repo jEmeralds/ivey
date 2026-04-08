@@ -195,7 +195,7 @@ const inputCls = 'w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white
 const sectionCls = 'bg-gray-800 border border-gray-700 rounded-2xl p-6 mb-4';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-const BrandPage = ({ embedded = false }) => {
+const BrandPage = ({ embedded = false, onViewProducts }) => {
   const navigate = useNavigate();
   const [brands,   setBrands]   = useState([]);
   const [selected, setSelected] = useState(null);
@@ -406,6 +406,10 @@ const BrandPage = ({ embedded = false }) => {
                       Set as default
                     </button>
                   )}
+                  <button onClick={() => onViewProducts ? onViewProducts(selected) : navigate(`/brands/${selected}/products`)}
+                    className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors font-semibold">
+                    📦 Products
+                  </button>
                   <button onClick={() => handleDelete(selected)}
                     className="text-xs text-gray-600 hover:text-red-400 transition-colors">
                     Delete

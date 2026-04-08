@@ -4,6 +4,7 @@ import IVeyLogo from '../components/IVeyLogo';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getCampaigns, deleteCampaign } from '../services/api';
 import BrandPage from './BrandPage';
+import ProductsPage from './ProductsPage';
 import GallerySubmitButton from '../components/GallerySubmitButton';
 import SocialConnect, { AnalyticsPanel } from '../components/SocialConnect';
 
@@ -82,6 +83,7 @@ const Dashboard = () => {
   };
 
   const [activeSection, setActiveSection] = useState(getInitialSection);
+  const [activeBrandId, setActiveBrandId] = useState(null);
   const [sidebarOpen,   setSidebarOpen]   = useState(false);
   const [campaigns,     setCampaigns]     = useState([]);
   const [loading,       setLoading]       = useState(true);
@@ -376,7 +378,8 @@ const Dashboard = () => {
         <main className="flex-1 p-4 md:p-8 pb-24 md:pb-8 max-w-5xl w-full mx-auto">
           {activeSection === 'overview'  && <OverviewSection />}
           {activeSection === 'campaigns' && <CampaignsSection />}
-          {activeSection === 'brands'    && <BrandPage embedded />}
+          {activeSection === 'brands'    && <BrandPage embedded onViewProducts={(brandId) => { setActiveBrandId(brandId); setActiveSection('products'); }} />}
+          {activeSection === 'products'  && <ProductsPage brandId={activeBrandId} embedded />}
           {activeSection === 'social'    && (
             <div className="space-y-4">
               <div>

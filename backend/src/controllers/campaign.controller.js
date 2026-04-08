@@ -86,7 +86,7 @@ export const getCampaignById = async (req, res) => {
 export const createCampaign = async (req, res) => {
   try {
     const userId = req.userId;
-    const { name, description, targetAudience, aiProvider, outputFormats, brandName, websiteUrl, brandProfileId, videoDuration, productionBrief, brandIntelligence } = req.body;
+    const { name, description, targetAudience, aiProvider, outputFormats, brandName, websiteUrl, brandProfileId, videoDuration, productionBrief, brandIntelligence, campaignType, productId } = req.body;
 
     if (!name || !description || !targetAudience || !outputFormats || outputFormats.length === 0) {
       return res.status(400).json({ error: 'All fields are required' });
@@ -110,9 +110,11 @@ export const createCampaign = async (req, res) => {
         ai_provider:         aiProvider || 'gemini',
         output_formats:      outputFormats,
         brand_profile_id:    brandProfileId || null,
-        video_duration:      videoDuration || null,
+        video_duration:      videoDuration  || null,
         production_brief:    productionBrief || null,
         brand_intelligence:  brandIntelligence || null,
+        campaign_type:       campaignType || 'brand_awareness',
+        product_id:          productId    || null,
       }])
       .select()
       .single();
@@ -129,14 +131,22 @@ export const updateCampaign = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
-    const { name, description, targetAudience, aiProvider, outputFormats } = req.body;
+    const { name, description, targetAudience, aiProvider, outputFormats,
+            websiteUrl, brandProfileId, videoDuration, productionBrief,
+            brandIntelligence, campaignType, productId } = req.body;
 
     const updateData = { updated_at: new Date().toISOString() };
-    if (name)           updateData.name                = name;
-    if (description)    updateData.product_description = description;
-    if (targetAudience) updateData.target_audience     = targetAudience;
-    if (aiProvider)     updateData.ai_provider         = aiProvider;
-    if (outputFormats)  updateData.output_formats      = outputFormats;
+    if (name)              updateData.name                = name;
+    if (description)       updateData.product_description = description;
+    if (targetAudience)    updateData.target_audience     = targetAudience;
+    if (aiProvider)        updateData.ai_provider         = aiProvider;
+    if (outputFormats)     updateData.output_formats      = outputFormats;
+    if (websiteUrl)        updateData.website_url         = websiteUrl;
+    if (brandProfileId)    updateData.brand_profile_id    = brandProfileId;
+    if (productionBrief)   updateData.production_brief    = productionBrief;
+    if (brandIntelligence) updateData.brand_intelligence  = brandIntelligence;
+    if (campaignType)      updateData.campaign_type       = campaignType;
+    updateData.product_id = productId || null;
 
     const { data: campaign, error } = await supabaseAdmin
       .from('campaigns').update(updateData).eq('id', id).eq('user_id', userId).select().single();
@@ -262,6 +272,19 @@ export const generateVideoScript = async (req, res) => {
 
     const { generateVideoScriptAI } = await import('../services/ai.service.js');
 
+    // Fetch product if campaign has one
+    let product = null;
+    if (campaign.product_id) {
+      const { data: productData } = await supabaseAdmin
+        .from('products')
+        .select('*')
+        .eq('id', campaign.product_id)
+        .eq('user_id', userId)
+        .single();
+      product = productData || null;
+      if (product) console.log(`   📦 Product: ${product.product_name} (${product.category || 'no category'})`);
+    }
+
     // Merge brand profile with URL-extracted intelligence
     // URL intelligence fills in visual details the brand profile may lack
     const mergedBrand = brand ? { ...brand } : {};
@@ -289,6 +312,8 @@ export const generateVideoScript = async (req, res) => {
       brand:              mergedBrand,
       productionBrief:    campaign.production_brief || null,
       ai_provider:        ai_provider || campaign.ai_provider || 'gemini',
+      product:            product,
+      campaignType:       campaign.campaign_type || 'brand_awareness',
     });
 
     // Return the full intelligence package to the frontend

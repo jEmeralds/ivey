@@ -4,6 +4,14 @@ import { createCampaign } from '../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
 
+const CAMPAIGN_TYPES = [
+  { id: 'brand_awareness', label: 'Brand Awareness', icon: '🏷', desc: 'Build brand recognition and emotional connection' },
+  { id: 'product_ad',      label: 'Product Ad',      icon: '📦', desc: 'Showcase a specific product — features, demo, CTA' },
+  { id: 'tutorial',        label: 'Tutorial / How-To', icon: '🎓', desc: 'Teach how to use your product or service' },
+  { id: 'testimonial',     label: 'Testimonial',     icon: '⭐', desc: 'Customer story or social proof format' },
+  { id: 'ugc',             label: 'UGC Style',       icon: '🤳', desc: 'User-generated content feel — raw and authentic' },
+];
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 const AI_PROVIDERS = [
   { id: 'gemini', label: 'Gemini', icon: '💎', desc: 'Free tier, fast'    },
@@ -165,6 +173,22 @@ const NewCampaign = () => {
     fetchBrands();
   }, []);
 
+  // ── Load products when brand changes ────────────────────────────────────────
+  useEffect(() => {
+    if (!formData.brandProfileId) { setProducts([]); return; }
+    const loadProducts = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/products?brand_id=${formData.brandProfileId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setProducts(data.products || []);
+      } catch { setProducts([]); }
+    };
+    loadProducts();
+  }, [formData.brandProfileId]);
+
   // ── Auto-analyze brand when URL changes ────────────────────────────────────
   useEffect(() => {
     if (!formData.websiteUrl) return;
@@ -212,8 +236,10 @@ const NewCampaign = () => {
       const response = await createCampaign({
         ...formData,
         outputFormats,
-        productionBrief: formData.production,
+        productionBrief:   formData.production,
         brandIntelligence: brandIntelligence || null,
+        campaignType:      formData.campaignType || 'brand_awareness',
+        productId:         formData.productId   || null,
       });
       navigate(`/campaigns/${response.campaign.id}`, { state: { from: 'campaigns' } });
     } catch (err) {
@@ -272,6 +298,72 @@ const NewCampaign = () => {
                   placeholder="e.g., MOONRALDS SAFARI LAUNCH 2025"
                   className={inp} />
               </div>
+
+              {/* Campaign type */}
+              <div>
+                <label className={lbl}>Campaign Type</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {CAMPAIGN_TYPES.map(t => (
+                    <button key={t.id} type="button"
+                      onClick={() => setFormData(p => ({ ...p, campaignType: t.id, productId: '' }))}
+                      className={`flex items-start gap-2.5 p-3 rounded-xl border-2 text-left transition-all ${
+                        formData.campaignType === t.id
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}>
+                      <span className="text-lg flex-shrink-0">{t.icon}</span>
+                      <div>
+                        <p className={`text-xs font-bold ${formData.campaignType === t.id ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'}`}>{t.label}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{t.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Product selector — only for product_ad and tutorial */}
+              {['product_ad', 'tutorial'].includes(formData.campaignType) && (
+                <div>
+                  <label className={lbl}>Select Product *</label>
+                  {products.length > 0 ? (
+                    <div className="space-y-2">
+                      {products.map(p => (
+                        <button key={p.id} type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, productId: p.id }))}
+                          className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                            formData.productId === p.id
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                          }`}>
+                          {p.images?.[0]?.url ? (
+                            <img src={p.images[0].url} alt={p.product_name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0"/>
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 text-xl">📦</div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-bold ${formData.productId === p.id ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-800 dark:text-gray-200'}`}>{p.product_name}</p>
+                            {p.price && <p className="text-xs text-gray-500">{p.price}</p>}
+                            {p.features?.filter(f=>f).length > 0 && (
+                              <p className="text-xs text-gray-400 mt-0.5">{p.features.filter(f=>f).slice(0,2).join(' · ')}</p>
+                            )}
+                          </div>
+                          {formData.productId === p.id && <span className="text-emerald-500 text-sm flex-shrink-0">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  ) : formData.brandProfileId ? (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 text-center">
+                      <p className="text-xs text-gray-500 mb-2">No products found for this brand.</p>
+                      <a href="/dashboard" className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-semibold">
+                        Add products in Dashboard → Brands → Products →
+                      </a>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">Select a brand profile first to see its products.</p>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className={lbl}>Product / Service Description *</label>
                 <textarea required rows={4} value={formData.description}

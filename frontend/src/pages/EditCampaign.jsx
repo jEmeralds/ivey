@@ -4,6 +4,14 @@ import { getCampaignById, updateCampaign } from '../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
 
+const CAMPAIGN_TYPES = [
+  { id: 'brand_awareness', label: 'Brand Awareness', icon: '🏷', desc: 'Build brand recognition and emotional connection' },
+  { id: 'product_ad',      label: 'Product Ad',      icon: '📦', desc: 'Showcase a specific product — features, demo, CTA' },
+  { id: 'tutorial',        label: 'Tutorial / How-To', icon: '🎓', desc: 'Teach how to use your product or service' },
+  { id: 'testimonial',     label: 'Testimonial',     icon: '⭐', desc: 'Customer story or social proof format' },
+  { id: 'ugc',             label: 'UGC Style',       icon: '🤳', desc: 'Raw and authentic user-generated content feel' },
+];
+
 const AI_PROVIDERS = [
   { id: 'gemini', label: 'Gemini', icon: '💎', desc: 'Free tier, fast'    },
   { id: 'claude', label: 'Claude', icon: '🤖', desc: 'Creative & precise' },
@@ -69,7 +77,10 @@ const EditCampaign = () => {
     name: '', description: '', targetAudience: '', websiteUrl: '',
     aiProvider: 'claude', captionFormats: [], outputFormats: [],
     production: { ...DEFAULT_PROD },
+    campaignType: 'brand_awareness',
+    productId: '',
   });
+  const [products, setProducts] = useState([]);
 
   const set    = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const setProd = (k, v) => setForm(p => ({ ...p, production: { ...p.production, [k]: v } }));
@@ -88,6 +99,8 @@ const EditCampaign = () => {
           targetAudience: c.target_audience || '',
           websiteUrl:     c.website_url || '',
           aiProvider:     c.ai_provider || 'claude',
+          campaignType:   c.campaign_type || 'brand_awareness',
+          productId:      c.product_id    || '',
           captionFormats: all.filter(f => f !== 'VIDEO_SCRIPT'),
           outputFormats:  all,
           production: {
@@ -104,10 +117,39 @@ const EditCampaign = () => {
           },
         });
         if (pb.logoUrl) setLogoPreview(pb.logoUrl);
+
+        // Load products for this brand
+        if (c.brand_profile_id) {
+          try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/products?brand_id=${c.brand_profile_id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            setProducts(data.products || []);
+          } catch { setProducts([]); }
+        }
       } catch { setError('Failed to load campaign'); }
       finally  { setLoading(false); }
     })();
   }, [id]);
+
+  // Load products for brand
+  useEffect(() => {
+    const brandId = form.production?.brandProfileId ||
+      (form.aiProvider ? null : null); // loaded from campaign below
+    if (!brandId) return;
+    (async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/products?brand_id=${brandId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setProducts(data.products || []);
+      } catch { setProducts([]); }
+    })();
+  }, []);
 
   useEffect(() => {
     if (!form.websiteUrl) return;
@@ -145,8 +187,10 @@ const EditCampaign = () => {
         targetAudience: form.targetAudience, websiteUrl: form.websiteUrl,
         aiProvider: form.aiProvider,
         outputFormats: ['VIDEO_SCRIPT', ...form.captionFormats],
-        productionBrief: form.production,
+        productionBrief:   form.production,
         brandIntelligence: brandIntelligence || null,
+        campaignType:      form.campaignType || 'brand_awareness',
+        productId:         form.productId    || null,
       });
       navigate(`/campaigns/${id}`, { state: { from: 'campaigns' } });
     } catch (err) {
@@ -199,6 +243,61 @@ const EditCampaign = () => {
                 <label className={lbl}>Campaign Name *</label>
                 <input type="text" required value={form.name} onChange={e => set('name', e.target.value)} className={inp}/>
               </div>
+              {/* Campaign type */}
+              <div>
+                <label className={lbl}>Campaign Type</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {CAMPAIGN_TYPES.map(t => (
+                    <button key={t.id} type="button"
+                      onClick={() => set('campaignType', t.id)}
+                      className={`flex items-start gap-2.5 p-3 rounded-xl border-2 text-left transition-all ${
+                        form.campaignType === t.id
+                          ? 'border-emerald-500 bg-emerald-500/10'
+                          : 'border-gray-700 hover:border-gray-600'
+                      }`}>
+                      <span className="text-lg flex-shrink-0">{t.icon}</span>
+                      <div>
+                        <p className={`text-xs font-bold ${form.campaignType === t.id ? 'text-emerald-400' : 'text-gray-300'}`}>{t.label}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{t.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Product selector */}
+              {['product_ad', 'tutorial'].includes(form.campaignType) && (
+                <div>
+                  <label className={lbl}>Select Product</label>
+                  {products.length > 0 ? (
+                    <div className="space-y-2">
+                      {products.map(p => (
+                        <button key={p.id} type="button"
+                          onClick={() => set('productId', p.id)}
+                          className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                            form.productId === p.id
+                              ? 'border-emerald-500 bg-emerald-500/10'
+                              : 'border-gray-700 hover:border-gray-600'
+                          }`}>
+                          {p.images?.[0]?.url ? (
+                            <img src={p.images[0].url} alt={p.product_name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0"/>
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0 text-xl">📦</div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-bold ${form.productId === p.id ? 'text-emerald-400' : 'text-gray-200'}`}>{p.product_name}</p>
+                            {p.price && <p className="text-xs text-gray-500">{p.price}</p>}
+                          </div>
+                          {form.productId === p.id && <span className="text-emerald-400 text-sm">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500 p-3 bg-gray-900/40 rounded-xl">No products found for this brand. Add products in Dashboard → Brands.</p>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className={lbl}>Product / Service Description *</label>
                 <textarea required rows={4} value={form.description}
