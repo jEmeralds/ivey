@@ -120,6 +120,8 @@ const ProductForm = ({ product, brandId, onSave, onCancel }) => {
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
   const [savedId, setSavedId] = useState(product?.id || null);
+  // Sync images from product prop
+  useEffect(() => { if (product?.images) set('images', product.images); }, []);
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const setFeature = (i, v) => {
@@ -138,8 +140,9 @@ const ProductForm = ({ product, brandId, onSave, onCancel }) => {
         features: (form.features || []).filter(f => f.trim()),
       };
       let res;
-      if (isEdit || savedId) {
-        res = await api.updateProduct(savedId || product.id, payload);
+      const existingId = savedId || product?.id;
+      if (existingId) {
+        res = await api.updateProduct(existingId, payload);
       } else {
         res = await api.createProduct(payload);
         if (res.product?.id) setSavedId(res.product.id);
@@ -253,10 +256,20 @@ const ProductForm = ({ product, brandId, onSave, onCancel }) => {
           />
         ) : (
           <div className="p-4 bg-gray-700/50 rounded-xl border border-dashed border-gray-600 text-center">
-            <p className="text-xs text-gray-500">Save the product first to upload images</p>
-            <button onClick={handleSave} disabled={saving}
-              className="mt-2 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all">
-              Save & Add Images
+            <p className="text-xs text-gray-500 mb-2">Save the product first, then add images</p>
+            <button onClick={async () => {
+              if (!form.product_name?.trim()) { setError('Enter a product name first'); return; }
+              setSaving(true); setError('');
+              try {
+                const payload = { ...form, brand_profile_id: brandId, features: (form.features || []).filter(f => f.trim()) };
+                const res = isEdit ? await api.updateProduct(product.id, payload) : await api.createProduct(payload);
+                if (res.error) { setError(res.error); return; }
+                setSavedId(res.product.id);
+                setForm(prev => ({ ...prev, images: res.product.images || [] }));
+              } finally { setSaving(false); }
+            }} disabled={saving}
+              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save & Add Images'}
             </button>
           </div>
         )}
