@@ -55,7 +55,8 @@ export const PROVIDERS = {
 
 const SYSTEM = `You are an expert viral marketing strategist and world-class video scriptwriter.
 Be specific, creative, and deeply psychological in your approach.
-Always respond with valid JSON when asked. Never add markdown fences around JSON.`;
+When a prompt asks for JSON, respond with valid JSON only. Never add markdown fences around JSON.
+When a prompt asks for a script, respond with plain text — never wrap a script in JSON.`;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -629,14 +630,16 @@ Do not write a generic visual note. Use the exact brand details provided above.
    If voiceover format — describe what the camera sees instead, no presenter.
 
 2. SETTING — use the exact market and setting style from the production brief:
-   e.g. "Nairobi urban street at golden hour" / "Kenyan savanna, red earth, wide shot"
-   Never write "modern setting" or "urban environment" — be specific to the market.
+   e.g. "Nairobi urban street at golden hour" / "Lagos waterfront at sunset" / "Dubai skyline, glass towers"
+   If market is Global — pick ONE specific real city that fits the brand's audience. Never write "global setting" or "modern environment".
+   Never write "modern setting" or "urban environment" — always name a real specific place.
 
 3. BRAND VISUALS — inject the brand into every scene:
    - Logo: use the exact logo description from brand profile
      e.g. "MOONRALDS SAFARIS emerald green circular logo, bottom-right corner, 70% opacity"
-   - Colors: name the exact primary and secondary colors from brand profile
+   - Colors: ALWAYS include the # symbol in hex codes
      e.g. "emerald green (#10b981) overlay fades in" / "amber (#f59e0b) CTA text"
+     WRONG: "10b981 color accents" — CORRECT: "(#10b981) color overlay"
    - Visual style and mood from brand profile — reference them directly
 
 4. CAMERA — be specific about shot type and movement:
@@ -658,9 +661,21 @@ EXAMPLE of an INCORRECTLY formatted visual note — never do this:
 (VISUAL: Show the presenter speaking to camera in a modern setting.)
 
 TIMING RULE: This script must run for EXACTLY ${secs} seconds when performed at a natural pace.
-Account for: pauses between scenes, character transitions${productionBrief?.videoFormat === 'two_character' || productionBrief?.videoFormat === 'multi_character' ? ', natural dialogue gaps between speakers' : ''}, music intro/outro if specified.
-When in doubt — write LESS. A tight ${secs}s script is better than an overlong one.
-Do NOT pad with extra lines to fill time. Every line must earn its place.
+— Maximum scenes: ${secs <= 30 ? 3 : 4} scenes. No more. Each scene must earn its place.
+— A 45s script has 4 scenes maximum. A 30s script has 3 scenes maximum.
+— Average scene = 10-12 seconds of spoken words + visual note
+— Account for natural pauses, breathing, and pacing between scenes
+— When in doubt — write LESS. A tight ${secs}s script beats an overlong one every time
+— Do NOT pad with extra lines. Do NOT add scenes just to fill time.
+
+OUTPUT FORMAT — plain text only. No JSON wrapper. No markdown. Just the scenes:
+[0:00–0:05]
+(VISUAL: ...)
+Spoken words.
+
+[0:05–0:15]
+(VISUAL: ...)
+Spoken words.
 
 Write the complete script now. Then append a HeyGen setup block. Then provide the score.
 
@@ -695,6 +710,19 @@ SCORE_JSON:{"score":72,"predicted_views":"1M-10M","features":{"hook_strength":8,
     const parsed   = extractJSON(scoreRaw, {});
     if (parsed.score) scoring = parsed;
   }
+
+  // Strip JSON wrapper if AI wrapped the script — e.g. {"SCRIPT": "..."}  or {"SCRIPT": [...]}
+  if (script.trimStart().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(script);
+      const scriptVal = parsed.SCRIPT || parsed.script || parsed.content || parsed.text;
+      if (scriptVal) {
+        script = Array.isArray(scriptVal) ? scriptVal.join('\n\n') : String(scriptVal);
+      }
+    } catch { /* not JSON — leave as is */ }
+  }
+  // Also strip any leading/trailing markdown fences
+  script = script.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
 
   // Extract HeyGen setup block from script
   let heygenSetup = null;
