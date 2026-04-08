@@ -1,25 +1,5 @@
 ﻿// ═══════════════════════════════════════════════════════════════════════════════
 // IVey AI Engine — v4.0  (2-Call Architecture)
-// ───────────────────────────────────────────────────────────────────────────────
-//
-//  CALL 1 — Intelligence Brief  (~15s)
-//    Audience psychology (8 questions)
-//    Competitive gap analysis
-//    Narrative arc design
-//    5 hooks scored and ranked
-//    Bracket selection (30/45/60s)
-//    All in ONE prompt — one API call
-//
-//  CALL 2 — Script Construction  (~20s)
-//    Writes the complete production script
-//    Uses everything from Call 1
-//    Scores the script (viral score, features)
-//    Returns final result
-//
-//  Total: 2 API calls, ~35-45 seconds, same intelligence depth
-//
-//  Provider registry — all main providers open, Grok/Mistral paid only
-//  Adding a provider = 1 entry in PROVIDERS + 1 case in callAI()
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import fetch from 'node-fetch';
@@ -30,7 +10,6 @@ const ANTHROPIC_API_KEY    = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY       = process.env.OPENAI_API_KEY;
 const BRAVE_SEARCH_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
 
-// ── Model config — override via Railway env vars to swap models without redeploy
 const MODELS = {
   gemini:       process.env.GEMINI_MODEL        || 'gemini-2.5-flash',
   claude:       process.env.CLAUDE_MODEL        || 'claude-3-haiku-20240307',
@@ -39,10 +18,8 @@ const MODELS = {
   openaiMini:   process.env.OPENAI_MINI_MODEL   || 'gpt-4o-mini',
 };
 
-// ── Script duration cap — override via env var
 const MAX_SCRIPT_SECONDS = parseInt(process.env.MAX_SCRIPT_SECONDS || '45');
 
-// ── Provider registry ─────────────────────────────────────────────────────────
 export const PROVIDERS = {
   GEMINI:        { id: 'gemini',       tier: 'free', name: 'Gemini 2.5 Flash' },
   CLAUDE_HAIKU:  { id: 'claude-haiku', tier: 'free', name: 'Claude Haiku'     },
@@ -58,7 +35,6 @@ Be specific, creative, and deeply psychological in your approach.
 When a prompt asks for JSON, respond with valid JSON only. Never add markdown fences around JSON.
 When a prompt asks for a script, respond with plain text — never wrap a script in JSON.`;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 function extractJSON(raw, fallback = {}) {
@@ -74,12 +50,9 @@ function extractJSON(raw, fallback = {}) {
   return fallback;
 }
 
-// ── Provider router with smart fallback ───────────────────────────────────────
-// Fallback order based on what keys are available
 function _getFallbackChain(preferred) {
   const all = ['claude', 'gemini', 'claude-haiku', 'openai', 'openai-mini'];
   const chain = [preferred, ...all.filter(p => p !== preferred)];
-  // Filter to only providers we have keys for
   return chain.filter(p => {
     if (p === 'gemini')       return !!GEMINI_API_KEY;
     if (p === 'claude')       return !!ANTHROPIC_API_KEY;
@@ -106,9 +79,7 @@ async function _tryProvider(provider, prompt) {
 export async function callAI(provider = 'gemini', prompt, userPlan = 'free') {
   const chain = _getFallbackChain(provider);
   if (!chain.length) throw new Error('No AI providers configured — check API keys in Railway environment variables');
-
   console.log(`   🤖 ${provider} (chain: ${chain.join(' → ')})`);
-
   for (let i = 0; i < chain.length; i++) {
     const p = chain[i];
     try {
@@ -121,18 +92,12 @@ export async function callAI(provider = 'gemini', prompt, userPlan = 'free') {
                           err.message?.includes('limit');
       const isKeyError  = err.message?.includes('API key') || err.message?.includes('not configured') ||
                           err.message?.includes('401') || err.message?.includes('403');
-
-      if (isKeyError) {
-        console.warn(`   ⚠️  ${p} — key error, skipping`);
-        continue;
-      }
+      if (isKeyError) { console.warn(`   ⚠️  ${p} — key error, skipping`); continue; }
       if (isRateLimit && i < chain.length - 1) {
         console.warn(`   ⚠️  ${p} rate limited — trying ${chain[i + 1]}`);
-        await sleep(1500);
-        continue;
+        await sleep(1500); continue;
       }
       if (i === chain.length - 1) {
-        // Last provider — wait and retry once
         if (isRateLimit) {
           console.warn(`   ⏳ All providers busy — waiting 20s then retrying ${chain[0]}`);
           await sleep(20000);
@@ -151,7 +116,6 @@ export function getAvailableProviders(userPlan = 'free') {
     .map(p => ({ id: p.id, name: p.name, tier: p.tier }));
 }
 
-// ── Raw provider implementations ──────────────────────────────────────────────
 async function _gemini(prompt) {
   if (!GEMINI_API_KEY) throw new Error('Gemini API key not configured');
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODELS.gemini}:generateContent?key=${GEMINI_API_KEY}`;
@@ -163,10 +127,7 @@ async function _gemini(prompt) {
       generationConfig: { temperature: 0.75, maxOutputTokens: 4096 },
     }),
   });
-  if (!res.ok) {
-    const e = await res.json();
-    throw new Error(`Gemini: ${e.error?.message || res.statusText}`);
-  }
+  if (!res.ok) { const e = await res.json(); throw new Error(`Gemini: ${e.error?.message || res.statusText}`); }
   const d = await res.json();
   if (!d.candidates?.[0]?.content?.parts?.length) {
     if (d.promptFeedback?.blockReason) throw new Error(`Gemini blocked: ${d.promptFeedback.blockReason}`);
@@ -179,20 +140,10 @@ async function _claude(prompt, model = MODELS.claude) {
   if (!ANTHROPIC_API_KEY) throw new Error('Anthropic API key not configured');
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model, max_tokens: 4096, system: SYSTEM,
-      messages: [{ role: 'user', content: prompt }],
-    }),
+    headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model, max_tokens: 4096, system: SYSTEM, messages: [{ role: 'user', content: prompt }] }),
   });
-  if (!res.ok) {
-    const e = await res.json();
-    throw new Error(`Claude: ${e.error?.message || res.statusText}`);
-  }
+  if (!res.ok) { const e = await res.json(); throw new Error(`Claude: ${e.error?.message || res.statusText}`); }
   return (await res.json()).content[0].text;
 }
 
@@ -201,16 +152,9 @@ async function _openai(prompt, model = 'gpt-4o-mini') {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${OPENAI_API_KEY}` },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }],
-      max_tokens: 4096, temperature: 0.75,
-    }),
+    body: JSON.stringify({ model, messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.75 }),
   });
-  if (!res.ok) {
-    const e = await res.json();
-    throw new Error(`OpenAI: ${e.error?.message || res.statusText}`);
-  }
+  if (!res.ok) { const e = await res.json(); throw new Error(`OpenAI: ${e.error?.message || res.statusText}`); }
   return (await res.json()).choices[0].message.content;
 }
 
@@ -220,11 +164,7 @@ async function _grok(prompt) {
   const res = await fetch('https://api.x.ai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model: 'grok-2-latest',
-      messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }],
-      max_tokens: 4096, temperature: 0.75,
-    }),
+    body: JSON.stringify({ model: 'grok-2-latest', messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.75 }),
   });
   if (!res.ok) { const e = await res.json(); throw new Error(`Grok: ${e.error?.message}`); }
   return (await res.json()).choices[0].message.content;
@@ -236,17 +176,12 @@ async function _mistral(prompt) {
   const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model: 'mistral-large-latest',
-      messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }],
-      max_tokens: 4096, temperature: 0.75,
-    }),
+    body: JSON.stringify({ model: 'mistral-large-latest', messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: prompt }], max_tokens: 4096, temperature: 0.75 }),
   });
   if (!res.ok) { const e = await res.json(); throw new Error(`Mistral: ${e.error?.message}`); }
   return (await res.json()).choices[0].message.content;
 }
 
-// ── Web search (optional enrichment) ─────────────────────────────────────────
 async function _searchWeb(query) {
   if (BRAVE_SEARCH_API_KEY) {
     try {
@@ -267,22 +202,17 @@ async function _searchWeb(query) {
 export function buildBrandContext(brand) {
   if (!brand) return '';
   const lines = [];
-
-  // ── Core identity ──────────────────────────────────────────────────────────
   if (brand.brand_name)           lines.push(`Brand name: ${brand.brand_name}`);
   if (brand.tagline)              lines.push(`Tagline: "${brand.tagline}"`);
   if (brand.industry)             lines.push(`Industry: ${brand.industry}`);
   if (brand.brand_story)          lines.push(`Brand story: ${brand.brand_story}`);
   if (brand.brand_voice)          lines.push(`Voice/tone: ${brand.brand_voice}`);
-
-  // ── Visual identity — HeyGen needs these exact values ─────────────────────
   const vi = brand.visual_identity || {};
   const primaryColor   = vi.primary_color   || brand.brand_colors?.[0] || null;
   const secondaryColor = vi.secondary_color || brand.brand_colors?.[1] || null;
   const logoDesc       = vi.logo_description || null;
   const visualStyle    = vi.visual_style || null;
   const moodWords      = vi.mood_words?.length ? vi.mood_words : brand.visual_mood || [];
-
   lines.push('');
   lines.push('VISUAL IDENTITY (inject these into every scene visual note):');
   if (logoDesc)          lines.push(`  Logo description: ${logoDesc}`);
@@ -291,18 +221,13 @@ export function buildBrandContext(brand) {
   if (secondaryColor)    lines.push(`  Secondary color: ${secondaryColor}`);
   if (visualStyle)       lines.push(`  Visual style: ${visualStyle}`);
   if (moodWords.length)  lines.push(`  Mood: ${moodWords.join(', ')}`);
-  if (brand.script_visual_notes)
-                         lines.push(`  Visual directions: ${brand.script_visual_notes}`);
-
-  // ── Voice rules ────────────────────────────────────────────────────────────
+  if (brand.script_visual_notes) lines.push(`  Visual directions: ${brand.script_visual_notes}`);
   if (brand.words_always?.length || brand.words_never?.length) {
     lines.push('');
     lines.push('BRAND VOICE RULES:');
     if (brand.words_always?.length) lines.push(`  Always say: ${brand.words_always.join(', ')}`);
     if (brand.words_never?.length)  lines.push(`  Never say: ${brand.words_never.join(', ')}`);
   }
-
-  // ── Audience ───────────────────────────────────────────────────────────────
   if (brand.target_personas || brand.pain_points || brand.audience_desires || brand.key_offerings?.length) {
     lines.push('');
     lines.push('BRAND AUDIENCE:');
@@ -311,7 +236,6 @@ export function buildBrandContext(brand) {
     if (brand.audience_desires)      lines.push(`  Desires: ${brand.audience_desires}`);
     if (brand.key_offerings?.length) lines.push(`  Key offerings: ${brand.key_offerings.join(', ')}`);
   }
-
   if (lines.filter(l => l.trim()).length === 0) return '';
   return `\nBRAND PROFILE:\n${lines.join('\n')}\n`;
 }
@@ -319,7 +243,6 @@ export function buildBrandContext(brand) {
 export function buildProductionContext(brief) {
   if (!brief) return '';
   const lines = [];
-
   const formatLabels = {
     single_narrator: 'Single narrator speaking directly to camera',
     two_character:   'Two-character conversation/dialogue — label speakers [CHARACTER A] and [CHARACTER B]',
@@ -327,13 +250,9 @@ export function buildProductionContext(brief) {
     voiceover:       'Voiceover narration only — no on-screen presenter, rich visual storytelling',
     interview:       'Interview format — HOST asks questions, GUEST answers',
   };
-
   lines.push('PRODUCTION BRIEF (every field below must appear in script visual notes):');
-  if (brief.videoFormat)
-    lines.push(`  Video format: ${formatLabels[brief.videoFormat] || brief.videoFormat}`);
-
-  // Narrator — HeyGen needs exact presenter description for avatar selection
-  const isNarrator = ['single_narrator', 'interview'].includes(brief.videoFormat);
+  if (brief.videoFormat) lines.push(`  Video format: ${formatLabels[brief.videoFormat] || brief.videoFormat}`);
+  const isNarrator  = ['single_narrator', 'interview'].includes(brief.videoFormat);
   const isVoiceover = brief.videoFormat === 'voiceover';
   if (isNarrator) {
     const parts = [brief.narratorGender, brief.narratorAge, brief.narratorEthnicity]
@@ -343,66 +262,85 @@ export function buildProductionContext(brief) {
       lines.push(`  → HeyGen avatar should match this description exactly`);
     }
   }
-  if (isVoiceover) {
-    lines.push('  No on-screen presenter — camera tells the visual story');
-  }
-
-  // Market and setting — be extremely specific
+  if (isVoiceover) lines.push('  No on-screen presenter — camera tells the visual story');
   if (brief.primaryMarket && brief.primaryMarket !== 'Global') {
     lines.push(`  Market: ${brief.primaryMarket}`);
     lines.push(`  → All locations, names, references, and cultural cues must be specific to ${brief.primaryMarket}`);
   }
-  if (brief.settingStyle)
-    lines.push(`  Setting style: ${brief.settingStyle}`);
-
-  // Combine market + setting into a specific location instruction
+  if (brief.settingStyle) lines.push(`  Setting style: ${brief.settingStyle}`);
   if (brief.primaryMarket && brief.settingStyle) {
     const settingExample = {
-      'Urban':               `${brief.primaryMarket} city streets, modern buildings, busy atmosphere`,
-      'Rural':               `${brief.primaryMarket} countryside, natural landscape, open space`,
-      'Corporate / Office':  `${brief.primaryMarket} modern office, professional environment`,
-      'Lifestyle / Home':    `${brief.primaryMarket} home interior, warm domestic setting`,
-      'Nature / Outdoors':   `${brief.primaryMarket} natural outdoor environment, landscape`,
-      'Studio / Clean':      'Clean studio background, minimal, professional',
-      'Luxury':              `High-end ${brief.primaryMarket} environment, premium aesthetic`,
-      'Street / Market':     `${brief.primaryMarket} street market, local atmosphere, authentic`,
+      'Urban':              `${brief.primaryMarket} city streets, modern buildings, busy atmosphere`,
+      'Rural':              `${brief.primaryMarket} countryside, natural landscape, open space`,
+      'Corporate / Office': `${brief.primaryMarket} modern office, professional environment`,
+      'Lifestyle / Home':   `${brief.primaryMarket} home interior, warm domestic setting`,
+      'Nature / Outdoors':  `${brief.primaryMarket} natural outdoor environment, landscape`,
+      'Studio / Clean':     'Clean studio background, minimal, professional',
+      'Luxury':             `High-end ${brief.primaryMarket} environment, premium aesthetic`,
+      'Street / Market':    `${brief.primaryMarket} street market, local atmosphere, authentic`,
     };
     const example = settingExample[brief.settingStyle] || `${brief.primaryMarket} ${brief.settingStyle}`;
     lines.push(`  → Location example: "${example}"`);
   }
-
-  // Energy and tone
-  if (brief.energyLevel)
-    lines.push(`  Energy/Tone: ${brief.energyLevel}`);
-
-  // Music — HeyGen supports background music tracks
+  if (brief.energyLevel) lines.push(`  Energy/Tone: ${brief.energyLevel}`);
   if (brief.musicMood && brief.musicMood !== 'No music specified') {
     lines.push(`  Music: ${brief.musicMood} style, -18dB background, does not compete with voice`);
     lines.push(`  → Specify in first scene visual note: music begins, fades under dialogue`);
   }
-
-  // Logo
-  if (brief.logoUrl)
-    lines.push(`  Logo URL for HeyGen overlay: ${brief.logoUrl}`);
-
+  if (brief.logoUrl) lines.push(`  Logo URL for HeyGen overlay: ${brief.logoUrl}`);
   if (lines.length <= 1) return '';
   return `\nPRODUCTION CONTEXT:\n${lines.join('\n')}\n`;
+}
+
+export function buildProductContext(product) {
+  if (!product) return '';
+  const lines = [];
+  lines.push('PRODUCT PROFILE (this is a PRODUCT AD — the script must showcase this specific product):');
+  if (product.product_name)    lines.push(`  Product: ${product.product_name}`);
+  if (product.tagline)         lines.push(`  Tagline: "${product.tagline}"`);
+  if (product.category)        lines.push(`  Category: ${product.category}`);
+  if (product.price)           lines.push(`  Price: ${product.price}`);
+  if (product.description)     lines.push(`  Description: ${product.description}`);
+  const features = (product.features || []).filter(f => f?.trim());
+  if (features.length) {
+    lines.push(`  Key features:`);
+    features.forEach((f, i) => lines.push(`    ${i+1}. ${f}`));
+  }
+  if (product.how_to_use)  lines.push(`  How it's used: ${product.how_to_use}`);
+  if (product.demo_notes)  lines.push(`  Visual demo notes: ${product.demo_notes}`);
+  if (product.order_link)  lines.push(`  Order/buy link: ${product.order_link}`);
+  const images = (product.images || []).filter(img => img.url);
+  if (images.length) {
+    lines.push(`  Product images (use these in visual notes — exact URLs for HeyGen):`);
+    images.forEach((img, i) => {
+      lines.push(`    Image ${i+1}: ${img.url}${img.is_hero ? ' [HERO — main product shot]' : ''}${img.caption ? ` — ${img.caption}` : ''}`);
+    });
+    lines.push(`  → Every (VISUAL:) note must reference these product images. Use the hero image prominently.`);
+    lines.push(`  → Tell HeyGen: "overlay product image at [position]" or "background: product image [URL]"`);
+  }
+  lines.push('');
+  lines.push('PRODUCT AD SCRIPT STRUCTURE (follow this — not the brand awareness structure):');
+  lines.push('  Scene 1: Hook — product in action or problem it solves');
+  lines.push('  Scene 2: Product reveal — show it clearly, hero image moment');
+  lines.push('  Scene 3-N: Feature demonstration — one feature per scene, fast cuts');
+  lines.push('  Scene N-1: Social proof or result — what happens after using it');
+  lines.push('  Final scene: CTA — price + where to order/buy');
+  return `\n${lines.join('\n')}\n`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CALL 1 — INTELLIGENCE BRIEF
 // ═══════════════════════════════════════════════════════════════════════════════
-// One prompt that does all the thinking:
-// audience psychology + competitive gap + narrative arc + 5 hooks + bracket
 
 async function generateIntelligenceBrief({
   campaignName, productDescription, targetAudience,
-  brand, productionBrief, ai_provider, userPlan,
+  brand, product, productionBrief, ai_provider, userPlan,
   webResearch = '',
 }) {
-  const brandCtx = buildBrandContext(brand);
-  const prodCtx  = buildProductionContext(productionBrief);
-  const format   = productionBrief?.videoFormat || 'single_narrator';
+  const brandCtx   = buildBrandContext(brand);
+  const prodCtx    = buildProductionContext(productionBrief);
+  const productCtx = product ? buildProductContext(product) : '';
+  const format     = productionBrief?.videoFormat || 'single_narrator';
 
   const prompt = `You are a viral marketing strategist, consumer psychologist, and narrative architect.
 
@@ -499,16 +437,15 @@ Respond with ONLY this JSON — no text before or after, no markdown:
 }`;
 
   console.log('   🧠 Call 1: Intelligence Brief...');
-  const raw    = await callAI(ai_provider, prompt, userPlan);
-  const brief  = extractJSON(raw, null);
+  const raw   = await callAI(ai_provider, prompt, userPlan);
+  const brief = extractJSON(raw, null);
 
   if (!brief?.bracket || !brief?.hooks) {
     console.warn('   ⚠️  Intelligence brief incomplete — using fallback structure');
     return _fallbackBrief(campaignName, productDescription, targetAudience);
   }
 
-  // Sort hooks by total score, pick winner
-  brief.hooks = brief.hooks.sort((a, b) => (b.total || 0) - (a.total || 0));
+  brief.hooks     = brief.hooks.sort((a, b) => (b.total || 0) - (a.total || 0));
   brief.winnerHook = brief.hooks[0];
 
   console.log(`   ✅ Call 1 done — ${brief.bracket.seconds}s | Arc: "${brief.arc?.name}" | Hook: ${brief.winnerHook?.formula} (${brief.winnerHook?.total}/30)`);
@@ -540,12 +477,12 @@ function _fallbackBrief(campaignName, productDescription, targetAudience) {
       emotional_throughline: 'From stuck and frustrated to transformed and proud',
       stages: [
         { stage: 'PATTERN INTERRUPT', timing: '0-5s',  direction: 'Bold unexpected opening', example: 'Stop. Before you scroll past this.', visual: 'Close-up, unexpected angle' },
-        { stage: 'TENSION BUILD',     timing: '5-15s', direction: 'Name their pain', example: 'You have tried everything.', visual: 'Relatable scene' },
-        { stage: 'IDENTIFICATION',    timing: '15-25s',direction: 'Mirror their experience', example: 'I know exactly how that feels.', visual: 'Direct address' },
-        { stage: 'REVELATION',        timing: '25-40s',direction: 'Reveal the solution', example: 'That is why we built this.', visual: 'Product reveal' },
-        { stage: 'PROOF',             timing: '40-50s',direction: 'One specific result', example: 'In 30 days, everything changed.', visual: 'Real result shown' },
-        { stage: 'PERMISSION',        timing: '50-56s',direction: 'Remove the guilt', example: 'You deserve this.', visual: 'Warm, direct' },
-        { stage: 'ACTION',            timing: '56-60s',direction: 'Single next step', example: 'Link in bio. Start today.', visual: 'Clear CTA' },
+        { stage: 'TENSION BUILD',     timing: '5-15s', direction: 'Name their pain',          example: 'You have tried everything.',        visual: 'Relatable scene'           },
+        { stage: 'IDENTIFICATION',    timing: '15-25s',direction: 'Mirror their experience',  example: 'I know exactly how that feels.',    visual: 'Direct address'            },
+        { stage: 'REVELATION',        timing: '25-40s',direction: 'Reveal the solution',      example: 'That is why we built this.',        visual: 'Product reveal'            },
+        { stage: 'PROOF',             timing: '40-50s',direction: 'One specific result',      example: 'In 30 days, everything changed.',   visual: 'Real result shown'         },
+        { stage: 'PERMISSION',        timing: '50-56s',direction: 'Remove the guilt',         example: 'You deserve this.',                 visual: 'Warm, direct'              },
+        { stage: 'ACTION',            timing: '56-60s',direction: 'Single next step',         example: 'Link in bio. Start today.',         visual: 'Clear CTA'                 },
       ],
     },
     hooks: [
@@ -558,22 +495,20 @@ function _fallbackBrief(campaignName, productDescription, targetAudience) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // CALL 2 — SCRIPT CONSTRUCTION + SCORING
 // ═══════════════════════════════════════════════════════════════════════════════
-// Writes the complete production-ready script using the intelligence brief
-// Scores it in the same response — no separate scoring call
 
 async function generateScriptAndScore({
   campaignName, productDescription, targetAudience,
-  brief, brand, productionBrief, ai_provider, userPlan,
-  product, campaignType,
+  brief, brand, product, productionBrief, ai_provider, userPlan,
+  campaignType,
 }) {
   const brandCtx   = buildBrandContext(brand);
   const prodCtx    = buildProductionContext(productionBrief);
   const productCtx = product ? buildProductContext(product) : '';
   const secs       = brief.bracket.seconds;
-  const arc      = brief.arc;
-  const hook     = brief.winnerHook;
-  const audience = brief.audience;
-  const format   = productionBrief?.videoFormat || 'single_narrator';
+  const arc        = brief.arc;
+  const hook       = brief.winnerHook;
+  const audience   = brief.audience;
+  const format     = productionBrief?.videoFormat || 'single_narrator';
 
   const formatInstructions = {
     single_narrator: 'One presenter speaks directly to camera. Write every spoken word.',
@@ -623,126 +558,66 @@ SCRIPT RULES (non-negotiable):
 — ONE CTA only — one action at the end
 — No clichés: no revolutionary, game-changing, limited time
 
-VISUAL NOTE RULES — this is the most important section:
-Every single (VISUAL:) note MUST contain ALL of the following elements. No exceptions.
-Do not write a generic visual note. Use the exact brand details provided above.
+VISUAL NOTE RULES:
+Every single (VISUAL:) note MUST contain: presenter description, specific setting, brand logo + colors (hex with #), camera movement, music (first scene only).
 
-1. PRESENTER — always name the presenter using the narrator profile:
-   e.g. "Female, 30s, East African presenter, warm confident energy, direct eye contact"
-   If voiceover format — describe what the camera sees instead, no presenter.
-
-2. SETTING — use the exact market and setting style from the production brief.
-   Always name a REAL specific place that matches both the market AND the industry:
-   — Tech/SaaS brand + Urban = "San Francisco co-working space, floor-to-ceiling windows, morning light"
-   — Safari brand + Rural = "Kenyan savanna at golden hour, red earth dust rising"
-   — Fashion brand + Luxury = "Lagos rooftop terrace, city lights below, evening"
-   If market is Global — pick ONE real city that fits the brand's industry and audience.
-   NEVER write: "global setting", "street market", "modern environment", "urban environment"
-   A street market is ONLY appropriate for brands that literally sell at street markets.
-
-3. BRAND VISUALS — inject the brand into every scene:
-   - Logo: use the exact logo description from brand profile
-     e.g. "MOONRALDS SAFARIS emerald green circular logo, bottom-right corner, 70% opacity"
-   - Colors: hex codes MUST start with #. This is non-negotiable.
-     CORRECT: "(#10b981)" or "#10b981 overlay"
-     WRONG: "(10b981)" or "0f172a accent" — missing # is an error
-   - Visual style and mood from brand profile — reference them directly
-
-4. CAMERA — be specific about shot type and movement:
-   e.g. "close-up, slow push in" / "wide establishing shot, camera drifts right"
-   Never write "show the presenter" or "cut to product"
-
-5. MUSIC — first scene only, specify the music direction:
-   e.g. "warm Afrobeats instrumental begins, -18dB, builds through scene"
-
-FORMAT each scene EXACTLY like this — no shortcuts:
+FORMAT each scene EXACTLY like this:
 [0:00–0:05]
-(VISUAL: [Camera shot + movement]. [Presenter description + energy]. [Specific setting — market + environment]. [Brand logo placement + color overlay]. [Music direction — first scene only].)
+(VISUAL: [Camera shot + movement]. [Presenter description + energy]. [Specific setting]. [Brand logo placement + color overlay]. [Music direction — first scene only].)
 Spoken words here.
 
-EXAMPLE of a correctly formatted visual note:
-(VISUAL: Slow push-in, medium close-up. Female, 30s, East African presenter, warm confident energy, direct eye contact, slight smile. Nairobi urban rooftop at golden hour, city skyline behind her. MOONRALDS SAFARIS emerald green circular logo bottom-right corner 70% opacity. Warm Afrobeats instrumental begins -18dB.)
+TIMING RULE: EXACTLY ${secs} seconds. Target 3-5 seconds per scene.
 
-EXAMPLE of an INCORRECTLY formatted visual note — never do this:
-(VISUAL: Show the presenter speaking to camera in a modern setting.)
-
-TIMING RULE: This script must run for EXACTLY ${secs} seconds when performed at a natural pace.
-— SCENE COUNT: as many as the story needs. More scenes = faster cuts = higher engagement on social.
-— Target 3-5 seconds per scene. A 45s script should aim for 8-12 scenes. A 30s script 6-8 scenes.
-— Think music video pacing — quick cuts hold attention. Not documentary pacing — slow cuts lose it.
-— Each scene = ONE visual moment + 1-2 punchy spoken lines maximum. Never more than 2 lines per scene.
-— No filler. No padding. Every single line must earn its place.
-
-OUTPUT FORMAT — two clearly separated sections, plain text only, no JSON wrapper, no markdown:
+OUTPUT FORMAT — two clearly separated sections, plain text only:
 
 ---SPOKEN SCRIPT---
-The clean spoken words only — exactly what the avatar will say out loud.
-No visual notes. No parentheses. No stage directions. Just the spoken words.
-Each line on its own line. Short punchy lines. Blank line between scenes.
+Clean spoken words only. No visual notes. No parentheses. Just spoken words. Each line on its own line.
 
 ---HEYGEN PROMPT---
-A single paragraph (max 80 words) that HeyGen uses to set the visual context.
-Include: presenter description, setting, brand colors, logo placement, music, pacing, energy.
-This is the director's brief — everything visual that is NOT spoken.
-Write it as natural flowing instructions, not a bullet list.
-
-Write both sections now. Then append the HeyGen setup block. Then provide the score.
-
-After the script, append this block EXACTLY (fill in the values from the brand and production context above):
+A single paragraph (max 80 words) — the director's brief for HeyGen.
 
 ---HEYGEN SETUP---
-Avatar: [describe the exact presenter — gender, age, ethnicity, energy — so the user knows which HeyGen avatar to select]
-Background: [exact setting description — location, time of day, atmosphere]
-Brand kit primary color: [exact hex code]
-Brand kit secondary color: [exact hex code]
-Logo placement: [position, opacity, timing — e.g. bottom-right corner, 70% opacity, throughout]
-Music: [exact music style and volume — e.g. Afrobeats instrumental, -18dB, begins at 0:00]
-Lower third: [brand name, timing — e.g. "MOONRALDS SAFARIS" appears at 0:03, fades at 0:08]
-CTA overlay: [CTA text, timing — e.g. "Link in bio" at 0:37]
+Avatar: [presenter description]
+Background: [exact setting]
+Brand kit primary color: [hex]
+Brand kit secondary color: [hex]
+Logo placement: [position, opacity, timing]
+Music: [style and volume]
+Lower third: [brand name, timing]
+CTA overlay: [CTA text, timing]
 Export format: 1080x1920 (9:16) for TikTok/Reels
 ---END HEYGEN SETUP---
 
-After the HeyGen setup block, respond with this JSON on a new line (no markdown):
 SCORE_JSON:{"score":72,"predicted_views":"1M-10M","features":{"hook_strength":8,"emotion_curve":7,"specificity":8,"audience_match":8,"platform_fit":7,"cta_strength":7,"shareability":7},"strengths":["strength1","strength2"],"improvements":["improvement1","improvement2"]}`;
 
   console.log('   ✍️  Call 2: Writing script...');
   const raw = await callAI(ai_provider, prompt, userPlan);
 
-  // Split script from score JSON
   const scoreMarker = raw.indexOf('SCORE_JSON:');
-  let script = raw;
+  let script  = raw;
   let scoring = { score: 65, predicted_views: 'Unknown', features: {}, strengths: [], improvements: [] };
 
   if (scoreMarker !== -1) {
-    script  = raw.slice(0, scoreMarker).trim();
+    script = raw.slice(0, scoreMarker).trim();
     const scoreRaw = raw.slice(scoreMarker + 'SCORE_JSON:'.length).trim();
     const parsed   = extractJSON(scoreRaw, {});
     if (parsed.score) scoring = parsed;
   }
 
-  // Strip JSON wrapper if AI wrapped the script
   if (script.trimStart().startsWith('{')) {
     try {
-      const parsed = JSON.parse(script);
+      const parsed   = JSON.parse(script);
       const scriptVal = parsed.SCRIPT || parsed.script || parsed.content || parsed.text;
-      if (scriptVal) {
-        script = Array.isArray(scriptVal) ? scriptVal.join('\n\n') : String(scriptVal);
-      }
-    } catch { /* not JSON — leave as is */ }
+      if (scriptVal) script = Array.isArray(scriptVal) ? scriptVal.join('\n\n') : String(scriptVal);
+    } catch {}
   }
-  // Strip markdown fences
   script = script.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
-
-  // Strip any trailing JSON score block that leaked into script
   const jsonLeak = script.search(/\n\{[\s]*"score"/);
   if (jsonLeak !== -1) script = script.slice(0, jsonLeak).trim();
 
-  // ── Extract spoken script and HeyGen prompt as separate sections ───────────
   let heygenPrompt = null;
-
   const spokenMarker = script.indexOf('---SPOKEN SCRIPT---');
   const promptMarker = script.indexOf('---HEYGEN PROMPT---');
-
   if (spokenMarker !== -1 && promptMarker !== -1) {
     const spokenScript = script.slice(spokenMarker + '---SPOKEN SCRIPT---'.length, promptMarker).trim();
     const afterPrompt  = script.indexOf('---HEYGEN SETUP---');
@@ -752,11 +627,9 @@ SCORE_JSON:{"score":72,"predicted_views":"1M-10M","features":{"hook_strength":8,
     script = spokenScript;
   }
 
-  // Log scene count for info only — engine decides how many scenes are needed
   const sceneMarkers = [...script.matchAll(/^\[\d+:\d+[–-]\d+:\d+\]/gm)];
   if (sceneMarkers.length) console.log(`   🎬 Script: ${sceneMarkers.length} scenes`);
 
-  // Extract HeyGen setup block from script
   let heygenSetup = null;
   const heygenStart = script.indexOf('---HEYGEN SETUP---');
   const heygenEnd   = script.indexOf('---END HEYGEN SETUP---');
@@ -770,12 +643,10 @@ SCORE_JSON:{"score":72,"predicted_views":"1M-10M","features":{"hook_strength":8,
       const val = line.slice(colonIdx + 1).trim();
       if (key && val) heygenSetup[key] = val;
     });
-    // Remove setup block from script — keep script clean for HeyGen paste
     script = (script.slice(0, heygenStart) + script.slice(heygenEnd + '---END HEYGEN SETUP---'.length)).trim();
   }
 
-  console.log(`   ✅ Call 2 done — Script: ${script.length} chars | Score: ${scoring.score}/100 | ${scoring.predicted_views} views`);
-
+  console.log(`   ✅ Call 2 done — Score: ${scoring.score}/100 | ${scoring.predicted_views}`);
   return { script, heygenPrompt, heygenSetup, ...scoring };
 }
 
@@ -785,13 +656,12 @@ SCORE_JSON:{"score":72,"predicted_views":"1M-10M","features":{"hook_strength":8,
 
 export const generateVideoScriptAI = async ({
   campaignName, productDescription, targetAudience,
-  durationSeconds, brand, productionBrief,
+  durationSeconds, brand, product, productionBrief, campaignType,
   ai_provider = 'gemini', userPlan = 'free',
 }) => {
   console.log(`\n⚡ IVey Engine v4 — "${campaignName}"`);
   console.log(`   Provider: ${ai_provider} | Plan: ${userPlan} | Format: ${productionBrief?.videoFormat || 'single_narrator'}`);
 
-  // Optional: quick web research (non-blocking, no API call if Brave not configured)
   let webResearch = '';
   try {
     const results = await Promise.all([
@@ -802,63 +672,50 @@ export const generateVideoScriptAI = async ({
     if (webResearch) console.log('   🔍 Web research: found context');
   } catch {}
 
-  // ── CALL 1: Intelligence Brief ────────────────────────────────────────────
   const brief = await generateIntelligenceBrief({
     campaignName, productDescription, targetAudience,
-    brand, productionBrief, ai_provider, userPlan, webResearch,
+    brand, product, productionBrief, ai_provider, userPlan, webResearch,
   });
 
-  // Override bracket if user specified duration
   if (durationSeconds) {
     const capped = Math.min(Number(durationSeconds), MAX_SCRIPT_SECONDS);
     brief.bracket.seconds = capped <= 30 ? 30 : MAX_SCRIPT_SECONDS;
     brief.bracket.reason  = 'User specified duration';
   }
 
-  // ── CALL 2: Script + Score ────────────────────────────────────────────────
   const result = await generateScriptAndScore({
     campaignName, productDescription, targetAudience,
-    brief, brand, productionBrief, ai_provider, userPlan,
-    product, campaignType,
+    brief, brand, product, productionBrief, ai_provider, userPlan, campaignType,
   });
 
   console.log(`\n✅ IVey Engine v4 complete — "${campaignName}"`);
   console.log(`   📺 ${brief.bracket.seconds}s | 🏆 Score: ${result.score}/100 | ${result.predicted_views}`);
-  console.log(`   🎣 Hook: ${brief.winnerHook?.formula} | 🎭 Arc: ${brief.arc?.name}`);
 
   return {
-    // Primary output
-    script:         result.script,
-    seconds:        brief.bracket.seconds,
-    bracketReason:  brief.bracket.reason,
-
-    // Scores
-    viralScore:     result.score,
-    predictedViews: result.predicted_views,
-    scoreFeatures:  result.features,
-    strengths:      result.strengths,
-    improvements:   result.improvements,
-
-    // Intelligence — surfaced to UI
-    audienceProfile:  brief.audience,
-    competitiveGap:   brief.competitive,
-    narrativeArc:     brief.arc,
-    hooks:            brief.hooks,
-    winnerHook:       brief.winnerHook,
+    script:          result.script,
+    seconds:         brief.bracket.seconds,
+    bracketReason:   brief.bracket.reason,
+    viralScore:      result.score,
+    predictedViews:  result.predicted_views,
+    scoreFeatures:   result.features,
+    strengths:       result.strengths,
+    improvements:    result.improvements,
+    audienceProfile: brief.audience,
+    competitiveGap:  brief.competitive,
+    narrativeArc:    brief.arc,
+    hooks:           brief.hooks,
+    winnerHook:      brief.winnerHook,
     productionBrief,
-
-    // No multi-draft in v4 — single best script
     drafts: [{
-      type:            'primary',
-      label:           'IVey Script',
-      script:          result.script,
-      score:           result.score,
+      type: 'primary', label: 'IVey Script',
+      script: result.script, score: result.score,
       predicted_views: result.predicted_views,
-      strengths:       result.strengths,
-      improvements:    result.improvements,
+      strengths: result.strengths, improvements: result.improvements,
     }],
-    winningDraft:   'primary',
-    optimizedHook:  brief.winnerHook?.hook || '',
+    winningDraft:  'primary',
+    optimizedHook: brief.winnerHook?.hook || '',
+    heygenPrompt:  result.heygenPrompt,
+    heygenSetup:   result.heygenSetup,
   };
 };
 
@@ -869,10 +726,8 @@ export const generateVideoScriptAI = async ({
 export const generateMarketingStrategyAI = async (campaignData, userPlan = 'free') => {
   const { name, product_description, target_audience, output_formats, ai_provider, brand } = campaignData;
   console.log(`\n📊 Strategy: ${name}`);
-
   const brandCtx = buildBrandContext(brand);
   const research = await _searchWeb(`${product_description} marketing strategy 2025`);
-
   const prompt = `Generate a video-first marketing strategy.
 ${brandCtx}${research ? `\nMARKET RESEARCH:\n${research}\n` : ''}
 Campaign: ${name}
@@ -881,17 +736,16 @@ Audience: ${target_audience}
 Formats: ${output_formats?.join(', ') || 'video, social'}
 
 Cover:
-## 1. CAMPAIGN INTELLIGENCE — key insight and opportunity
-## 2. VIDEO CONTENT STRATEGY — hook angle, emotional arc, bracket recommendation
-## 3. TARGET AUDIENCE DEEP DIVE — fears, desires, language, shareability triggers
-## 4. CONTENT PILLARS — 3-4 themes with percentage split
-## 5. PLATFORM DISTRIBUTION — where, when, how often
-## 6. VIRAL TRIGGERS — specific elements that drive shares
-## 7. SUCCESS METRICS — realistic KPIs
-## 8. 30-DAY ACTION PLAN — week by week
+## 1. CAMPAIGN INTELLIGENCE
+## 2. VIDEO CONTENT STRATEGY
+## 3. TARGET AUDIENCE DEEP DIVE
+## 4. CONTENT PILLARS
+## 5. PLATFORM DISTRIBUTION
+## 6. VIRAL TRIGGERS
+## 7. SUCCESS METRICS
+## 8. 30-DAY ACTION PLAN
 
 Be specific and actionable.`;
-
   const strategy = await callAI(ai_provider || 'gemini', prompt, userPlan);
   console.log('   ✅ Strategy done');
   return strategy;
@@ -914,7 +768,6 @@ export const generateCaptionAI = async ({
     youtube:   '100-150 chars. Curiosity-driven. Include keywords.',
   };
   const brandCtx = buildBrandContext(brand);
-
   const prompt = `Write a ${platform} caption. Output ONLY the caption — no explanation.
 ${brandCtx}
 Rules: ${rules[platform] || 'Engaging, clear CTA, hashtags'}
@@ -922,71 +775,15 @@ Campaign: ${campaignName}
 Product: ${productDescription}
 Audience: ${targetAudience}
 Format: ${format}`;
-
   return await callAI(ai_provider || 'gemini', prompt, userPlan);
 };
 
-
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PRODUCT CONTEXT BUILDER
-// Injects product details into the script engine for product ad campaigns
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export function buildProductContext(product) {
-  if (!product) return '';
-  const lines = [];
-
-  lines.push('PRODUCT PROFILE (this is a PRODUCT AD — the script must showcase this specific product):');
-  if (product.product_name)    lines.push(`  Product: ${product.product_name}`);
-  if (product.tagline)         lines.push(`  Tagline: "${product.tagline}"`);
-  if (product.category)        lines.push(`  Category: ${product.category}`);
-  if (product.price)           lines.push(`  Price: ${product.price}`);
-  if (product.description)     lines.push(`  Description: ${product.description}`);
-
-  const features = (product.features || []).filter(f => f?.trim());
-  if (features.length) {
-    lines.push(`  Key features:`);
-    features.forEach((f, i) => lines.push(`    ${i+1}. ${f}`));
-  }
-
-  if (product.how_to_use)      lines.push(`  How it's used: ${product.how_to_use}`);
-  if (product.demo_notes)      lines.push(`  Visual demo notes: ${product.demo_notes}`);
-  if (product.order_link)      lines.push(`  Order/buy link: ${product.order_link}`);
-
-  // Product images — inject URLs so HeyGen can use them
-  const images = (product.images || []).filter(img => img.url);
-  if (images.length) {
-    lines.push(`  Product images (use these in visual notes — exact URLs for HeyGen):`);
-    images.forEach((img, i) => {
-      lines.push(`    Image ${i+1}: ${img.url}${img.is_hero ? ' [HERO — main product shot]' : ''}${img.caption ? ` — ${img.caption}` : ''}`);
-    });
-    lines.push(`  → Every (VISUAL:) note must reference these product images. Use the hero image prominently.`);
-    lines.push(`  → Tell HeyGen: "overlay product image at [position]" or "background: product image [URL]"`);
-  }
-
-  lines.push('');
-  lines.push('PRODUCT AD SCRIPT STRUCTURE (follow this — not the brand awareness structure):');
-  lines.push('  Scene 1: Hook — product in action or problem it solves');
-  lines.push('  Scene 2: Product reveal — show it clearly, hero image moment');
-  lines.push('  Scene 3-N: Feature demonstration — one feature per scene, fast cuts');
-  lines.push('  Scene N-1: Social proof or result — what happens after using it');
-  lines.push('  Final scene: CTA — price + where to order/buy');
-
-  return `
-${lines.join('\n')}
-`;
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // BRAND URL ANALYZER
-// Fetches website, extracts visual identity, runs Claude Vision on logo
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export async function analyzeBrandUrlAI(websiteUrl, ai_provider = 'claude') {
   console.log(`\n🔍 Brand URL Analysis: ${websiteUrl}`);
-
-  // ── Step 1: Fetch website HTML ──────────────────────────────────────────────
   let html = '';
   let finalUrl = websiteUrl;
   try {
@@ -1001,26 +798,16 @@ export async function analyzeBrandUrlAI(websiteUrl, ai_provider = 'claude') {
     console.warn('   ⚠️  Could not fetch website:', e.message);
   }
 
-  // ── Step 2: Extract meta tags and assets ────────────────────────────────────
-  const extract = (pattern, fallback = '') => {
-    const m = html.match(pattern);
-    return m ? m[1].trim() : fallback;
-  };
+  const extract = (pattern, fallback = '') => { const m = html.match(pattern); return m ? m[1].trim() : fallback; };
+  const urlObj   = new URL(websiteUrl);
+  const origin   = urlObj.origin;
+  const hostname = urlObj.hostname;
 
-  const urlObj    = new URL(websiteUrl);
-  const origin    = urlObj.origin;
-  const hostname  = urlObj.hostname;
-
-  // Logo candidates — ordered by quality
-  const ogImage     = extract(/og:image[^>]*content="([^"]+)"/i) ||
-                      extract(/property="og:image"[^>]*content="([^"]+)"/i) ||
-                      extract(/content="([^"]+)"[^>]*og:image/i);
+  const ogImage        = extract(/og:image[^>]*content="([^"]+)"/i) || extract(/property="og:image"[^>]*content="([^"]+)"/i) || extract(/content="([^"]+)"[^>]*og:image/i);
   const appleTouchIcon = extract(/apple-touch-icon[^>]*href="([^"]+)"/i);
-  const favicon192  = extract(/icon[^>]*sizes="192x192"[^>]*href="([^"]+)"/i);
-  const favicon     = extract(/rel="icon"[^>]*href="([^"]+)"/i) ||
-                      extract(/rel="shortcut icon"[^>]*href="([^"]+)"/i);
+  const favicon192     = extract(/icon[^>]*sizes="192x192"[^>]*href="([^"]+)"/i);
+  const favicon        = extract(/rel="icon"[^>]*href="([^"]+)"/i) || extract(/rel="shortcut icon"[^>]*href="([^"]+)"/i);
 
-  // Resolve relative URLs
   const resolveUrl = (u) => {
     if (!u) return null;
     if (u.startsWith('http')) return u;
@@ -1029,38 +816,15 @@ export async function analyzeBrandUrlAI(websiteUrl, ai_provider = 'claude') {
     return `${origin}/${u}`;
   };
 
-  // Pick best logo — prefer OG image (usually largest), then apple touch icon
-  const logoUrl = resolveUrl(ogImage) ||
-                  resolveUrl(appleTouchIcon) ||
-                  resolveUrl(favicon192) ||
-                  `https://www.google.com/s2/favicons?domain=${hostname}&sz=256`;
+  const logoUrl     = resolveUrl(ogImage) || resolveUrl(appleTouchIcon) || resolveUrl(favicon192) || `https://www.google.com/s2/favicons?domain=${hostname}&sz=256`;
+  const title       = extract(/<title>([^<]+)<\/title>/i) || extract(/og:title[^>]*content="([^"]+)"/i) || hostname;
+  const description = extract(/og:description[^>]*content="([^"]+)"/i) || extract(/name="description"[^>]*content="([^"]+)"/i) || extract(/content="([^"]+)"[^>]*name="description"/i);
+  const themeColor  = extract(/name="theme-color"[^>]*content="([^"]+)"/i) || extract(/content="([^"]+)"[^>]*name="theme-color"/i);
+  const bodyText    = html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 3000).trim();
 
-  // Meta content
-  const title       = extract(/<title>([^<]+)<\/title>/i) ||
-                      extract(/og:title[^>]*content="([^"]+)"/i) ||
-                      hostname;
-  const description = extract(/og:description[^>]*content="([^"]+)"/i) ||
-                      extract(/name="description"[^>]*content="([^"]+)"/i) ||
-                      extract(/content="([^"]+)"[^>]*name="description"/i);
-  const themeColor  = extract(/name="theme-color"[^>]*content="([^"]+)"/i) ||
-                      extract(/content="([^"]+)"[^>]*name="theme-color"/i);
+  console.log(`   📋 Title: ${title} | 🖼️  Logo: ${logoUrl} | 🎨 Theme: ${themeColor || 'none'}`);
 
-  // Extract visible text from hero/header area (first 3000 chars of body)
-  const bodyText = html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .slice(0, 3000)
-    .trim();
-
-  console.log(`   📋 Title: ${title}`);
-  console.log(`   🖼️  Logo: ${logoUrl}`);
-  console.log(`   🎨 Theme color: ${themeColor || 'not found'}`);
-
-  // ── Step 3: Vision analysis of logo + brand copy ────────────────────────────
   const visionPrompt = `Analyze this brand's visual identity and extract structured intelligence for video script generation.
-
 Website: ${websiteUrl}
 Page title: ${title}
 Meta description: ${description || 'not available'}
@@ -1068,127 +832,80 @@ Theme color: ${themeColor || 'not specified'}
 Homepage copy excerpt: "${bodyText.slice(0, 1500)}"
 Logo URL: ${logoUrl}
 
-Based on everything above, provide a complete brand intelligence profile.
-Focus on what a video scriptwriter needs: visual details, tone, audience, and identity.
-
-Respond ONLY with valid JSON — no text before or after:
+Respond ONLY with valid JSON:
 {
   "brand_name": "extracted or inferred brand name",
   "tagline": "extracted tagline or slogan",
   "industry": "industry category",
-  "brand_voice": "tone description — e.g. bold and confident, warm and nurturing",
+  "brand_voice": "tone description",
   "visual_identity": {
     "primary_color": "#hexcode or color name",
     "secondary_color": "#hexcode or color name",
-    "logo_description": "detailed visual description of the logo — shape, colors, style, mood",
+    "logo_description": "detailed visual description",
     "visual_style": "clean minimal / bold graphic / luxury / playful / corporate / natural",
     "mood_words": ["word1", "word2", "word3"]
   },
-  "brand_story": "2-3 sentence brand story inferred from the copy",
-  "key_offerings": ["main product/service 1", "main product/service 2"],
-  "target_audience": "description of who this brand serves",
-  "pain_points": "what problems this brand solves",
-  "audience_desires": "what the audience wants",
-  "script_visual_notes": "specific instructions for video visual notes — e.g. always show logo bottom-right, use emerald green overlays, outdoor natural settings",
+  "brand_story": "2-3 sentence brand story",
+  "key_offerings": ["product/service 1", "product/service 2"],
+  "target_audience": "description",
+  "pain_points": "problems solved",
+  "audience_desires": "what audience wants",
+  "script_visual_notes": "specific instructions for video visual notes",
   "words_always": ["brand language to always use"],
   "words_never": ["language that conflicts with brand voice"]
 }`;
 
   try {
-    // Try with vision if we have a logo image
     let analysisRaw;
     if (logoUrl && ANTHROPIC_API_KEY) {
       try {
-        // Fetch logo as base64 for vision
         const imgRes = await fetch(logoUrl, { signal: AbortSignal.timeout(5000) });
         if (imgRes.ok) {
           const imgBuffer = await imgRes.arrayBuffer();
           const base64    = Buffer.from(imgBuffer).toString('base64');
           const mimeType  = imgRes.headers.get('content-type')?.split(';')[0] || 'image/png';
-
-          // Only use image if it's actually an image type
           if (mimeType.startsWith('image/') && base64.length > 100) {
-            console.log(`   👁️  Running vision analysis on logo (${mimeType})...`);
+            console.log(`   👁️  Vision analysis on logo (${mimeType})...`);
             const visionRes = await fetch('https://api.anthropic.com/v1/messages', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': ANTHROPIC_API_KEY,
-                'anthropic-version': '2023-06-01',
-              },
+              headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
               body: JSON.stringify({
-                model: 'claude-3-haiku-20240307',
-                max_tokens: 2048,
-                messages: [{
-                  role: 'user',
-                  content: [
-                    { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
-                    { type: 'text', text: visionPrompt },
-                  ],
-                }],
+                model: 'claude-3-haiku-20240307', max_tokens: 2048,
+                messages: [{ role: 'user', content: [
+                  { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
+                  { type: 'text', text: visionPrompt },
+                ]}],
               }),
             });
-            if (visionRes.ok) {
-              const visionData = await visionRes.json();
-              analysisRaw = visionData.content?.[0]?.text;
-              console.log('   ✅ Vision analysis complete');
-            }
+            if (visionRes.ok) { analysisRaw = (await visionRes.json()).content?.[0]?.text; console.log('   ✅ Vision done'); }
           }
         }
-      } catch (visionErr) {
-        console.warn('   ⚠️  Vision failed, falling back to text analysis:', visionErr.message);
-      }
+      } catch (e) { console.warn('   ⚠️  Vision failed:', e.message); }
     }
-
-    // Fallback: text-only analysis if vision failed
-    if (!analysisRaw) {
-      console.log('   📝 Running text-only brand analysis...');
-      analysisRaw = await callAI(ai_provider, visionPrompt);
-    }
-
+    if (!analysisRaw) { console.log('   📝 Text-only analysis...'); analysisRaw = await callAI(ai_provider, visionPrompt); }
     const intelligence = extractJSON(analysisRaw, null);
     if (!intelligence?.brand_name) throw new Error('Incomplete brand analysis');
-
-    // Merge extracted metadata with AI analysis
     if (themeColor && !intelligence.visual_identity?.primary_color) {
       intelligence.visual_identity = intelligence.visual_identity || {};
       intelligence.visual_identity.primary_color = themeColor;
     }
-    intelligence.logo_url   = logoUrl;
+    intelligence.logo_url    = logoUrl;
     intelligence.website_url = websiteUrl;
-
-    console.log(`   ✅ Brand Intelligence: "${intelligence.brand_name}" | ${intelligence.visual_identity?.visual_style} | ${intelligence.brand_voice}`);
+    console.log(`   ✅ Brand: "${intelligence.brand_name}" | ${intelligence.visual_identity?.visual_style} | ${intelligence.brand_voice}`);
     return intelligence;
-
   } catch (e) {
     console.warn('   ⚠️  Brand analysis failed:', e.message);
-    // Return basic fallback with what we could extract
     return {
-      brand_name:       title || hostname,
-      tagline:          description || '',
-      industry:         '',
-      brand_voice:      'professional and engaging',
-      visual_identity:  {
-        primary_color:    themeColor || '',
-        logo_description: `Logo from ${hostname}`,
-        visual_style:     'professional',
-        mood_words:       ['professional', 'trustworthy'],
-      },
-      brand_story:      description || '',
-      key_offerings:    [],
-      target_audience:  '',
-      pain_points:      '',
-      audience_desires: '',
-      script_visual_notes: `Show ${title} branding throughout`,
-      words_always:     [],
-      words_never:      [],
-      logo_url:         logoUrl,
-      website_url:      websiteUrl,
+      brand_name: title || hostname, tagline: description || '', industry: '', brand_voice: 'professional and engaging',
+      visual_identity: { primary_color: themeColor || '', logo_description: `Logo from ${hostname}`, visual_style: 'professional', mood_words: ['professional', 'trustworthy'] },
+      brand_story: description || '', key_offerings: [], target_audience: '', pain_points: '', audience_desires: '',
+      script_visual_notes: `Show ${title} branding throughout`, words_always: [], words_never: [],
+      logo_url: logoUrl, website_url: websiteUrl,
     };
   }
 }
 
 // ── Legacy stubs ──────────────────────────────────────────────────────────────
-export const generateImagesAI = async () => [];
-export const generateVisualAI = async () => ({ imageUrl: null });
+export const generateImagesAI  = async () => [];
+export const generateVisualAI  = async () => ({ imageUrl: null });
 export { generateMarketingStrategyAI as generateStrategyAI };
