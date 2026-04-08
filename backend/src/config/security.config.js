@@ -33,7 +33,7 @@ export const securityLogger = (req, res, next) => {
 };
 
 export const checkEnvironment = () => {
-  const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'JWT_SECRET'];
+  const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'JWT_SECRET'];
   const missing = required.filter(key => !process.env[key]);
   if (missing.length > 0) {
     console.warn(`⚠️  Missing env vars: ${missing.join(', ')}`);
