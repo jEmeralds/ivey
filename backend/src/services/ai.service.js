@@ -629,17 +629,21 @@ Do not write a generic visual note. Use the exact brand details provided above.
    e.g. "Female, 30s, East African presenter, warm confident energy, direct eye contact"
    If voiceover format — describe what the camera sees instead, no presenter.
 
-2. SETTING — use the exact market and setting style from the production brief:
-   e.g. "Nairobi urban street at golden hour" / "Lagos waterfront at sunset" / "Dubai skyline, glass towers"
-   If market is Global — pick ONE specific real city that fits the brand's audience. Never write "global setting" or "modern environment".
-   Never write "modern setting" or "urban environment" — always name a real specific place.
+2. SETTING — use the exact market and setting style from the production brief.
+   Always name a REAL specific place that matches both the market AND the industry:
+   — Tech/SaaS brand + Urban = "San Francisco co-working space, floor-to-ceiling windows, morning light"
+   — Safari brand + Rural = "Kenyan savanna at golden hour, red earth dust rising"
+   — Fashion brand + Luxury = "Lagos rooftop terrace, city lights below, evening"
+   If market is Global — pick ONE real city that fits the brand's industry and audience.
+   NEVER write: "global setting", "street market", "modern environment", "urban environment"
+   A street market is ONLY appropriate for brands that literally sell at street markets.
 
 3. BRAND VISUALS — inject the brand into every scene:
    - Logo: use the exact logo description from brand profile
      e.g. "MOONRALDS SAFARIS emerald green circular logo, bottom-right corner, 70% opacity"
-   - Colors: ALWAYS include the # symbol in hex codes
-     e.g. "emerald green (#10b981) overlay fades in" / "amber (#f59e0b) CTA text"
-     WRONG: "10b981 color accents" — CORRECT: "(#10b981) color overlay"
+   - Colors: hex codes MUST start with #. This is non-negotiable.
+     CORRECT: "(#10b981)" or "#10b981 overlay"
+     WRONG: "(10b981)" or "0f172a accent" — missing # is an error
    - Visual style and mood from brand profile — reference them directly
 
 4. CAMERA — be specific about shot type and movement:
@@ -661,12 +665,11 @@ EXAMPLE of an INCORRECTLY formatted visual note — never do this:
 (VISUAL: Show the presenter speaking to camera in a modern setting.)
 
 TIMING RULE: This script must run for EXACTLY ${secs} seconds when performed at a natural pace.
-— Maximum scenes: ${secs <= 30 ? 3 : 4} scenes. No more. Each scene must earn its place.
-— A 45s script has 4 scenes maximum. A 30s script has 3 scenes maximum.
-— Average scene = 10-12 seconds of spoken words + visual note
-— Account for natural pauses, breathing, and pacing between scenes
-— When in doubt — write LESS. A tight ${secs}s script beats an overlong one every time
-— Do NOT pad with extra lines. Do NOT add scenes just to fill time.
+— SCENE COUNT: as many as the story needs. More scenes = faster cuts = higher engagement on social.
+— Target 3-5 seconds per scene. A 45s script should aim for 8-12 scenes. A 30s script 6-8 scenes.
+— Think music video pacing — quick cuts hold attention. Not documentary pacing — slow cuts lose it.
+— Each scene = ONE visual moment + 1-2 punchy spoken lines maximum. Never more than 2 lines per scene.
+— No filler. No padding. Every single line must earn its place.
 
 OUTPUT FORMAT — plain text only. No JSON wrapper. No markdown. Just the scenes:
 [0:00–0:05]
@@ -711,7 +714,7 @@ SCORE_JSON:{"score":72,"predicted_views":"1M-10M","features":{"hook_strength":8,
     if (parsed.score) scoring = parsed;
   }
 
-  // Strip JSON wrapper if AI wrapped the script — e.g. {"SCRIPT": "..."}  or {"SCRIPT": [...]}
+  // Strip JSON wrapper if AI wrapped the script
   if (script.trimStart().startsWith('{')) {
     try {
       const parsed = JSON.parse(script);
@@ -721,8 +724,16 @@ SCORE_JSON:{"score":72,"predicted_views":"1M-10M","features":{"hook_strength":8,
       }
     } catch { /* not JSON — leave as is */ }
   }
-  // Also strip any leading/trailing markdown fences
+  // Strip markdown fences
   script = script.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
+
+  // Strip any trailing JSON score block that leaked into script
+  const jsonLeak = script.search(/\n\{[\s]*"score"/);
+  if (jsonLeak !== -1) script = script.slice(0, jsonLeak).trim();
+
+  // Log scene count for info only — engine decides how many scenes are needed
+  const sceneMarkers = [...script.matchAll(/^\[\d+:\d+[–-]\d+:\d+\]/gm)];
+  if (sceneMarkers.length) console.log(`   🎬 Script: ${sceneMarkers.length} scenes`);
 
   // Extract HeyGen setup block from script
   let heygenSetup = null;
