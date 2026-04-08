@@ -70,17 +70,48 @@ const api = {
   },
 };
 
-// ── Image uploader component ──────────────────────────────────────────────────
+// ── Flow explainer banner ─────────────────────────────────────────────────────
+const FlowBanner = () => (
+  <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4">
+    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">How IVey uses your products</p>
+    <div className="flex items-center gap-1 flex-wrap">
+      {[
+        { icon: '🎨', label: 'Brand Identity',  sub: 'Colors, voice, style' },
+        { icon: '📦', label: 'Product Profile', sub: 'Features, price, images' },
+        { icon: '🎬', label: 'Campaign',         sub: 'Type: Product Ad' },
+        { icon: '📝', label: 'AI Script',        sub: 'Hook → Demo → CTA' },
+        { icon: '🎥', label: 'HeyGen Video',     sub: 'Production package' },
+      ].map((step, i) => (
+        <div key={i} className="flex items-center gap-1">
+          <div className="flex flex-col items-center text-center min-w-[72px]">
+            <div className="w-9 h-9 rounded-xl bg-gray-700 flex items-center justify-center text-lg mb-1">{step.icon}</div>
+            <span className="text-xs font-semibold text-white leading-tight">{step.label}</span>
+            <span className="text-xs text-gray-500 leading-tight">{step.sub}</span>
+          </div>
+          {i < 4 && (
+            <svg className="w-4 h-4 text-emerald-500 flex-shrink-0 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+            </svg>
+          )}
+        </div>
+      ))}
+    </div>
+    <p className="text-xs text-gray-500 mt-3 leading-relaxed">
+      When you create a <span className="text-emerald-400 font-medium">Product Ad</span> or <span className="text-emerald-400 font-medium">Tutorial</span> campaign and select this product, IVey injects the name, price, features, demo notes, and images directly into the AI script engine — so every visual note tells HeyGen exactly what to show and where.
+    </p>
+  </div>
+);
+
+// ── Image uploader ────────────────────────────────────────────────────────────
 const ImageUploader = ({ productId, images, onUpdate }) => {
-  const [uploading, setUploading] = useState(false);
+  const [uploading,   setUploading]   = useState(false);
   const [uploadError, setUploadError] = useState('');
   const fileRef = useRef();
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
-    setUploadError('');
+    setUploading(true); setUploadError('');
     try {
       const reader = new FileReader();
       reader.onload = async (ev) => {
@@ -103,32 +134,19 @@ const ImageUploader = ({ productId, images, onUpdate }) => {
       <div className="flex flex-wrap gap-3 mb-3">
         {images.map((img, i) => (
           <div key={i} className="relative group w-24 h-24">
-            <img
-              src={img.url}
-              alt={img.caption || `Image ${i + 1}`}
-              className="w-full h-full object-cover rounded-xl border border-gray-700"
-            />
+            <img src={img.url} alt={img.caption || `Image ${i+1}`}
+              className="w-full h-full object-cover rounded-xl border border-gray-700"/>
             {img.is_hero && (
-              <span className="absolute top-1 left-1 text-xs bg-amber-500 text-gray-900 px-1.5 py-0.5 rounded font-bold">
-                Hero
-              </span>
+              <span className="absolute top-1 left-1 text-xs bg-amber-500 text-gray-900 px-1.5 py-0.5 rounded font-bold">Hero</span>
             )}
-            <button
-              onClick={async () => {
-                await api.deleteImage(productId, img.url);
-                onUpdate(images.filter((_, idx) => idx !== i));
-              }}
-              className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs hidden group-hover:flex items-center justify-center"
-            >
-              ✕
-            </button>
+            <button onClick={async () => {
+              await api.deleteImage(productId, img.url);
+              onUpdate(images.filter((_, idx) => idx !== i));
+            }} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs hidden group-hover:flex items-center justify-center">✕</button>
           </div>
         ))}
-        <button
-          onClick={() => fileRef.current?.click()}
-          disabled={uploading}
-          className="w-24 h-24 border-2 border-dashed border-gray-600 hover:border-emerald-500 rounded-xl flex flex-col items-center justify-center gap-1 transition-all text-gray-500 hover:text-emerald-400 disabled:opacity-50"
-        >
+        <button onClick={() => fileRef.current?.click()} disabled={uploading}
+          className="w-24 h-24 border-2 border-dashed border-gray-600 hover:border-emerald-500 rounded-xl flex flex-col items-center justify-center gap-1 transition-all text-gray-500 hover:text-emerald-400 disabled:opacity-50">
           {uploading ? (
             <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
@@ -144,9 +162,7 @@ const ImageUploader = ({ productId, images, onUpdate }) => {
           )}
         </button>
       </div>
-      {uploadError && (
-        <p className="text-xs text-red-400 mb-2">⚠️ {uploadError}</p>
-      )}
+      {uploadError && <p className="text-xs text-red-400 mb-2">⚠️ {uploadError}</p>}
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile}/>
       <p className="text-xs text-gray-600">First image is the hero image. Max 5 images. JPG, PNG, WebP.</p>
     </div>
@@ -154,7 +170,7 @@ const ImageUploader = ({ productId, images, onUpdate }) => {
 };
 
 // ── Product Form ──────────────────────────────────────────────────────────────
-const ProductForm = ({ product, brandId, onSave, onCancel }) => {
+const ProductForm = ({ product, brandId, brandName, onSave, onCancel }) => {
   const isEdit   = !!product?.id;
   const [form,    setForm]    = useState(product || { ...EMPTY_PRODUCT });
   const [saving,  setSaving]  = useState(false);
@@ -165,24 +181,17 @@ const ProductForm = ({ product, brandId, onSave, onCancel }) => {
 
   const set        = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const setFeature = (i, v) => {
-    const f = [...(form.features || ['', '', ''])];
-    f[i] = v;
-    set('features', f);
+    const f = [...(form.features || ['','',''])];
+    f[i] = v; set('features', f);
   };
 
   const handleSave = async () => {
     if (!form.product_name?.trim()) { setError('Product name is required'); return; }
     setSaving(true); setError('');
     try {
-      const payload = {
-        ...form,
-        brand_profile_id: brandId,
-        features: (form.features || []).filter(f => f.trim()),
-      };
+      const payload = { ...form, brand_profile_id: brandId, features: (form.features || []).filter(f => f.trim()) };
       const existingId = savedId || product?.id;
-      const res = existingId
-        ? await api.updateProduct(existingId, payload)
-        : await api.createProduct(payload);
+      const res = existingId ? await api.updateProduct(existingId, payload) : await api.createProduct(payload);
       if (res.error) { setError(res.error); return; }
       if (!existingId && res.product?.id) setSavedId(res.product.id);
       onSave(res.product);
@@ -195,147 +204,138 @@ const ProductForm = ({ product, brandId, onSave, onCancel }) => {
   const hint = 'text-xs text-gray-600 mt-1';
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 space-y-5">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-xl">📦</div>
+    <div className="space-y-5">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
+        <button onClick={onCancel} className="hover:text-emerald-400 transition-colors">← Brands</button>
+        {brandName && <><span>›</span><button onClick={onCancel} className="hover:text-emerald-400 transition-colors">{brandName}</button></>}
+        <span>›</span>
+        <button onClick={onCancel} className="hover:text-emerald-400 transition-colors">Products</button>
+        <span>›</span>
+        <span className="text-gray-300">{isEdit ? form.product_name || 'Edit Product' : 'New Product'}</span>
+      </div>
+
+      <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 space-y-5">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-xl">📦</div>
+          <div>
+            <h3 className="font-bold text-white text-sm">{isEdit ? 'Edit Product' : 'New Product'}</h3>
+            <p className="text-xs text-gray-500 mt-0.5">IVey uses these details to write product-specific ad scripts</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={lbl}>Product Name *</label>
+            <input type="text" value={form.product_name} onChange={e => set('product_name', e.target.value)}
+              placeholder="e.g. Safari Starter Kit" className={inp}/>
+          </div>
+          <div>
+            <label className={lbl}>Category</label>
+            <select value={form.category} onChange={e => set('category', e.target.value)} className={inp}>
+              <option value="">Select category</option>
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={lbl}>Tagline</label>
+            <input type="text" value={form.tagline} onChange={e => set('tagline', e.target.value)}
+              placeholder="e.g. Adventure in a box" className={inp}/>
+          </div>
+          <div>
+            <label className={lbl}>Price</label>
+            <input type="text" value={form.price} onChange={e => set('price', e.target.value)}
+              placeholder="e.g. KES 3,500 or $29/mo" className={inp}/>
+          </div>
+        </div>
+
         <div>
-          <h3 className="font-bold text-white text-sm">{isEdit ? 'Edit Product' : 'New Product'}</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Fill in the details — IVey uses these to write product-specific ad scripts</p>
+          <label className={lbl}>Product Description</label>
+          <textarea value={form.description} onChange={e => set('description', e.target.value)}
+            rows={3} placeholder="Describe what this product is, what it does, and why it's special..."
+            className={`${inp} resize-none leading-relaxed`}/>
         </div>
-      </div>
 
-      {/* Name + category */}
-      <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className={lbl}>Product Name *</label>
-          <input type="text" value={form.product_name} onChange={e => set('product_name', e.target.value)}
-            placeholder="e.g. Safari Starter Kit" className={inp}/>
+          <label className={lbl}>Key Features <span className="font-normal normal-case text-gray-500">(up to 5)</span></label>
+          <div className="space-y-2">
+            {[0,1,2,3,4].map(i => (
+              <input key={i} type="text"
+                value={(form.features || [])[i] || ''}
+                onChange={e => setFeature(i, e.target.value)}
+                placeholder={`Feature ${i+1} — e.g. Waterproof up to 30m`}
+                className={inp}/>
+            ))}
+          </div>
+          <p className={hint}>Each feature becomes a scene in the product ad script</p>
         </div>
+
         <div>
-          <label className={lbl}>Category</label>
-          <select value={form.category} onChange={e => set('category', e.target.value)} className={inp}>
-            <option value="">Select category</option>
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <label className={lbl}>How It's Used / Demo Notes</label>
+          <textarea value={form.how_to_use} onChange={e => set('how_to_use', e.target.value)}
+            rows={3} placeholder="Describe how the product is used, step by step. This becomes the demonstration section of the ad..."
+            className={`${inp} resize-none leading-relaxed`}/>
         </div>
-      </div>
 
-      {/* Tagline + price */}
-      <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className={lbl}>Tagline</label>
-          <input type="text" value={form.tagline} onChange={e => set('tagline', e.target.value)}
-            placeholder="e.g. Adventure in a box" className={inp}/>
+          <label className={lbl}>Visual Production Notes <span className="font-normal normal-case text-gray-500">(for HeyGen)</span></label>
+          <textarea value={form.demo_notes} onChange={e => set('demo_notes', e.target.value)}
+            rows={2} placeholder="e.g. Product should be shown in natural lighting, hands holding it, close-up of texture..."
+            className={`${inp} resize-none leading-relaxed`}/>
+          <p className={hint}>IVey injects these into the script visual notes so HeyGen knows exactly how to shoot the product</p>
         </div>
+
         <div>
-          <label className={lbl}>Price</label>
-          <input type="text" value={form.price} onChange={e => set('price', e.target.value)}
-            placeholder="e.g. KES 3,500 or $29/mo" className={inp}/>
+          <label className={lbl}>Order / Buy Link</label>
+          <input type="url" value={form.order_link} onChange={e => set('order_link', e.target.value)}
+            placeholder="https://shop.example.com/product or WhatsApp link or DM instructions"
+            className={inp}/>
         </div>
-      </div>
 
-      {/* Description */}
-      <div>
-        <label className={lbl}>Product Description</label>
-        <textarea value={form.description} onChange={e => set('description', e.target.value)}
-          rows={3} placeholder="Describe what this product is, what it does, and why it's special..."
-          className={`${inp} resize-none leading-relaxed`}/>
-      </div>
-
-      {/* Features */}
-      <div>
-        <label className={lbl}>Key Features <span className="font-normal normal-case text-gray-500">(up to 5)</span></label>
-        <div className="space-y-2">
-          {[0,1,2,3,4].map(i => (
-            <input key={i} type="text"
-              value={(form.features || [])[i] || ''}
-              onChange={e => setFeature(i, e.target.value)}
-              placeholder={`Feature ${i+1} — e.g. Waterproof up to 30m`}
-              className={inp}/>
-          ))}
-        </div>
-        <p className={hint}>Each feature becomes a scene in the product ad script</p>
-      </div>
-
-      {/* How to use */}
-      <div>
-        <label className={lbl}>How It's Used / Demo Notes</label>
-        <textarea value={form.how_to_use} onChange={e => set('how_to_use', e.target.value)}
-          rows={3} placeholder="Describe how the product is used, step by step. This becomes the demonstration section of the ad..."
-          className={`${inp} resize-none leading-relaxed`}/>
-      </div>
-
-      {/* Visual notes for HeyGen */}
-      <div>
-        <label className={lbl}>Visual Production Notes <span className="font-normal normal-case text-gray-500">(for HeyGen)</span></label>
-        <textarea value={form.demo_notes} onChange={e => set('demo_notes', e.target.value)}
-          rows={2} placeholder="e.g. Product should be shown in natural lighting, hands holding it, close-up of texture..."
-          className={`${inp} resize-none leading-relaxed`}/>
-        <p className={hint}>IVey injects these into the script visual notes so HeyGen knows exactly how to shoot the product</p>
-      </div>
-
-      {/* Order link */}
-      <div>
-        <label className={lbl}>Order / Buy Link</label>
-        <input type="url" value={form.order_link} onChange={e => set('order_link', e.target.value)}
-          placeholder="https://shop.example.com/product or WhatsApp link or DM instructions"
-          className={inp}/>
-      </div>
-
-      {/* Product images */}
-      <div>
-        <label className={lbl}>Product Images</label>
-        {savedId ? (
-          <ImageUploader
-            productId={savedId}
-            images={form.images || []}
-            onUpdate={imgs => set('images', imgs)}
-          />
-        ) : (
-          <div className="p-4 bg-gray-700/50 rounded-xl border border-dashed border-gray-600 text-center">
-            <p className="text-xs text-gray-500 mb-2">Save the product first, then add images</p>
-            <button
-              onClick={async () => {
+        <div>
+          <label className={lbl}>Product Images</label>
+          {savedId ? (
+            <ImageUploader productId={savedId} images={form.images || []} onUpdate={imgs => set('images', imgs)}/>
+          ) : (
+            <div className="p-4 bg-gray-700/50 rounded-xl border border-dashed border-gray-600 text-center">
+              <p className="text-xs text-gray-500 mb-2">Save the product first, then add images</p>
+              <button onClick={async () => {
                 if (!form.product_name?.trim()) { setError('Enter a product name first'); return; }
                 setSaving(true); setError('');
                 try {
-                  const payload = {
-                    ...form,
-                    brand_profile_id: brandId,
-                    features: (form.features || []).filter(f => f.trim()),
-                  };
-                  const res = isEdit
-                    ? await api.updateProduct(product.id, payload)
-                    : await api.createProduct(payload);
+                  const payload = { ...form, brand_profile_id: brandId, features: (form.features || []).filter(f => f.trim()) };
+                  const res = isEdit ? await api.updateProduct(product.id, payload) : await api.createProduct(payload);
                   if (res.error) { setError(res.error); return; }
                   setSavedId(res.product.id);
                   setForm(prev => ({ ...prev, images: res.product.images || [] }));
                 } finally { setSaving(false); }
-              }}
-              disabled={saving}
-              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : 'Save & Add Images'}
-            </button>
+              }} disabled={saving}
+                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50">
+                {saving ? 'Saving...' : 'Save & Add Images'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-red-900/20 border border-red-800 text-red-400 rounded-xl text-xs">
+            ⚠️ {error}
           </div>
         )}
-      </div>
 
-      {error && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-red-900/20 border border-red-800 text-red-400 rounded-xl text-xs">
-          ⚠️ {error}
+        <div className="flex gap-3 pt-2">
+          <button onClick={onCancel}
+            className="flex-1 py-2.5 bg-gray-700 text-gray-300 rounded-xl text-sm font-semibold hover:bg-gray-600 transition-all">
+            Cancel
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white rounded-xl text-sm font-bold hover:from-emerald-600 hover:to-emerald-800 disabled:opacity-50 transition-all shadow-lg">
+            {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Product'}
+          </button>
         </div>
-      )}
-
-      <div className="flex gap-3 pt-2">
-        <button onClick={onCancel}
-          className="flex-1 py-2.5 bg-gray-700 text-gray-300 rounded-xl text-sm font-semibold hover:bg-gray-600 transition-all">
-          Cancel
-        </button>
-        <button onClick={handleSave} disabled={saving}
-          className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white rounded-xl text-sm font-bold hover:from-emerald-600 hover:to-emerald-800 disabled:opacity-50 transition-all shadow-lg">
-          {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Product'}
-        </button>
       </div>
     </div>
   );
@@ -368,20 +368,18 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
           )}
         </div>
         {product.category && (
-          <span className="inline-block text-xs text-gray-500 bg-gray-700 px-2 py-0.5 rounded-full mb-2">
-            {product.category}
-          </span>
+          <span className="inline-block text-xs text-gray-500 bg-gray-700 px-2 py-0.5 rounded-full mb-2">{product.category}</span>
         )}
         {product.description && (
           <p className="text-xs text-gray-400 leading-relaxed line-clamp-2 mb-3">{product.description}</p>
         )}
-        {product.features?.filter(f => f).length > 0 && (
+        {product.features?.filter(f=>f).length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
-            {product.features.filter(f => f).slice(0, 3).map((f, i) => (
+            {product.features.filter(f=>f).slice(0,3).map((f,i) => (
               <span key={i} className="text-xs text-gray-400 bg-gray-700/60 px-2 py-0.5 rounded">✓ {f}</span>
             ))}
-            {product.features.filter(f => f).length > 3 && (
-              <span className="text-xs text-gray-500">+{product.features.filter(f => f).length - 3} more</span>
+            {product.features.filter(f=>f).length > 3 && (
+              <span className="text-xs text-gray-500">+{product.features.filter(f=>f).length - 3} more</span>
             )}
           </div>
         )}
@@ -443,6 +441,11 @@ const ProductsPage = ({ brandId: propBrandId, embedded = false, onBack }) => {
     setDeleting(null);
   };
 
+  const handleBack = () => {
+    if (onBack) { onBack(); return; }
+    navigate(-1);
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <div className="text-center">
@@ -453,33 +456,33 @@ const ProductsPage = ({ brandId: propBrandId, embedded = false, onBack }) => {
   );
 
   if (showForm || editing) return (
-    <div className={embedded ? 'overflow-y-auto' : 'max-w-2xl mx-auto py-8 px-4 overflow-y-auto'}>
-      {!embedded && (
-        <button onClick={() => { setShowForm(false); setEditing(null); }}
-          className="flex items-center gap-2 text-emerald-400 text-sm font-medium mb-6 hover:text-emerald-300 transition-colors">
-          ← Back to Products
-        </button>
-      )}
-      <ProductForm
-        product={editing}
-        brandId={brandId}
-        onSave={handleSave}
-        onCancel={() => { setShowForm(false); setEditing(null); }}
-      />
-    </div>
+    <ProductForm
+      product={editing}
+      brandId={brandId}
+      brandName={brand?.brand_name}
+      onSave={handleSave}
+      onCancel={() => { setShowForm(false); setEditing(null); }}
+    />
   );
 
   return (
-    <div className={embedded ? 'overflow-y-auto' : 'max-w-4xl mx-auto py-8 px-4'}>
+    <div className="space-y-4">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
+        <button onClick={handleBack} className="hover:text-emerald-400 transition-colors">← Brands</button>
+        {brand && (
+          <>
+            <span>›</span>
+            <span className="text-gray-300 font-medium">{brand.brand_name}</span>
+            <span>›</span>
+          </>
+        )}
+        <span className="text-white font-medium">Products</span>
+      </div>
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          {!embedded && brand && (
-            <button onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 text-emerald-400 text-sm font-medium mb-3 hover:text-emerald-300 transition-colors">
-              ← {brand.brand_name}
-            </button>
-          )}
           <h1 className="text-xl font-black text-white">
             {brand ? `${brand.brand_name} — Products` : 'Products'}
           </h1>
@@ -493,7 +496,10 @@ const ProductsPage = ({ brandId: propBrandId, embedded = false, onBack }) => {
         </button>
       </div>
 
-      {/* Empty state */}
+      {/* Flow explainer */}
+      <FlowBanner />
+
+      {/* Grid or empty state */}
       {products.length === 0 ? (
         <div className="text-center py-16 bg-gray-800 border border-gray-700 rounded-2xl">
           <div className="text-5xl mb-4">📦</div>
