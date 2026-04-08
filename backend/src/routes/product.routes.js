@@ -132,7 +132,7 @@ router.delete('/:id', async (req, res) => {
   } catch { res.status(500).json({ error: 'Server error' }); }
 });
 
-// ── POST /api/products/:id/upload-image — upload product image ────────────────
+// ── POST /api/products/:id/upload-image ───────────────────────────────────────
 router.post('/:id/upload-image', async (req, res) => {
   try {
     const { id } = req.params;
@@ -140,13 +140,11 @@ router.post('/:id/upload-image', async (req, res) => {
 
     if (!image_base64) return res.status(400).json({ error: 'image_base64 is required' });
 
-    // Verify ownership
     const { data: product } = await supabaseAdmin
       .from('products').select('id, images')
       .eq('id', id).eq('user_id', req.userId).single();
     if (!product) return res.status(404).json({ error: 'Product not found' });
 
-    // Upload to Supabase storage
     const ext      = mime_type?.split('/')[1] || 'jpg';
     const filename = `${req.userId}/${id}/${Date.now()}.${ext}`;
     const buffer   = Buffer.from(image_base64, 'base64');
@@ -160,7 +158,6 @@ router.post('/:id/upload-image', async (req, res) => {
     const { data: { publicUrl } } = supabaseAdmin.storage
       .from('product-media').getPublicUrl(filename);
 
-    // Add image to product's images array
     const images = product.images || [];
     images.push({ url: publicUrl, caption: caption || '', is_hero: is_hero || images.length === 0 });
 
@@ -176,7 +173,7 @@ router.post('/:id/upload-image', async (req, res) => {
   }
 });
 
-// ── DELETE /api/products/:id/image — remove a product image ──────────────────
+// ── DELETE /api/products/:id/image ────────────────────────────────────────────
 router.delete('/:id/image', async (req, res) => {
   try {
     const { id } = req.params;
