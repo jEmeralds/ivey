@@ -35,26 +35,33 @@ router.get('/default', async (req, res) => {
   } catch { res.status(500).json({ error: 'Server error' }); }
 });
 
+// ── GET /api/brand/:id ────────────────────────────────────────────────────────
+router.get('/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('brand_profiles')
+      .select('*')
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .single();
+    if (error) return res.status(404).json({ error: 'Brand not found' });
+    res.json({ brand: data });
+  } catch { res.status(500).json({ error: 'Server error' }); }
+});
+
 // ── POST /api/brand/analyze-url ───────────────────────────────────────────────
-// Fetches website, extracts logo + colors + copy, runs Claude Vision
-// Returns structured brand intelligence — does NOT save to DB
 router.post('/analyze-url', async (req, res) => {
   try {
     const { url, ai_provider } = req.body;
     if (!url) return res.status(400).json({ error: 'URL is required' });
-
-    // Validate URL
     let parsed;
     try { parsed = new URL(url); }
     catch { return res.status(400).json({ error: 'Invalid URL' }); }
-
     if (!['http:', 'https:'].includes(parsed.protocol)) {
       return res.status(400).json({ error: 'URL must be http or https' });
     }
-
     const { analyzeBrandUrlAI } = await import('../services/ai.service.js');
     const intelligence = await analyzeBrandUrlAI(url, ai_provider || 'claude');
-
     res.json({ intelligence });
   } catch (e) {
     console.error('Brand URL analysis error:', e);

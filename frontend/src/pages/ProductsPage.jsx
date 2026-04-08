@@ -26,8 +26,7 @@ const api = {
     return r.json();
   },
   getBrand: async (brandId) => {
-    // correct endpoint is /api/brands/:id (plural)
-    const r = await fetch(`${API_URL}/brands/${brandId}`, {
+    const r = await fetch(`${API_URL}/brand/${brandId}`, {
       headers: { Authorization: `Bearer ${token()}` },
     });
     return r.json();
