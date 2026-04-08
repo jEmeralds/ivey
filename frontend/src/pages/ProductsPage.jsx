@@ -20,40 +20,52 @@ const token = () => localStorage.getItem('token');
 // ── API helpers ───────────────────────────────────────────────────────────────
 const api = {
   getProducts: async (brandId) => {
-    const r = await fetch(`${API_URL}/products?brand_id=${brandId}`, { headers: { Authorization: `Bearer ${token()}` } });
+    const r = await fetch(`${API_URL}/products?brand_id=${brandId}`, {
+      headers: { Authorization: `Bearer ${token()}` },
+    });
     return r.json();
   },
   getBrand: async (brandId) => {
-    const r = await fetch(`${API_URL}/brand/${brandId}`, { headers: { Authorization: `Bearer ${token()}` } });
+    // correct endpoint is /api/brands/:id (plural)
+    const r = await fetch(`${API_URL}/brands/${brandId}`, {
+      headers: { Authorization: `Bearer ${token()}` },
+    });
     return r.json();
   },
   createProduct: async (data) => {
     const r = await fetch(`${API_URL}/products`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
       body: JSON.stringify(data),
     });
     return r.json();
   },
   updateProduct: async (id, data) => {
     const r = await fetch(`${API_URL}/products/${id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
       body: JSON.stringify(data),
     });
     return r.json();
   },
   deleteProduct: async (id) => {
-    await fetch(`${API_URL}/products/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token()}` } });
+    await fetch(`${API_URL}/products/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token()}` },
+    });
   },
   uploadImage: async (productId, base64, mimeType, caption, isHero) => {
     const r = await fetch(`${API_URL}/products/${productId}/upload-image`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
       body: JSON.stringify({ image_base64: base64, mime_type: mimeType, caption, is_hero: isHero }),
     });
     return r.json();
   },
   deleteImage: async (productId, imageUrl) => {
     await fetch(`${API_URL}/products/${productId}/image`, {
-      method: 'DELETE', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
       body: JSON.stringify({ image_url: imageUrl }),
     });
   },
@@ -62,21 +74,29 @@ const api = {
 // ── Image uploader component ──────────────────────────────────────────────────
 const ImageUploader = ({ productId, images, onUpdate }) => {
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const fileRef = useRef();
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setUploadError('');
     try {
       const reader = new FileReader();
       reader.onload = async (ev) => {
         const base64 = ev.target.result.split(',')[1];
         const res = await api.uploadImage(productId, base64, file.type, '', images.length === 0);
+        if (res.error) { setUploadError(res.error); return; }
         if (res.product) onUpdate(res.product.images);
       };
       reader.readAsDataURL(file);
-    } finally { setUploading(false); fileRef.current.value = ''; }
+    } catch (e) {
+      setUploadError(e.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
   };
 
   return (
@@ -84,29 +104,50 @@ const ImageUploader = ({ productId, images, onUpdate }) => {
       <div className="flex flex-wrap gap-3 mb-3">
         {images.map((img, i) => (
           <div key={i} className="relative group w-24 h-24">
-            <img src={img.url} alt={img.caption || `Image ${i+1}`}
-              className="w-full h-full object-cover rounded-xl border border-gray-700"/>
+            <img
+              src={img.url}
+              alt={img.caption || `Image ${i + 1}`}
+              className="w-full h-full object-cover rounded-xl border border-gray-700"
+            />
             {img.is_hero && (
-              <span className="absolute top-1 left-1 text-xs bg-amber-500 text-gray-900 px-1.5 py-0.5 rounded font-bold">Hero</span>
+              <span className="absolute top-1 left-1 text-xs bg-amber-500 text-gray-900 px-1.5 py-0.5 rounded font-bold">
+                Hero
+              </span>
             )}
-            <button onClick={async () => {
-              await api.deleteImage(productId, img.url);
-              onUpdate(images.filter((_, idx) => idx !== i));
-            }} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs hidden group-hover:flex items-center justify-center">✕</button>
+            <button
+              onClick={async () => {
+                await api.deleteImage(productId, img.url);
+                onUpdate(images.filter((_, idx) => idx !== i));
+              }}
+              className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs hidden group-hover:flex items-center justify-center"
+            >
+              ✕
+            </button>
           </div>
         ))}
-        <button onClick={() => fileRef.current?.click()} disabled={uploading}
-          className="w-24 h-24 border-2 border-dashed border-gray-600 hover:border-emerald-500 rounded-xl flex flex-col items-center justify-center gap-1 transition-all text-gray-500 hover:text-emerald-400 disabled:opacity-50">
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="w-24 h-24 border-2 border-dashed border-gray-600 hover:border-emerald-500 rounded-xl flex flex-col items-center justify-center gap-1 transition-all text-gray-500 hover:text-emerald-400 disabled:opacity-50"
+        >
           {uploading ? (
-            <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
           ) : (
             <>
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4"/></svg>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4"/>
+              </svg>
               <span className="text-xs">Add image</span>
             </>
           )}
         </button>
       </div>
+      {uploadError && (
+        <p className="text-xs text-red-400 mb-2">⚠️ {uploadError}</p>
+      )}
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile}/>
       <p className="text-xs text-gray-600">First image is the hero image. Max 5 images. JPG, PNG, WebP.</p>
     </div>
@@ -115,17 +156,17 @@ const ImageUploader = ({ productId, images, onUpdate }) => {
 
 // ── Product Form ──────────────────────────────────────────────────────────────
 const ProductForm = ({ product, brandId, onSave, onCancel }) => {
-  const isEdit = !!product?.id;
+  const isEdit   = !!product?.id;
   const [form,    setForm]    = useState(product || { ...EMPTY_PRODUCT });
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
   const [savedId, setSavedId] = useState(product?.id || null);
-  // Sync images from product prop
+
   useEffect(() => { if (product?.images) set('images', product.images); }, []);
 
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const set        = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const setFeature = (i, v) => {
-    const f = [...(form.features || ['','',''])];
+    const f = [...(form.features || ['', '', ''])];
     f[i] = v;
     set('features', f);
   };
@@ -139,23 +180,20 @@ const ProductForm = ({ product, brandId, onSave, onCancel }) => {
         brand_profile_id: brandId,
         features: (form.features || []).filter(f => f.trim()),
       };
-      let res;
       const existingId = savedId || product?.id;
-      if (existingId) {
-        res = await api.updateProduct(existingId, payload);
-      } else {
-        res = await api.createProduct(payload);
-        if (res.product?.id) setSavedId(res.product.id);
-      }
+      const res = existingId
+        ? await api.updateProduct(existingId, payload)
+        : await api.createProduct(payload);
       if (res.error) { setError(res.error); return; }
+      if (!existingId && res.product?.id) setSavedId(res.product.id);
       onSave(res.product);
     } catch (e) { setError(e.message); }
     finally { setSaving(false); }
   };
 
-  const inp   = 'w-full px-3 py-2.5 bg-gray-700 border border-gray-600 rounded-xl text-white text-sm placeholder-gray-500 focus:ring-2 focus:ring-emerald-500 outline-none transition-all';
-  const lbl   = 'block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-widest';
-  const hint  = 'text-xs text-gray-600 mt-1';
+  const inp  = 'w-full px-3 py-2.5 bg-gray-700 border border-gray-600 rounded-xl text-white text-sm placeholder-gray-500 focus:ring-2 focus:ring-emerald-500 outline-none transition-all';
+  const lbl  = 'block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-widest';
+  const hint = 'text-xs text-gray-600 mt-1';
 
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 space-y-5">
@@ -228,7 +266,7 @@ const ProductForm = ({ product, brandId, onSave, onCancel }) => {
           className={`${inp} resize-none leading-relaxed`}/>
       </div>
 
-      {/* Visual/demo notes for HeyGen */}
+      {/* Visual notes for HeyGen */}
       <div>
         <label className={lbl}>Visual Production Notes <span className="font-normal normal-case text-gray-500">(for HeyGen)</span></label>
         <textarea value={form.demo_notes} onChange={e => set('demo_notes', e.target.value)}
@@ -257,18 +295,27 @@ const ProductForm = ({ product, brandId, onSave, onCancel }) => {
         ) : (
           <div className="p-4 bg-gray-700/50 rounded-xl border border-dashed border-gray-600 text-center">
             <p className="text-xs text-gray-500 mb-2">Save the product first, then add images</p>
-            <button onClick={async () => {
-              if (!form.product_name?.trim()) { setError('Enter a product name first'); return; }
-              setSaving(true); setError('');
-              try {
-                const payload = { ...form, brand_profile_id: brandId, features: (form.features || []).filter(f => f.trim()) };
-                const res = isEdit ? await api.updateProduct(product.id, payload) : await api.createProduct(payload);
-                if (res.error) { setError(res.error); return; }
-                setSavedId(res.product.id);
-                setForm(prev => ({ ...prev, images: res.product.images || [] }));
-              } finally { setSaving(false); }
-            }} disabled={saving}
-              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50">
+            <button
+              onClick={async () => {
+                if (!form.product_name?.trim()) { setError('Enter a product name first'); return; }
+                setSaving(true); setError('');
+                try {
+                  const payload = {
+                    ...form,
+                    brand_profile_id: brandId,
+                    features: (form.features || []).filter(f => f.trim()),
+                  };
+                  const res = isEdit
+                    ? await api.updateProduct(product.id, payload)
+                    : await api.createProduct(payload);
+                  if (res.error) { setError(res.error); return; }
+                  setSavedId(res.product.id);
+                  setForm(prev => ({ ...prev, images: res.product.images || [] }));
+                } finally { setSaving(false); }
+              }}
+              disabled={saving}
+              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+            >
               {saving ? 'Saving...' : 'Save & Add Images'}
             </button>
           </div>
@@ -302,8 +349,7 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
     <div className="bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden hover:border-gray-600 transition-all">
       {heroImage ? (
         <div className="h-40 overflow-hidden">
-          <img src={heroImage.url} alt={product.product_name}
-            className="w-full h-full object-cover"/>
+          <img src={heroImage.url} alt={product.product_name} className="w-full h-full object-cover"/>
         </div>
       ) : (
         <div className="h-40 bg-gray-700/50 flex items-center justify-center">
@@ -323,18 +369,20 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
           )}
         </div>
         {product.category && (
-          <span className="inline-block text-xs text-gray-500 bg-gray-700 px-2 py-0.5 rounded-full mb-2">{product.category}</span>
+          <span className="inline-block text-xs text-gray-500 bg-gray-700 px-2 py-0.5 rounded-full mb-2">
+            {product.category}
+          </span>
         )}
         {product.description && (
           <p className="text-xs text-gray-400 leading-relaxed line-clamp-2 mb-3">{product.description}</p>
         )}
-        {product.features?.filter(f=>f).length > 0 && (
+        {product.features?.filter(f => f).length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
-            {product.features.filter(f=>f).slice(0,3).map((f,i) => (
+            {product.features.filter(f => f).slice(0, 3).map((f, i) => (
               <span key={i} className="text-xs text-gray-400 bg-gray-700/60 px-2 py-0.5 rounded">✓ {f}</span>
             ))}
-            {product.features.filter(f=>f).length > 3 && (
-              <span className="text-xs text-gray-500">+{product.features.filter(f=>f).length - 3} more</span>
+            {product.features.filter(f => f).length > 3 && (
+              <span className="text-xs text-gray-500">+{product.features.filter(f => f).length - 3} more</span>
             )}
           </div>
         )}
@@ -359,12 +407,12 @@ const ProductsPage = ({ brandId: propBrandId, embedded = false, onBack }) => {
   const brandId  = propBrandId || paramBrandId;
   const navigate = useNavigate();
 
-  const [brand,     setBrand]     = useState(null);
-  const [products,  setProducts]  = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [showForm,  setShowForm]  = useState(false);
-  const [editing,   setEditing]   = useState(null);
-  const [deleting,  setDeleting]  = useState(null);
+  const [brand,    setBrand]    = useState(null);
+  const [products, setProducts] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editing,  setEditing]  = useState(null);
+  const [deleting, setDeleting] = useState(null);
 
   useEffect(() => { if (brandId) load(); }, [brandId]);
 
@@ -406,7 +454,7 @@ const ProductsPage = ({ brandId: propBrandId, embedded = false, onBack }) => {
   );
 
   if (showForm || editing) return (
-    <div className={embedded ? '' : 'max-w-2xl mx-auto py-8 px-4'}>
+    <div className={embedded ? 'overflow-y-auto' : 'max-w-2xl mx-auto py-8 px-4 overflow-y-auto'}>
       {!embedded && (
         <button onClick={() => { setShowForm(false); setEditing(null); }}
           className="flex items-center gap-2 text-emerald-400 text-sm font-medium mb-6 hover:text-emerald-300 transition-colors">
@@ -423,7 +471,7 @@ const ProductsPage = ({ brandId: propBrandId, embedded = false, onBack }) => {
   );
 
   return (
-    <div className={embedded ? '' : 'max-w-4xl mx-auto py-8 px-4'}>
+    <div className={embedded ? 'overflow-y-auto' : 'max-w-4xl mx-auto py-8 px-4'}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
