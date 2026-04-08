@@ -320,7 +320,8 @@ export const generateVideoScript = async (req, res) => {
       productionBrief:  result.productionBrief,
 
       // HeyGen production setup — extracted from script
-      heygenSetup:      result.heygenSetup || null,
+      heygenSetup:      result.heygenSetup   || null,
+      heygenPrompt:     result.heygenPrompt  || null,
     });
   } catch (error) {
     console.error('Generate script error:', error);

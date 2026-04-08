@@ -671,16 +671,20 @@ TIMING RULE: This script must run for EXACTLY ${secs} seconds when performed at 
 — Each scene = ONE visual moment + 1-2 punchy spoken lines maximum. Never more than 2 lines per scene.
 — No filler. No padding. Every single line must earn its place.
 
-OUTPUT FORMAT — plain text only. No JSON wrapper. No markdown. Just the scenes:
-[0:00–0:05]
-(VISUAL: ...)
-Spoken words.
+OUTPUT FORMAT — two clearly separated sections, plain text only, no JSON wrapper, no markdown:
 
-[0:05–0:15]
-(VISUAL: ...)
-Spoken words.
+---SPOKEN SCRIPT---
+The clean spoken words only — exactly what the avatar will say out loud.
+No visual notes. No parentheses. No stage directions. Just the spoken words.
+Each line on its own line. Short punchy lines. Blank line between scenes.
 
-Write the complete script now. Then append a HeyGen setup block. Then provide the score.
+---HEYGEN PROMPT---
+A single paragraph (max 80 words) that HeyGen uses to set the visual context.
+Include: presenter description, setting, brand colors, logo placement, music, pacing, energy.
+This is the director's brief — everything visual that is NOT spoken.
+Write it as natural flowing instructions, not a bullet list.
+
+Write both sections now. Then append the HeyGen setup block. Then provide the score.
 
 After the script, append this block EXACTLY (fill in the values from the brand and production context above):
 
@@ -731,6 +735,21 @@ SCORE_JSON:{"score":72,"predicted_views":"1M-10M","features":{"hook_strength":8,
   const jsonLeak = script.search(/\n\{[\s]*"score"/);
   if (jsonLeak !== -1) script = script.slice(0, jsonLeak).trim();
 
+  // ── Extract spoken script and HeyGen prompt as separate sections ───────────
+  let heygenPrompt = null;
+
+  const spokenMarker = script.indexOf('---SPOKEN SCRIPT---');
+  const promptMarker = script.indexOf('---HEYGEN PROMPT---');
+
+  if (spokenMarker !== -1 && promptMarker !== -1) {
+    const spokenScript = script.slice(spokenMarker + '---SPOKEN SCRIPT---'.length, promptMarker).trim();
+    const afterPrompt  = script.indexOf('---HEYGEN SETUP---');
+    heygenPrompt = afterPrompt !== -1
+      ? script.slice(promptMarker + '---HEYGEN PROMPT---'.length, afterPrompt).trim()
+      : script.slice(promptMarker + '---HEYGEN PROMPT---'.length).trim();
+    script = spokenScript;
+  }
+
   // Log scene count for info only — engine decides how many scenes are needed
   const sceneMarkers = [...script.matchAll(/^\[\d+:\d+[–-]\d+:\d+\]/gm)];
   if (sceneMarkers.length) console.log(`   🎬 Script: ${sceneMarkers.length} scenes`);
@@ -755,7 +774,7 @@ SCORE_JSON:{"score":72,"predicted_views":"1M-10M","features":{"hook_strength":8,
 
   console.log(`   ✅ Call 2 done — Script: ${script.length} chars | Score: ${scoring.score}/100 | ${scoring.predicted_views} views`);
 
-  return { script, heygenSetup, ...scoring };
+  return { script, heygenPrompt, heygenSetup, ...scoring };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
