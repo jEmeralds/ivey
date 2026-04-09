@@ -251,7 +251,7 @@ const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
   ];
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
 
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
@@ -751,8 +751,8 @@ const SavedLibrary = ({ savedItems, onDelete }) => {
     return true;
   });
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden mt-8">
-      <div className="px-6 py-4 border-b border-gray-700 flex items-center justify-between flex-wrap gap-3">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden mt-8">
+      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <span className="text-base font-bold text-white">🗂️ Saved Library</span>
           <span className="bg-emerald-500/20 text-emerald-300 text-xs font-semibold px-2 py-0.5 rounded-full">{savedItems.length}</span>
@@ -871,7 +871,7 @@ const CampaignDetail = () => {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto" />
         <p className="mt-4 text-gray-400">Loading campaign...</p>
@@ -880,7 +880,7 @@ const CampaignDetail = () => {
   );
 
   if (!campaign) return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-white mb-2">Campaign not found</h2>
         <button onClick={goBack} className="text-emerald-500 hover:text-emerald-400">← Back to Campaigns</button>
@@ -889,7 +889,7 @@ const CampaignDetail = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-900 pt-16 py-10 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16 py-10 px-4">
       <div className="max-w-6xl mx-auto">
 
         <button onClick={goBack} className="text-emerald-500 hover:text-emerald-400 font-medium mb-6 flex items-center gap-2 text-sm">
@@ -897,10 +897,10 @@ const CampaignDetail = () => {
           Back to Campaigns
         </button>
 
-        <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 mb-6">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <h1 className="text-3xl font-bold text-white">{campaign.name}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{campaign.name}</h1>
               <p className="text-gray-400 mt-1 text-sm">{campaign.description}</p>
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -930,9 +930,9 @@ const CampaignDetail = () => {
         </div>
 
         {strategy && (
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl p-7 mb-6">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-7 mb-6">
             <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-              <h2 className="text-xl font-bold text-white">📊 Marketing Strategy</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">📊 Marketing Strategy</h2>
               <button onClick={handleGenerateStrategy} disabled={generatingStrategy}
                 className="px-3 py-1.5 text-xs bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-all">
                 {generatingStrategy ? 'Regenerating...' : '🔄 Regenerate'}

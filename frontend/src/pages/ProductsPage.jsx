@@ -199,8 +199,8 @@ const ProductForm = ({ product, brandId, brandName, onSave, onCancel }) => {
     finally { setSaving(false); }
   };
 
-  const inp  = 'w-full px-3 py-2.5 bg-gray-700 border border-gray-600 rounded-xl text-white text-sm placeholder-gray-500 focus:ring-2 focus:ring-emerald-500 outline-none transition-all';
-  const lbl  = 'block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-widest';
+  const inp  = 'w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white text-sm placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-emerald-500 outline-none transition-all';
+  const lbl  = 'block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-widest';
   const hint = 'text-xs text-gray-600 mt-1';
 
   return (
@@ -215,11 +215,11 @@ const ProductForm = ({ product, brandId, brandName, onSave, onCancel }) => {
         <span className="text-gray-300">{isEdit ? form.product_name || 'Edit Product' : 'New Product'}</span>
       </div>
 
-      <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 space-y-5">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 space-y-5">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-xl">📦</div>
           <div>
-            <h3 className="font-bold text-white text-sm">{isEdit ? 'Edit Product' : 'New Product'}</h3>
+            <h3 className="font-bold text-gray-900 dark:text-white text-sm">{isEdit ? 'Edit Product' : 'New Product'}</h3>
             <p className="text-xs text-gray-500 mt-0.5">IVey uses these details to write product-specific ad scripts</p>
           </div>
         </div>
@@ -345,7 +345,7 @@ const ProductForm = ({ product, brandId, brandName, onSave, onCancel }) => {
 const ProductCard = ({ product, onEdit, onDelete }) => {
   const heroImage = product.images?.find(i => i.is_hero) || product.images?.[0];
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden hover:border-gray-600 transition-all">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden hover:border-emerald-500 dark:hover:border-gray-600 transition-all">
       {heroImage ? (
         <div className="h-40 overflow-hidden">
           <img src={heroImage.url} alt={product.product_name} className="w-full h-full object-cover"/>
@@ -358,7 +358,7 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div>
-            <h3 className="font-bold text-white text-sm">{product.product_name}</h3>
+            <h3 className="font-bold text-gray-900 dark:text-white text-sm">{product.product_name}</h3>
             {product.tagline && <p className="text-xs text-gray-400 mt-0.5 italic">"{product.tagline}"</p>}
           </div>
           {product.price && (
@@ -368,7 +368,7 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
           )}
         </div>
         {product.category && (
-          <span className="inline-block text-xs text-gray-500 bg-gray-700 px-2 py-0.5 rounded-full mb-2">{product.category}</span>
+          <span className="inline-block text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full mb-2">{product.category}</span>
         )}
         {product.description && (
           <p className="text-xs text-gray-400 leading-relaxed line-clamp-2 mb-3">{product.description}</p>
@@ -376,7 +376,7 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
         {product.features?.filter(f=>f).length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
             {product.features.filter(f=>f).slice(0,3).map((f,i) => (
-              <span key={i} className="text-xs text-gray-400 bg-gray-700/60 px-2 py-0.5 rounded">✓ {f}</span>
+              <span key={i} className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/60 px-2 py-0.5 rounded">✓ {f}</span>
             ))}
             {product.features.filter(f=>f).length > 3 && (
               <span className="text-xs text-gray-500">+{product.features.filter(f=>f).length - 3} more</span>
@@ -483,10 +483,10 @@ const ProductsPage = ({ brandId: propBrandId, embedded = false, onBack }) => {
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl font-black text-white">
+          <h1 className="text-xl font-black text-gray-900 dark:text-white">
             {brand ? `${brand.brand_name} — Products` : 'Products'}
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             {products.length === 0 ? 'No products yet' : `${products.length} product${products.length !== 1 ? 's' : ''}`}
           </p>
         </div>
@@ -501,7 +501,7 @@ const ProductsPage = ({ brandId: propBrandId, embedded = false, onBack }) => {
 
       {/* Grid or empty state */}
       {products.length === 0 ? (
-        <div className="text-center py-16 bg-gray-800 border border-gray-700 rounded-2xl">
+        <div className="text-center py-16 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl">
           <div className="text-5xl mb-4">📦</div>
           <h3 className="text-lg font-bold text-white mb-2">No products yet</h3>
           <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6">
