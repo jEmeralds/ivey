@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
 const INDUSTRIES = [
   'Food & Beverage', 'Fashion & Apparel', 'Health & Wellness', 'Beauty & Cosmetics',
   'Technology', 'Real Estate', 'Education', 'Finance', 'Entertainment & Media',
@@ -130,9 +129,9 @@ const BrandPreview = ({ form }) => {
         )}
       </div>
       {form.default_video_length && (
-        <div className="mt-4 p-4 rounded-xl border border-gray-700 bg-gray-800">
+        <div className="mt-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <p className="text-xs text-gray-500 mb-1">Default video length</p>
-          <p className="text-lg font-black text-white">
+          <p className="text-lg font-black text-gray-900 dark:text-white">
             {form.default_video_length >= 60
               ? `${Math.floor(form.default_video_length / 60)}m ${form.default_video_length % 60 > 0 ? `${form.default_video_length % 60}s` : ''}`
               : `${form.default_video_length}s`}
@@ -167,9 +166,9 @@ const TagInput = ({ tags, onChange, placeholder, color = '#10b981' }) => {
         <input value={input} onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
           placeholder={placeholder}
-          className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none placeholder-gray-500" />
+          className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none placeholder-gray-400 dark:placeholder-gray-500" />
         <button onClick={add} type="button"
-          className="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-gray-300 rounded-lg text-sm transition-colors">
+          className="px-3 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300 rounded-lg text-sm transition-colors">
           Add
         </button>
       </div>
@@ -184,15 +183,14 @@ const SectionHeader = ({ number, title, subtitle }) => (
       <span className="text-xs font-black text-emerald-400">{number}</span>
     </div>
     <div>
-      <h2 className="text-base font-black text-white">{title}</h2>
+      <h2 className="text-base font-black text-gray-900 dark:text-white">{title}</h2>
       <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
     </div>
   </div>
 );
 
-// consistent with Dashboard bg-gray-800 sections on gray-900 page
-const inputCls = 'w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white placeholder-gray-500 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm transition-all';
-const sectionCls = 'bg-gray-800 border border-gray-700 rounded-2xl p-6 mb-4';
+const inputCls = 'w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-sm transition-all';
+const sectionCls = 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 mb-4';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const BrandPage = ({ embedded = false, onViewProducts }) => {
@@ -313,25 +311,25 @@ const BrandPage = ({ embedded = false, onViewProducts }) => {
   );
 
   return (
-    <div className={embedded ? 'text-white' : 'min-h-screen bg-gray-900 text-white'}>
+    <div className={embedded ? '' : 'min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white'}>
 
       {/* Top nav — only shown when standalone */}
       {!embedded && (
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2 text-gray-400 hover:text-white text-sm transition-colors">
+              className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               Dashboard
             </button>
-            <span className="text-gray-600">·</span>
-            <h1 className="text-sm font-bold text-white">Brand Identity</h1>
+            <span className="text-gray-400">·</span>
+            <h1 className="text-sm font-bold text-gray-900 dark:text-white">Brand Identity</h1>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={handleNew}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-gray-700 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-600 transition-all">
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
               + New Brand
             </button>
             <button onClick={handleSave} disabled={saving}
@@ -364,7 +362,7 @@ const BrandPage = ({ embedded = false, onViewProducts }) => {
                   className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${
                     selected === b.id && !showNew
                       ? 'bg-emerald-900/20 border-emerald-600/40 text-white'
-                      : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-200'
+                      : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-600 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}>
                   <div className="flex items-center gap-2">
                     <div className="w-5 h-5 rounded flex-shrink-0 flex items-center justify-center text-xs font-black"
@@ -376,9 +374,8 @@ const BrandPage = ({ embedded = false, onViewProducts }) => {
                   {b.is_default && <span className="text-xs text-emerald-500 mt-1 block">Default</span>}
                 </button>
               ))}
-              {brands.length === 0 && <p className="text-xs text-gray-600 px-1">No brands yet</p>}
+              {brands.length === 0 && <p className="text-xs text-gray-500 px-1">No brands yet</p>}
             </div>
-            {/* Mobile new brand button */}
             <button onClick={handleNew}
               className="lg:hidden flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all">
               + New Brand
@@ -389,10 +386,10 @@ const BrandPage = ({ embedded = false, onViewProducts }) => {
           <div className="lg:col-span-7 space-y-4">
 
             {selected && !showNew && (
-              <div className="flex items-center justify-between px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl">
+              <div className="flex items-center justify-between px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded" style={{ background: form.brand_colors[0] || '#10b981' }} />
-                  <span className="text-sm font-bold text-white">{form.brand_name || 'Untitled Brand'}</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">{form.brand_name || 'Untitled Brand'}</span>
                   {form.is_default && (
                     <span className="px-2 py-0.5 text-xs font-semibold bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20">
                       Default
@@ -411,7 +408,7 @@ const BrandPage = ({ embedded = false, onViewProducts }) => {
                     📦 Products
                   </button>
                   <button onClick={() => handleDelete(selected)}
-                    className="text-xs text-gray-600 hover:text-red-400 transition-colors">
+                    className="text-xs text-gray-400 hover:text-red-400 transition-colors">
                     Delete
                   </button>
                 </div>
@@ -422,45 +419,45 @@ const BrandPage = ({ embedded = false, onViewProducts }) => {
               <div className="px-4 py-3 bg-red-900/20 border border-red-800 text-red-400 rounded-xl text-sm">{error}</div>
             )}
 
-            {/* ── Section 1: Identity ── */}
+            {/* Section 1: Identity */}
             <div className={sectionCls}>
               <SectionHeader number="01" title="Brand Identity" subtitle="The core of who you are" />
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 block mb-1.5">Brand Name *</label>
+                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Brand Name *</label>
                     <input value={form.brand_name} onChange={e => set('brand_name', e.target.value)}
                       placeholder="e.g. SCOBBY QUEEN" className={inputCls} />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 block mb-1.5">Tagline</label>
+                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Tagline</label>
                     <input value={form.tagline} onChange={e => set('tagline', e.target.value)}
                       placeholder="e.g. Brewed with love" className={inputCls} />
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1.5">Industry</label>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Industry</label>
                   <select value={form.industry} onChange={e => set('industry', e.target.value)} className={inputCls}>
                     <option value="">Select industry...</option>
                     {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1.5">Brand Story</label>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Brand Story</label>
                   <textarea value={form.brand_story} onChange={e => set('brand_story', e.target.value)}
                     placeholder="Tell us about your brand in 2-3 sentences. What do you stand for? What makes you different?"
                     rows={3} className={`${inputCls} resize-none`} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-2">Set as Default Brand</label>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-2">Set as Default Brand</label>
                   <button onClick={() => set('is_default', !form.is_default)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
                       form.is_default
                         ? 'bg-emerald-900/20 border-emerald-600/40 text-emerald-400'
-                        : 'bg-gray-700 border-gray-600 text-gray-400 hover:border-gray-500'
+                        : 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500'
                     }`}>
                     <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                      form.is_default ? 'bg-emerald-500 border-emerald-500' : 'border-gray-500'
+                      form.is_default ? 'bg-emerald-500 border-emerald-500' : 'border-gray-400 dark:border-gray-500'
                     }`}>
                       {form.is_default && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>}
                     </div>
@@ -470,12 +467,12 @@ const BrandPage = ({ embedded = false, onViewProducts }) => {
               </div>
             </div>
 
-            {/* ── Section 2: Visual Theme ── */}
+            {/* Section 2: Visual Theme */}
             <div className={sectionCls}>
               <SectionHeader number="02" title="Visual Theme" subtitle="Colors, photography style, and mood" />
               <div className="space-y-5">
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-3">Brand Colors</label>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-3">Brand Colors</label>
                   <div className="flex items-center gap-4">
                     {['Primary', 'Background', 'Accent'].map((label, i) => (
                       <div key={i} className="flex flex-col items-center gap-2">
@@ -488,31 +485,31 @@ const BrandPage = ({ embedded = false, onViewProducts }) => {
                             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
                         </div>
                         <span className="text-xs text-gray-500">{label}</span>
-                        <span className="text-xs font-mono text-gray-600">{form.brand_colors[i] || '—'}</span>
+                        <span className="text-xs font-mono text-gray-400">{form.brand_colors[i] || '—'}</span>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-3">Photography Style</label>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-3">Photography Style</label>
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     {PHOTOGRAPHY_STYLES.map(s => (
                       <button key={s.id} type="button" onClick={() => set('photography_style', s.id)}
                         className={`p-3 rounded-xl border text-left transition-all ${
                           form.photography_style === s.id
                             ? 'border-emerald-500 bg-emerald-900/20'
-                            : 'border-gray-600 bg-gray-700 hover:border-gray-500'
+                            : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500'
                         }`}>
                         <div className="text-xl mb-1">{s.emoji}</div>
-                        <div className="text-xs font-bold text-white">{s.label}</div>
+                        <div className="text-xs font-bold text-gray-900 dark:text-white">{s.label}</div>
                         <div className="text-xs text-gray-500 mt-0.5 leading-tight">{s.desc}</div>
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-3">
-                    Visual Mood <span className="text-gray-600 font-normal">(select all that apply)</span>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-3">
+                    Visual Mood <span className="text-gray-400 font-normal">(select all that apply)</span>
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {VISUAL_MOODS.map(mood => (
@@ -520,7 +517,7 @@ const BrandPage = ({ embedded = false, onViewProducts }) => {
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                           form.visual_mood.includes(mood)
                             ? 'border-emerald-500 bg-emerald-900/20 text-emerald-400'
-                            : 'border-gray-600 bg-gray-700 text-gray-400 hover:border-gray-500'
+                            : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500'
                         }`}>
                         {mood}
                       </button>
@@ -530,21 +527,21 @@ const BrandPage = ({ embedded = false, onViewProducts }) => {
               </div>
             </div>
 
-            {/* ── Section 3: Voice & Tone ── */}
+            {/* Section 3: Voice & Tone */}
             <div className={sectionCls}>
               <SectionHeader number="03" title="Voice & Tone" subtitle="How your brand speaks" />
               <div className="space-y-5">
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-3">Brand Voice</label>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-3">Brand Voice</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {BRAND_VOICES.map(v => (
                       <button key={v.id} type="button" onClick={() => set('brand_voice', v.id)}
                         className={`p-3 rounded-xl border text-left transition-all ${
                           form.brand_voice === v.id
                             ? 'border-amber-500 bg-amber-900/20'
-                            : 'border-gray-600 bg-gray-700 hover:border-gray-500'
+                            : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500'
                         }`}>
-                        <div className={`text-sm font-bold mb-0.5 ${form.brand_voice === v.id ? 'text-amber-400' : 'text-white'}`}>
+                        <div className={`text-sm font-bold mb-0.5 ${form.brand_voice === v.id ? 'text-amber-400' : 'text-gray-900 dark:text-white'}`}>
                           {v.label}
                         </div>
                         <div className="text-xs text-gray-500">{v.desc}</div>
@@ -553,36 +550,36 @@ const BrandPage = ({ embedded = false, onViewProducts }) => {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-2">Words We Always Use</label>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-2">Words We Always Use</label>
                   <TagInput tags={form.words_always} onChange={v => set('words_always', v)}
                     placeholder="e.g. authentic, vibrant... (press Enter)" color="#10b981" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-2">Words We Never Use</label>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-2">Words We Never Use</label>
                   <TagInput tags={form.words_never} onChange={v => set('words_never', v)}
                     placeholder="e.g. cheap, basic... (press Enter)" color="#f43f5e" />
                 </div>
               </div>
             </div>
 
-            {/* ── Section 4: Audience ── */}
+            {/* Section 4: Audience */}
             <div className={sectionCls}>
               <SectionHeader number="04" title="Target Audience" subtitle="Who you're speaking to" />
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1.5">Primary Audience</label>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Primary Audience</label>
                   <input value={form.target_personas} onChange={e => set('target_personas', e.target.value)}
                     placeholder="e.g. Health-conscious women 25-40, urban professionals who care about wellness"
                     className={inputCls} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1.5">Their Pain Points</label>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Their Pain Points</label>
                   <textarea value={form.pain_points} onChange={e => set('pain_points', e.target.value)}
                     placeholder="What problems do they face? What frustrates them?"
                     rows={2} className={`${inputCls} resize-none`} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-1.5">Their Desires & Aspirations</label>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Their Desires & Aspirations</label>
                   <textarea value={form.audience_desires} onChange={e => set('audience_desires', e.target.value)}
                     placeholder="What do they want to achieve? What does success look like for them?"
                     rows={2} className={`${inputCls} resize-none`} />
@@ -590,14 +587,14 @@ const BrandPage = ({ embedded = false, onViewProducts }) => {
               </div>
             </div>
 
-            {/* ── Section 5: Content Defaults ── */}
+            {/* Section 5: Content Defaults */}
             <div className={sectionCls}>
               <SectionHeader number="05" title="Content Defaults" subtitle="Sets the baseline for all your campaigns" />
               <div className="space-y-5">
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <label className="text-xs font-semibold text-gray-400">Default Video Length</label>
-                    <span className="text-sm font-black text-white">
+                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">Default Video Length</label>
+                    <span className="text-sm font-black text-gray-900 dark:text-white">
                       {form.default_video_length >= 60
                         ? `${Math.floor(form.default_video_length / 60)}m ${form.default_video_length % 60 > 0 ? `${form.default_video_length % 60}s` : ''}`
                         : `${form.default_video_length}s`}
@@ -607,36 +604,36 @@ const BrandPage = ({ embedded = false, onViewProducts }) => {
                     value={form.default_video_length}
                     onChange={e => set('default_video_length', parseInt(e.target.value))}
                     className="w-full accent-emerald-500" />
-                  <div className="flex justify-between text-xs text-gray-600 mt-1">
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
                     <span>15s</span><span>1min</span><span>3min</span><span>5min</span><span>10min</span>
                   </div>
-                  <p className="text-xs text-gray-600 mt-2">
+                  <p className="text-xs text-gray-500 mt-2">
                     ~{Math.round(form.default_video_length * 130 / 60)} words · AI will calibrate the script to this duration
                   </p>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 block mb-3">Preferred Platforms</label>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-3">Preferred Platforms</label>
                   <div className="flex flex-wrap gap-2">
                     {PLATFORMS.map(p => (
                       <button key={p.id} type="button" onClick={() => togglePlatform(p.id)}
                         className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-semibold transition-all ${
                           form.preferred_platforms.includes(p.id)
                             ? 'border-emerald-500 bg-emerald-900/20 text-emerald-300'
-                            : 'border-gray-600 bg-gray-700 text-gray-400 hover:border-gray-500'
+                            : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500'
                         }`}>
                         <span>{p.emoji}</span>
                         <span>{p.label}</span>
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-600 mt-2">
+                  <p className="text-xs text-gray-500 mt-2">
                     Captions will default to these platforms when sharing content
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Save button bottom */}
+            {/* Save button */}
             <button onClick={handleSave} disabled={saving}
               className={`w-full py-4 rounded-xl font-black text-sm transition-all shadow-lg ${
                 saved
@@ -648,7 +645,7 @@ const BrandPage = ({ embedded = false, onViewProducts }) => {
 
           </div>
 
-          {/* ── Right: live preview ── */}
+          {/* Right: live preview */}
           <div className="lg:col-span-3 hidden lg:block">
             <BrandPreview form={form} />
           </div>
