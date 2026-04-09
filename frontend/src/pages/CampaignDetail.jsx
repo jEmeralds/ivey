@@ -772,31 +772,39 @@ const StrategySection = ({ title, content, icon, defaultOpen }) => {
 // ─── Parse strategy ───────────────────────────────────────────────────────────
 const parseStrategy = (strategy) => {
   if (!strategy) return [];
-  const text = typeof strategy === 'string' ? strategy : JSON.stringify(strategy, null, 2);
-  const patterns = [
-    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:\d+\.\s*)?(?:CAMPAIGN OBJECTIVES|Executive Summary|Overview)/i, title: 'Campaign Objectives', icon: '🎯' },
-    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:\d+\.\s*)?(?:TARGET AUDIENCE|Audience Analysis)/i,              title: 'Target Audience',    icon: '👥' },
-    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:\d+\.\s*)?(?:VISUAL BRAND|Brand Direction|Visual Style)/i,      title: 'Visual Direction',   icon: '🎨' },
-    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:\d+\.\s*)?(?:FORMAT STRATEGY|Content Strategy)/i,               title: 'Format Strategy',    icon: '📐' },
-    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:\d+\.\s*)?(?:CONTENT CALENDAR|Timeline|Schedule)/i,             title: 'Content Calendar',   icon: '📅' },
-    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:\d+\.\s*)?(?:SUCCESS METRICS|KPIs|Metrics)/i,                   title: 'Success Metrics',    icon: '📊' },
-    { pattern: /(?:^|\n)(?:#{1,3}\s*)?(?:\d+\.\s*)?(?:DISTRIBUTION|Channel Strategy|Platform)/i,         title: 'Distribution Plan',  icon: '📢' },
-  ];
-  const found = [];
-  patterns.forEach(({ pattern, title, icon }) => {
-    const match = text.match(pattern);
-    if (match) found.push({ title, icon, index: match.index, matchLength: match[0].length });
-  });
-  found.sort((a, b) => a.index - b.index);
-  const sections = [];
-  found.forEach((s, i) => {
-    const start   = s.index + s.matchLength;
-    const end     = i < found.length - 1 ? found[i + 1].index : text.length;
-    const content = text.substring(start, end).trim().replace(/^[:\s]+/, '');
-    if (content.length > 10) sections.push({ title: s.title, icon: s.icon, content });
-  });
-  if (sections.length === 0) sections.push({ title: 'Visual Marketing Strategy', icon: '📊', content: text });
-  return sections;
+  if (typeof strategy === 'object' && !Array.isArray(strategy)) {
+    const iconMap = { 'intelligence':'🎯','video':'🎬','audience':'👥','pillar':'📐','platform':'📢','distribution':'📢','viral':'⚡','metric':'📊','action':'📅','competitive':'🔍','brand':'🎨','content':'📝' };
+    const getIcon = (t) => { const tl = t.toLowerCase(); return Object.entries(iconMap).find(([k]) => tl.includes(k))?.[1] || '📌'; };
+    const sections = [];
+    Object.entries(strategy).forEach(([key, val]) => {
+      if (!val) return;
+      const title = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      let content = '';
+      if (typeof val === 'string') { content = val; }
+      else if (Array.isArray(val)) { content = val.map(item => typeof item === 'string' ? `- ${item}` : typeof item === 'object' ? Object.entries(item).map(([k,v]) => `**${k}:** ${Array.isArray(v)?v.join(', '):v}`).join('\n') : String(item)).join('\n'); }
+      else if (typeof val === 'object') { content = Object.entries(val).map(([k,v]) => `**${k.replace(/_/g,' ')}:** ${Array.isArray(v)?v.join(', '):v}`).join('\n\n'); }
+      if (content.length > 10) sections.push({ title, icon: getIcon(key), content });
+    });
+    if (sections.length > 0) return sections;
+  }
+  const text = typeof strategy === 'string' ? strategy : '';
+  const headerRegex = /(?:^|\n)(#{1,3}\s*(?:\d+\.?\s+)?[A-Z][^\n]{2,80})/g;
+  const headers = []; let m;
+  while ((m = headerRegex.exec(text)) !== null) { headers.push({ raw: m[1].trim(), index: m.index === 0 ? 0 : m.index + 1, len: m[0].length }); }
+  if (headers.length >= 2) {
+    const iconMap2 = { 'intelligence':'🎯','video':'🎬','audience':'👥','pillar':'📐','platform':'📢','distribution':'📢','viral':'⚡','metric':'📊','action':'📅','competitive':'🔍','brand':'🎨','content':'📝' };
+    const getIcon2 = (t) => { const tl = t.toLowerCase(); return Object.entries(iconMap2).find(([k]) => tl.includes(k))?.[1] || '📌'; };
+    const sections = [];
+    headers.forEach((h, i) => {
+      const contentStart = h.index + h.len;
+      const contentEnd = i < headers.length - 1 ? headers[i+1].index : text.length;
+      const content = text.slice(contentStart, contentEnd).trim();
+      const title = h.raw.replace(/^#+\s*/, '').replace(/^\d+\.?\s*/, '').trim();
+      if (content.length > 10) sections.push({ title, icon: getIcon2(title), content });
+    });
+    if (sections.length > 0) return sections;
+  }
+  return [{ title: 'Marketing Strategy', icon: '📊', content: text || JSON.stringify(strategy, null, 2) }];
 };
 
 // ─── Saved Library ────────────────────────────────────────────────────────────
