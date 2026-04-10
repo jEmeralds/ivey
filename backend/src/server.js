@@ -17,6 +17,7 @@ import brandRoutes from './routes/brand.routes.js';
 import galleryRoutes from './routes/gallery.routes.js';
 import socialRoutes  from './routes/social.routes.js';
 import productRoutes from './routes/product.routes.js';
+import ayrshareRoutes from './routes/ayrshare.routes.js';
 
 import {
   setupHelmet,
@@ -142,6 +143,7 @@ app.use('/api/brand',     brandRoutes);
 app.use('/api/gallery',   galleryRoutes);
 app.use('/api/social',    socialRoutes);
 app.use('/api/products',  productRoutes);
+app.use('/api/ayrshare',  ayrshareRoutes);
 app.use('/api',           saveRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────

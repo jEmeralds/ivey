@@ -7,6 +7,7 @@ import {
 
 import MediaUpload from '../components/MediaUpload';
 import ReactMarkdown from 'react-markdown';
+import DistributeModal from '../components/DistributeModal';
 
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.vercel.app';
 const API_URL      = import.meta.env.VITE_API_URL      || 'https://ivey-production.up.railway.app/api';
@@ -150,6 +151,7 @@ const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
   const [generating,     setGenerating]     = useState(false);
   const [genStage,       setGenStage]       = useState('');
   const [videoUrl,       setVideoUrl]       = useState('');
+  const [distributeOpen,  setDistributeOpen]  = useState(false);
   const [importing,      setImporting]      = useState(false);
   const [importInput,    setImportInput]    = useState('');
   const [copied,         setCopied]         = useState(false);
@@ -571,13 +573,26 @@ const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
               <div>
                 <p className="text-xs font-semibold text-gray-400 mb-2">After producing — paste your video URL to save it</p>
                 {videoUrl ? (
-                  <div className="flex items-center gap-3 p-3 bg-emerald-900/20 border border-emerald-700/40 rounded-xl">
-                    <span className="text-emerald-400 text-lg flex-shrink-0">✅</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-emerald-300">Video imported</p>
-                      <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-500 hover:text-emerald-400 truncate block mt-0.5">{videoUrl.slice(0,60)}...</a>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 p-3 bg-emerald-900/20 border border-emerald-700/40 rounded-xl">
+                      <span className="text-emerald-400 text-lg flex-shrink-0">✅</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-emerald-300">Video imported</p>
+                        <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-500 hover:text-emerald-400 truncate block mt-0.5">{videoUrl.slice(0,60)}...</a>
+                      </div>
+                      <button onClick={() => setVideoUrl('')} className="text-gray-500 hover:text-gray-300 text-xs">✕</button>
                     </div>
-                    <button onClick={() => setVideoUrl('')} className="text-gray-500 hover:text-gray-300 text-xs">✕</button>
+                    <button onClick={() => setDistributeOpen(true)}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white rounded-xl text-xs font-bold transition-all shadow-lg">
+                      🚀 Distribute to Social Media
+                    </button>
+                    <DistributeModal
+                      isOpen={distributeOpen}
+                      onClose={() => setDistributeOpen(false)}
+                      videoUrl={videoUrl}
+                      campaign={campaign}
+                      showToast={showToast}
+                    />
                   </div>
                 ) : (
                   <div className="flex gap-2">
