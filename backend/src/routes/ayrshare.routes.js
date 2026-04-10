@@ -46,7 +46,12 @@ const ayrshare = async (method, endpoint, body = null) => {
   if (body) options.body = JSON.stringify(body);
   const res  = await fetch(`${AYRSHARE_BASE}${endpoint}`, options);
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || data.error || `Ayrshare error: ${res.status}`);
+  if (!res.ok) {
+    // Log full Ayrshare response so we can see the real error in Railway logs
+    console.error('Ayrshare full error response:', JSON.stringify(data));
+    const msg = data.message || data.error || data.errors?.[0]?.message || data.detail || JSON.stringify(data);
+    throw new Error(msg);
+  }
   return data;
 };
 
