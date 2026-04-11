@@ -8,6 +8,7 @@ import {
 import MediaUpload from '../components/MediaUpload';
 import ReactMarkdown from 'react-markdown';
 import DistributeModal from '../components/DistributeModal';
+import HeyGenPanel from '../components/HeyGenPanel';
 
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.vercel.app';
 const API_URL      = import.meta.env.VITE_API_URL      || 'https://ivey-production.up.railway.app/api';
@@ -570,15 +571,27 @@ const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
                 📦 Download Full Production Package
               </button>
 
-              <div>
-                <p className="text-xs font-semibold text-gray-400 mb-2">After producing — paste your video URL to save it</p>
-                {videoUrl ? (
-                  <div className="space-y-2">
+              <div className="space-y-4">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">🎬 Video Production</p>
+                <HeyGenPanel
+                  campaignId={id}
+                  script={script}
+                  showToast={showToast}
+                  onVideoReady={(url) => {
+                    setVideoUrl(url);
+                    showToast('🎬 Video ready — click Distribute to post it!', 'success');
+                  }}
+                />
+                {videoUrl && (
+                  <div className="space-y-2 pt-3 border-t border-gray-700">
                     <div className="flex items-center gap-3 p-3 bg-emerald-900/20 border border-emerald-700/40 rounded-xl">
                       <span className="text-emerald-400 text-lg flex-shrink-0">✅</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-emerald-300">Video imported</p>
-                        <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-500 hover:text-emerald-400 truncate block mt-0.5">{videoUrl.slice(0,60)}...</a>
+                        <p className="text-xs font-semibold text-emerald-300">Video ready</p>
+                        <a href={videoUrl} target="_blank" rel="noopener noreferrer"
+                          className="text-xs text-emerald-500 hover:text-emerald-400 truncate block mt-0.5">
+                          {videoUrl.slice(0, 60)}...
+                        </a>
                       </div>
                       <button onClick={() => setVideoUrl('')} className="text-gray-500 hover:text-gray-300 text-xs">✕</button>
                     </div>
@@ -594,15 +607,19 @@ const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
                       showToast={showToast}
                     />
                   </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <input value={importInput} onChange={e => setImportInput(e.target.value)}
-                      placeholder="Paste your HeyGen video URL here..."
-                      className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 text-white text-xs rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none placeholder-gray-500"/>
-                    <button onClick={handleImport} disabled={!importInput.trim() || importing}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 flex-shrink-0">
-                      {importing ? '⏳' : '📥 Import'}
-                    </button>
+                )}
+                {!videoUrl && (
+                  <div className="pt-3 border-t border-gray-700">
+                    <p className="text-xs text-gray-500 mb-2">Or paste a direct MP4 URL manually:</p>
+                    <div className="flex gap-2">
+                      <input value={importInput} onChange={e => setImportInput(e.target.value)}
+                        placeholder="Paste direct .mp4 URL..."
+                        className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 text-white text-xs rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none placeholder-gray-500"/>
+                      <button onClick={handleImport} disabled={!importInput.trim() || importing}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 flex-shrink-0">
+                        {importing ? '⏳' : '📥 Import'}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

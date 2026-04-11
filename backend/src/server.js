@@ -19,6 +19,7 @@ import socialRoutes  from './routes/social.routes.js';
 import productRoutes from './routes/product.routes.js';
 import ayrshareRoutes  from './routes/ayrshare.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
+import heygenRoutes  from './routes/heygen.routes.js';
 
 import {
   setupHelmet,
@@ -148,6 +149,7 @@ app.use('/api/social',    socialRoutes);
 app.use('/api/products',  productRoutes);
 app.use('/api/ayrshare',  ayrshareRoutes);
 app.use('/api/settings',  settingsRoutes);
+app.use('/api/heygen',   heygenRoutes);
 app.use('/api',           saveRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
