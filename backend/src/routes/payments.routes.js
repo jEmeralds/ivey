@@ -99,7 +99,7 @@ router.post('/checkout', auth, async (req, res) => {
     });
   }
 
-  const { plan, currency = 'USD' } = req.body;
+  const { plan, currency = 'KES' } = req.body;
 
   if (!['starter', 'creator', 'studio'].includes(plan)) {
     return res.status(400).json({ error: 'Invalid plan' });
@@ -113,12 +113,13 @@ router.post('/checkout', auth, async (req, res) => {
     const priceUSD = PLAN_PRICES[plan];
     const KES_RATE = 130;
 
-    // Paystack uses kobo (NGN) or pesewa (GHS) or cents (USD/KES)
-    // For KES: amount in cents = price * 100
-    // For USD: amount in cents = price * 100
-    const amount = currency === 'KES'
-      ? priceUSD * KES_RATE * 100   // convert to KES then to cents
-      : priceUSD * 100;              // USD cents
+    // Paystack amounts are in the smallest currency unit
+    // KES: amount in cents (1 KES = 100 cents)
+    // USD: amount in cents (1 USD = 100 cents)
+    const priceKES = Math.round(priceUSD * KES_RATE);
+    const amount   = currency === 'KES'
+      ? priceKES * 100   // KES in cents
+      : priceUSD * 100;  // USD in cents
 
     const txRef = `ivey-${req.userId}-${plan}-${Date.now()}`;
 

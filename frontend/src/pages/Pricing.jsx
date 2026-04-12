@@ -20,7 +20,7 @@ const useReveal = (threshold = 0.15) => {
 
 // ─── Currency selector + checkout modal ──────────────────────────────────────
 const CheckoutModal = ({ plan, onClose }) => {
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('KES');
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
   const { isAuthenticated } = useAuth();
@@ -76,7 +76,7 @@ const CheckoutModal = ({ plan, onClose }) => {
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Select your currency</p>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { id: 'USD', label: '🌍 USD',  sub: `$${plan.price}/month`,         desc: 'International · Card' },
+              { id: 'USD', label: '🌍 USD',  sub: `$${plan.price}/month`,         desc: 'International · Card (contact us)' },
               { id: 'KES', label: '🇰🇪 KES',  sub: `KES ${priceKES.toLocaleString()}/month`, desc: 'Kenya · M-Pesa / Card' },
             ].map(c => (
               <button key={c.id} onClick={() => setCurrency(c.id)}
@@ -104,7 +104,7 @@ const CheckoutModal = ({ plan, onClose }) => {
               <span key={m} className="text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded-lg">{m}</span>
             ))}
           </div>
-          <p className="text-xs text-gray-600 mt-2">Powered by Flutterwave · Secure & encrypted</p>
+          <p className="text-xs text-gray-600 mt-2">Powered by Paystack · Secure & encrypted</p>
         </div>
 
         {/* Features summary */}
