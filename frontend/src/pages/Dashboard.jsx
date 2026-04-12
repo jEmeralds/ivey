@@ -8,10 +8,12 @@ import ProductsPage from './ProductsPage';
 import GallerySubmitButton from '../components/GallerySubmitButton';
 import SocialConnect, { AnalyticsPanel } from '../components/SocialConnect';
 import SettingsPage from './SettingsPage';
+import StudioPage   from './StudioPage';
 
 const NAV_ITEMS = [
   { id: 'overview',   label: 'Overview',   icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>) },
   { id: 'campaigns',  label: 'Campaigns',  icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>) },
+  { id: 'studio',     label: 'Studio',     icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>), highlight: true },
   { id: 'brands',     label: 'Brands',     icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>) },
   { id: 'products',   label: 'Products',   icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>) },
   { id: 'social',     label: 'Social',     icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>) },
@@ -279,7 +281,9 @@ const Dashboard = () => {
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                     activeSection === item.id
                       ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                      : item.highlight
+                        ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                   }`}>
                   <span className={`w-5 h-5 flex-shrink-0 ${activeSection === item.id ? 'text-emerald-600 dark:text-emerald-400' : ''}`}>{item.icon}</span>
                   <span className="flex-1 text-left">{item.label}</span>
@@ -306,7 +310,7 @@ const Dashboard = () => {
     </>
   );
 
-  const BOTTOM_NAV = NAV_ITEMS.slice(0, 5);
+  const BOTTOM_NAV = NAV_ITEMS.filter(n => ['overview','campaigns','studio','social','settings'].includes(n.id));
   const BottomNav = () => (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex items-stretch safe-area-pb">
       {BOTTOM_NAV.map(item => (
@@ -344,10 +348,10 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
+          { label: 'Studio',       icon: '🎬', action: () => goTo('studio'),          color: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
           { label: 'New Campaign', icon: '🚀', action: () => navigate('/new-campaign'), color: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
-          { label: 'Brands',       icon: '🎨', action: () => goTo('brands'),           color: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
-          { label: 'Products',     icon: '📦', action: () => goTo('products'),         color: 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800' },
-          { label: 'Gallery',      icon: '🏆', action: () => goTo('gallery'),          color: 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800' },
+          { label: 'Brands',       icon: '🎨', action: () => goTo('brands'),           color: 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800' },
+          { label: 'Products',     icon: '📦', action: () => goTo('products'),         color: 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800' },
         ].map(q => (
           <button key={q.label} onClick={q.action} className={`flex flex-col items-center gap-2 p-4 rounded-xl border text-sm font-medium transition-all active:scale-95 hover:scale-105 ${q.color}`}>
             <span className="text-xl">{q.icon}</span>
@@ -457,6 +461,7 @@ const Dashboard = () => {
         <main className="flex-1 p-4 md:p-8 pb-24 md:pb-8 max-w-5xl w-full mx-auto">
           {activeSection === 'overview'   && <OverviewSection/>}
           {activeSection === 'campaigns'  && <CampaignsSection/>}
+          {activeSection === 'studio'     && <StudioPage embedded />}
           {activeSection === 'brands'     && <BrandPage embedded onViewProducts={(brandId) => { setActiveBrandId(brandId); goTo('products'); }} />}
           {activeSection === 'products'   && <ProductsSection preselectedBrandId={activeBrandId} onClearBrand={() => setActiveBrandId(null)} />}
           {activeSection === 'social'     && (

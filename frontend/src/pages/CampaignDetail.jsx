@@ -7,8 +7,6 @@ import {
 
 import MediaUpload from '../components/MediaUpload';
 import ReactMarkdown from 'react-markdown';
-import DistributeModal from '../components/DistributeModal';
-import HeyGenPanel from '../components/HeyGenPanel';
 
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.vercel.app';
 const API_URL      = import.meta.env.VITE_API_URL      || 'https://ivey-production.up.railway.app/api';
@@ -151,10 +149,6 @@ const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
   const [script,         setScript]         = useState('');
   const [generating,     setGenerating]     = useState(false);
   const [genStage,       setGenStage]       = useState('');
-  const [videoUrl,       setVideoUrl]       = useState('');
-  const [distributeOpen,  setDistributeOpen]  = useState(false);
-  const [importing,      setImporting]      = useState(false);
-  const [importInput,    setImportInput]    = useState('');
   const [copied,         setCopied]         = useState(false);
   const [saved,          setSaved]          = useState(false);
   const [activeTab,      setActiveTab]      = useState('script');
@@ -222,16 +216,6 @@ const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
 
   const handleHeyGen = () => { handleCopyScript(); window.open('https://app.heygen.com/create', '_blank'); };
 
-  const handleImport = async () => {
-    if (!importInput.trim()) return;
-    setImporting(true);
-    try {
-      await onSave({ title: `🎬 Video — ${campaign.name}`, content: importInput.trim(), content_type: 'video_import', format: 'VIDEO_SCRIPT', key: `video_script_${Date.now()}` });
-      setVideoUrl(importInput.trim()); setImportInput('');
-      showToast('📥 Video imported and saved!', 'success');
-    } catch { showToast('Failed to import video', 'error'); }
-    finally { setImporting(false); }
-  };
 
   const handleSaveScript = async () => {
     if (!script || saved) return;
@@ -247,10 +231,9 @@ const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
     .filter(v => v && v !== 'Either' && v !== 'Any' && v !== 'Not specified').join(', ');
 
   const TABS = [
-    { id: 'script',   label: '📄 Script'              },
-    { id: 'package',  label: '🎬 Production Package'  },
-    { id: 'audience', label: '🧠 Audience'            },
-    { id: 'hooks',    label: '🎣 Hooks'               },
+    { id: 'script',   label: '📄 Script'   },
+    { id: 'audience', label: '🧠 Audience' },
+    { id: 'hooks',    label: '🎣 Hooks'    },
   ];
 
   return (
@@ -379,254 +362,18 @@ const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
 
           {/* ── PRODUCTION PACKAGE TAB ── */}
           {activeTab === 'package' && intel && (
-            <div className="p-5 space-y-5">
-              <div className="p-4 bg-gray-900/60 border border-gray-700 rounded-xl">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-sm">🎨</span>
-                  <p className="text-xs font-bold text-white uppercase tracking-widest">Step 1 — HeyGen Brand Kit Setup</p>
-                  <span className="ml-auto text-xs text-gray-500">Do this once per brand</span>
-                </div>
-                <div className="space-y-2.5">
-                  <div className="flex items-start gap-3 p-3 bg-gray-800 rounded-xl">
-                    <span className="text-base flex-shrink-0">🖼</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-gray-300 mb-1">Logo</p>
-                      {prod.logoUrl ? (
-                        <div className="flex items-center gap-2">
-                          <img src={prod.logoUrl} alt="logo" className="w-8 h-8 rounded object-contain bg-gray-700 p-1 flex-shrink-0" onError={e => e.target.style.display='none'}/>
-                          <div>
-                            <p className="text-xs text-gray-400 break-all">{prod.logoUrl}</p>
-                            <button onClick={() => { navigator.clipboard.writeText(prod.logoUrl); showToast('Logo URL copied', 'success'); }}
-                              className="text-xs text-amber-400 hover:text-amber-300 mt-0.5">Copy URL →</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-500">No logo detected — upload your logo manually in HeyGen Brand Kit</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-3 bg-gray-800 rounded-xl">
-                    <span className="text-base flex-shrink-0">🎨</span>
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-gray-300 mb-2">Brand Colors</p>
-                      <div className="flex flex-wrap gap-2">
-                        {(() => {
-                          const vi = intel?.heygenSetup;
-                          const brandColors = [
-                            { label: 'Primary',   color: vi?.['brand_kit_primary_color']   || '#10b981' },
-                            { label: 'Secondary', color: vi?.['brand_kit_secondary_color'] || '#f59e0b' },
-                          ];
-                          return brandColors.map(c => (
-                            <button key={c.color} onClick={() => { navigator.clipboard.writeText(c.color); showToast(`${c.label} color copied: ${c.color}`, 'success'); }}
-                              className="flex items-center gap-1.5 px-2 py-1 bg-gray-700 rounded-lg hover:bg-gray-600 transition-all">
-                              <div className="w-3 h-3 rounded-sm border border-gray-500 flex-shrink-0" style={{background: c.color}}/>
-                              <span className="text-xs text-gray-300 font-mono">{c.color}</span>
-                              <span className="text-xs text-gray-500">{c.label}</span>
-                            </button>
-                          ));
-                        })()}
-                      </div>
-                      <p className="text-xs text-gray-600 mt-1.5">Click any color to copy — paste into HeyGen Brand Kit</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-gray-900/60 border border-gray-700 rounded-xl">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-sm">👤</span>
-                  <p className="text-xs font-bold text-white uppercase tracking-widest">Step 2 — Avatar Selection</p>
-                </div>
-                <div className="p-3 bg-gray-800 rounded-xl space-y-2">
-                  <p className="text-xs text-gray-300">
-                    <span className="font-bold text-amber-400">Recommended: </span>
-                    {narratorDesc ? `${narratorDesc} presenter — confident, natural delivery` : 'Select an avatar that matches your target audience demographics'}
-                  </p>
-                  {prod.energyLevel && prod.energyLevel !== 'Warm & Friendly' && (
-                    <p className="text-xs text-gray-400"><span className="font-bold text-gray-300">Energy: </span>{prod.energyLevel} — choose avatar expression to match</p>
-                  )}
-                  {prod.primaryMarket && prod.primaryMarket !== 'Global' && (
-                    <p className="text-xs text-gray-400"><span className="font-bold text-gray-300">Market: </span>{prod.primaryMarket} — prioritise avatars from this region if available</p>
-                  )}
-                  {prod.videoFormat === 'two_character' && (
-                    <p className="text-xs text-emerald-400 mt-1">💬 Two-character script — select two different avatars and assign Character A and Character B in HeyGen</p>
-                  )}
-                </div>
-              </div>
-
-              {intel.heygenSetup && (
-                <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">⚡</span>
-                      <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">AI-Generated HeyGen Setup</p>
-                    </div>
-                    <button onClick={() => {
-                      const lines = Object.entries(intel.heygenSetup).map(([k,v]) => k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())+': '+v).join('\n');
-                      navigator.clipboard.writeText(lines);
-                      showToast('Full setup copied!', 'success');
-                    }} className="text-xs text-amber-400 hover:text-amber-300 border border-amber-500/30 px-2 py-1 rounded-lg transition-colors">Copy all</button>
-                  </div>
-                  <div className="space-y-2">
-                    {Object.entries(intel.heygenSetup).map(([key, val]) => (
-                      <div key={key} className="flex items-start gap-3 p-2.5 bg-gray-800/60 rounded-lg">
-                        <span className="text-xs font-bold text-amber-400/80 w-36 flex-shrink-0 capitalize leading-relaxed">{key.replace(/_/g, ' ')}</span>
-                        <span className="text-xs text-gray-200 leading-relaxed flex-1">{val}</span>
-                        <button onClick={() => { navigator.clipboard.writeText(val); showToast('Copied!', 'success'); }}
-                          className="text-xs text-gray-600 hover:text-amber-400 transition-colors flex-shrink-0">copy</button>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-600 mt-3">Generated from your brand profile and production brief. Every field maps directly to a HeyGen setting.</p>
-                </div>
-              )}
-
-              <div className="p-4 bg-gray-900/60 border border-gray-700 rounded-xl">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-sm">📄</span>
-                  <p className="text-xs font-bold text-white uppercase tracking-widest">Step 3 — Paste Script</p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs text-gray-400">Copy the clean script and paste it into HeyGen's script editor. Visual notes in (parentheses) are for your reference — do not paste them into HeyGen.</p>
-                  {intel.winnerHook && (
-                    <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
-                      <p className="text-xs font-bold text-amber-400 mb-1">Opening hook — {intel.winnerHook.formula}</p>
-                      <p className="text-xs text-white italic">"{intel.winnerHook.hook}"</p>
-                    </div>
-                  )}
-                  <button onClick={handleHeyGen} disabled={!script}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-40 shadow-lg">
-                    🎬 Copy Script & Open HeyGen
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-4 bg-gray-900/60 border border-gray-700 rounded-xl">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-sm">⏱</span>
-                  <p className="text-xs font-bold text-white uppercase tracking-widest">Step 4 — Overlay Timeline</p>
-                  <span className="ml-auto text-xs text-gray-500">Apply in HeyGen editor</span>
-                </div>
-                <div className="space-y-2">
-                  {[
-                    { time: '0:00', action: 'Logo overlay',    detail: 'Bottom-right corner · 70% opacity · throughout video' },
-                    { time: '0:02', action: 'Lower third in',  detail: `Campaign: "${campaign.name}"` },
-                    { time: '0:05', action: 'Lower third out', detail: 'Fade out lower third' },
-                    { time: prod.musicMood && prod.musicMood !== 'No music specified' ? prod.musicMood : 'Background', action: 'Music', detail: `${prod.musicMood && prod.musicMood !== 'No music specified' ? prod.musicMood : 'Subtle'} · -20dB · does not compete with voice` },
-                    { time: `${Math.max((seconds || 45) - 8, 30)}s`, action: 'CTA overlay', detail: 'Link in bio · large text · center or bottom' },
-                    { time: `${seconds || 45}s`, action: 'Logo hold', detail: 'Final frame · logo prominent · 0.5s hold then fade' },
-                  ].map(({ time, action, detail }) => (
-                    <div key={time+action} className="flex items-start gap-3 p-2.5 bg-gray-800 rounded-lg">
-                      <span className="font-mono text-amber-400 text-xs w-12 flex-shrink-0 pt-0.5">{time}</span>
-                      <div>
-                        <span className="text-xs font-bold text-gray-200">{action}</span>
-                        <p className="text-xs text-gray-500 mt-0.5">{detail}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-4 bg-gray-900/60 border border-gray-700 rounded-xl">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-sm">🚀</span>
-                  <p className="text-xs font-bold text-white uppercase tracking-widest">Step 5 — Export & Post</p>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { label: 'Resolution', value: '1080p (1920×1080)' },
-                    { label: 'Format',     value: 'MP4'               },
-                    { label: 'Duration',   value: fmtDur(seconds) || '45s' },
-                    { label: 'Market',     value: prod.primaryMarket || 'Global' },
-                    { label: 'Platform',   value: 'TikTok · Instagram · YouTube' },
-                    { label: 'Aspect',     value: '9:16 (vertical) for social'   },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="p-2 bg-gray-800 rounded-lg">
-                      <p className="text-xs text-gray-500">{label}</p>
-                      <p className="text-xs font-bold text-gray-200 mt-0.5">{value}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <button onClick={() => {
-                const brief = [
-                  `IVEY PRODUCTION PACKAGE — ${campaign.name}`,
-                  `Generated: ${new Date().toLocaleDateString()}`,
-                  `Duration: ${fmtDur(seconds) || '45s'} | Market: ${prod.primaryMarket || 'Global'} | Format: ${prod.videoFormat || 'single_narrator'}`,
-                  '', '═══ OPENING HOOK ═══',
-                  intel.winnerHook ? `Formula: ${intel.winnerHook.formula}` : '',
-                  intel.winnerHook ? `"${intel.winnerHook.hook}"` : '',
-                  '', '═══ SCRIPT ═══', script,
-                  '', `Viral Score: ${viralScore}/100 | Predicted: ${intel.predictedViews}`,
-                  '', 'Generated by IVey — ivey-steel.vercel.app',
-                ].filter(l => l !== undefined).join('\n');
-                const blob = new Blob([brief], { type: 'text/plain' });
-                const url  = URL.createObjectURL(blob);
-                const a    = document.createElement('a');
-                a.href = url; a.download = `IVey-Production-Package-${campaign.name.replace(/\s+/g,'-')}.txt`;
-                a.click(); URL.revokeObjectURL(url);
-                showToast('📦 Production package downloaded!', 'success');
-              }} className="w-full flex items-center justify-center gap-2 py-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-white rounded-xl text-sm font-bold transition-all">
-                📦 Download Full Production Package
-              </button>
-
-              <div className="space-y-4">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">🎬 Video Production</p>
-                <HeyGenPanel
-                  campaignId={id}
-                  script={script}
-                  showToast={showToast}
-                  onVideoReady={(url) => {
-                    setVideoUrl(url);
-                    showToast('🎬 Video ready — click Distribute to post it!', 'success');
-                  }}
-                />
-                {videoUrl && (
-                  <div className="space-y-2 pt-3 border-t border-gray-700">
-                    <div className="flex items-center gap-3 p-3 bg-emerald-900/20 border border-emerald-700/40 rounded-xl">
-                      <span className="text-emerald-400 text-lg flex-shrink-0">✅</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-emerald-300">Video ready</p>
-                        <a href={videoUrl} target="_blank" rel="noopener noreferrer"
-                          className="text-xs text-emerald-500 hover:text-emerald-400 truncate block mt-0.5">
-                          {videoUrl.slice(0, 60)}...
-                        </a>
-                      </div>
-                      <button onClick={() => setVideoUrl('')} className="text-gray-500 hover:text-gray-300 text-xs">✕</button>
-                    </div>
-                    <button onClick={() => setDistributeOpen(true)}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white rounded-xl text-xs font-bold transition-all shadow-lg">
-                      🚀 Distribute to Social Media
-                    </button>
-                    <DistributeModal
-                      isOpen={distributeOpen}
-                      onClose={() => setDistributeOpen(false)}
-                      videoUrl={videoUrl}
-                      campaign={campaign}
-                      showToast={showToast}
-                    />
-                  </div>
-                )}
-                {!videoUrl && (
-                  <div className="pt-3 border-t border-gray-700">
-                    <p className="text-xs text-gray-500 mb-2">Or paste a direct MP4 URL manually:</p>
-                    <div className="flex gap-2">
-                      <input value={importInput} onChange={e => setImportInput(e.target.value)}
-                        placeholder="Paste direct .mp4 URL..."
-                        className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 text-white text-xs rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none placeholder-gray-500"/>
-                      <button onClick={handleImport} disabled={!importInput.trim() || importing}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 flex-shrink-0">
-                        {importing ? '⏳' : '📥 Import'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+            <div className="p-8 text-center">
+              <div className="text-4xl mb-3">🎬</div>
+              <p className="text-sm font-bold text-white mb-1">Ready to produce?</p>
+              <p className="text-xs text-gray-500 max-w-xs mx-auto mb-4">
+                Use Studio to produce your video with HeyGen and distribute it to all platforms in one flow.
+              </p>
+              <a href="/dashboard?section=studio"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl text-sm font-bold hover:from-amber-500 hover:to-amber-700 transition-all shadow-lg">
+                Open Studio →
+              </a>
             </div>
           )}
-
-          {/* ── AUDIENCE TAB ── */}
           {activeTab === 'audience' && intel?.audienceProfile && (
             <div className="p-5 space-y-3">
               <p className="text-xs text-gray-500 mb-3">IVey excavated your audience psychology before writing a single word.</p>
