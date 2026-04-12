@@ -60,25 +60,24 @@ const HeyGenPanel = ({ campaignId, script, onVideoReady, showToast }) => {
       const res  = await fetch(`${API_URL}/heygen/status`, { headers: { Authorization: `Bearer ${token()}` } });
       const data = await res.json();
       setConfigured(data.configured);
-
+      // Plan check happens on backend when user tries to generate
+      // Always allow the UI to load — backend returns 403 with upgrade:true if plan insufficient
+      setPlanAllowed(true);
       if (data.configured) {
-        // Check plan
-        const meRes  = await fetch(`${API_URL}/settings/me`, { headers: { Authorization: `Bearer ${token()}` } });
-        const meData = await meRes.json();
-        const plan   = meData.user?.plan || 'free';
-        setPlanAllowed(['creator', 'studio', 'trial'].includes(plan));
-
-        if (['creator', 'studio', 'trial'].includes(plan)) {
-          loadAvatarsAndVoices();
-        }
+        loadAvatarsAndVoices();
       }
-    } catch { setConfigured(false); }
+    } catch (err) {
+      console.warn('HeyGen status check failed:', err.message);
+      setConfigured(false);
+      setPlanAllowed(true);
+    }
   };
 
   const fetchJobs = async () => {
     if (!campaignId) return;
     try {
       const res  = await fetch(`${API_URL}/heygen/jobs/${campaignId}`, { headers: { Authorization: `Bearer ${token()}` } });
+      if (!res.ok) return; // silently skip if endpoint not ready
       const data = await res.json();
       setJobs(data.jobs || []);
 
@@ -173,11 +172,13 @@ const HeyGenPanel = ({ campaignId, script, onVideoReady, showToast }) => {
 
       if (!res.ok) {
         if (data.upgrade) {
+          // Backend says plan upgrade required
           setPlanAllowed(false);
+          setJobStatus(null);
           setGenerating(false);
           return;
         }
-        throw new Error(data.error || 'Failed to start generation');
+        throw new Error(data.error || data.message || 'Failed to start generation');
       }
 
       setVideoId(data.videoId);
@@ -207,15 +208,15 @@ const HeyGenPanel = ({ campaignId, script, onVideoReady, showToast }) => {
     </div>
   );
 
-  // ── Plan not allowed ──────────────────────────────────────────────────────
+  // ── Plan not allowed — shown after backend rejects with upgrade:true ────────
   if (planAllowed === false) return (
     <div className="p-4 bg-violet-500/10 border border-violet-500/30 rounded-xl">
       <p className="text-sm font-bold text-violet-400 mb-1">🔒 Video generation requires Creator or Studio plan</p>
       <p className="text-xs text-gray-400 mb-3">Upgrade to automatically produce HeyGen videos from your scripts.</p>
-      <a href="/dashboard?section=settings&tab=plan"
+      <button onClick={() => window.location.href = '/dashboard?section=settings'}
         className="inline-block px-4 py-2 bg-gradient-to-r from-violet-600 to-violet-700 text-white rounded-lg text-xs font-bold hover:from-violet-700 hover:to-violet-800 transition-all">
         View Plans →
-      </a>
+      </button>
     </div>
   );
 
