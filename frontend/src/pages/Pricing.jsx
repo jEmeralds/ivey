@@ -26,8 +26,8 @@ const CheckoutModal = ({ plan, onClose }) => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const KES_RATE   = 130;
-  const priceKES   = plan ? plan.price * KES_RATE : 0;
+  const KES_PRICES = { starter: 2470, creator: 6370, studio: 12870 };
+  const priceKES   = plan ? (KES_PRICES[plan.id] || plan.price * 130) : 0;
 
   const handlePay = async () => {
     if (!isAuthenticated) { navigate('/signup'); return; }

@@ -22,9 +22,9 @@ const PS_SECRET    = () => process.env.PAYSTACK_SECRET_KEY;
 
 // ── Plan codes from Paystack dashboard ───────────────────────────────────────
 const PLAN_CODES = {
-  starter: 'PLN_2dnxej2pqh11g8z',
-  creator: 'PLN_ybpfcexh8y4v4n4',
-  studio:  'PLN_3gbocggawufp87b',
+  starter: 'PLN_3gbocggawufp87b',  // KES 2,470
+  creator: 'PLN_ybpfcexh8y4v4n4',  // KES 6,370
+  studio:  'PLN_2dnxej2pqh11g8z',  // KES 12,870
 };
 
 const PLAN_PRICES = { starter: 19, creator: 49, studio: 99 };
