@@ -53,7 +53,11 @@ const paystack = async (method, endpoint, body = null) => {
   if (body) options.body = JSON.stringify(body);
   const res  = await fetch(`https://api.paystack.co${endpoint}`, options);
   const data = await res.json();
-  if (!data.status) throw new Error(data.message || 'Paystack error');
+  if (!data.status) {
+    console.error('Paystack full error response:', JSON.stringify(data));
+    console.error('Paystack request body:', body ? JSON.stringify(body) : 'none');
+    throw new Error(data.message || 'Paystack error');
+  }
   return data;
 };
 
