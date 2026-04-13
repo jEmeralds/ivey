@@ -27,6 +27,13 @@ const PLAN_CODES = {
   studio:  'PLN_nbstagtlib1erkj',  // KES 12,870
 };
 
+// Hosted payment page links — used as fallback if API fails
+const PAYMENT_LINKS = {
+  starter: 'https://paystack.shop/pay/z5d1d20tcl',
+  creator: 'https://paystack.shop/pay/9k6-ywsc9x',
+  studio:  'https://paystack.shop/pay/ax4om4hqxg',
+};
+
 const PLAN_PRICES = { starter: 19, creator: 49, studio: 99 };
 
 // ── Helper: activate plan in DB ───────────────────────────────────────────────
@@ -162,6 +169,12 @@ router.post('/checkout', auth, async (req, res) => {
     });
   } catch (err) {
     console.error('Paystack checkout error:', err.message);
+    // Fallback to hosted payment page
+    const fallbackUrl = PAYMENT_LINKS[plan];
+    if (fallbackUrl) {
+      console.log(`Using hosted payment page fallback for ${plan}`);
+      return res.json({ url: fallbackUrl, txRef: null, fallback: true });
+    }
     res.status(500).json({ error: err.message });
   }
 });
