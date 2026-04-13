@@ -113,23 +113,15 @@ router.post('/checkout', auth, async (req, res) => {
     const priceUSD = PLAN_PRICES[plan];
     const KES_RATE = 130;
 
-    // Paystack amounts are in the smallest currency unit
-    // KES: amount in cents (1 KES = 100 cents)
-    // USD: amount in cents (1 USD = 100 cents)
-    const priceKES = Math.round(priceUSD * KES_RATE);
-    const amount   = currency === 'KES'
-      ? priceKES * 100   // KES in cents
-      : priceUSD * 100;  // USD in cents
-
-    const txRef = `ivey-${req.userId}-${plan}-${Date.now()}`;
-
-    // Paystack requires amount in smallest currency unit (kobo/cents)
-    // KES 2470 = 247000 cents, USD 19 = 1900 cents
+    // Paystack requires amount in smallest currency unit
+    // KES prices match Paystack plan amounts exactly
     const KES_PRICES = { starter: 2470, creator: 6370, studio: 12870 };
     const priceKES   = KES_PRICES[plan] || (PLAN_PRICES[plan] * 130);
     const amount     = currency === 'KES'
-      ? priceKES * 100
-      : PLAN_PRICES[plan] * 100;
+      ? priceKES * 100          // KES in cents e.g. 2470 * 100 = 247000
+      : PLAN_PRICES[plan] * 100; // USD in cents e.g. 19 * 100 = 1900
+
+    const txRef = `ivey-${req.userId}-${plan}-${Date.now()}`;
 
     const data = await paystack('POST', '/transaction/initialize', {
       email:        user?.email || '',
