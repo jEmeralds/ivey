@@ -123,20 +123,19 @@ router.post('/checkout', auth, async (req, res) => {
 
     const txRef = `ivey-${req.userId}-${plan}-${Date.now()}`;
 
+    // When using a Paystack plan code, do NOT pass amount — the plan defines it
     const data = await paystack('POST', '/transaction/initialize', {
-      email:       user?.email || '',
-      amount,
-      currency,
-      plan:        planCode,
-      ref:         txRef,
+      email:        user?.email || '',
+      plan:         planCode,
+      ref:          txRef,
       callback_url: `${FRONTEND_URL}/dashboard?section=settings&upgrade=success&plan=${plan}`,
       metadata: {
         ivey_user_id: req.userId,
         plan,
         currency,
         custom_fields: [
-          { display_name: 'Plan',     variable_name: 'plan',     value: plan    },
-          { display_name: 'User ID',  variable_name: 'user_id',  value: req.userId },
+          { display_name: 'Plan',    variable_name: 'plan',    value: plan       },
+          { display_name: 'User ID', variable_name: 'user_id', value: req.userId },
         ],
       },
     });
