@@ -9,6 +9,7 @@ import GallerySubmitButton from '../components/GallerySubmitButton';
 import SocialConnect, { AnalyticsPanel } from '../components/SocialConnect';
 import SettingsPage from './SettingsPage';
 import StudioPage   from './StudioPage';
+import AdminPage    from './AdminPage';
 
 const NAV_ITEMS = [
   { id: 'overview',   label: 'Overview',   icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>) },
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { id: 'social',     label: 'Social',     icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>) },
   { id: 'gallery',    label: 'Gallery',    icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>) },
   { id: 'analytics',  label: 'Analytics',  icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>) },
+  { id: 'admin',      label: 'Admin',      icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>), adminOnly: true },
   { id: 'settings',   label: 'Settings',   icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>), divider: true },
 ];
 
@@ -192,6 +194,9 @@ const Dashboard = () => {
   const [deletingId,    setDeletingId]    = useState(null);
   const [stats,         setStats]         = useState({ totalCampaigns: 0, contentGenerated: 0, strategiesCreated: 0 });
 
+  const isAdmin   = user?.role === 'admin';
+  const visibleNav = NAV_ITEMS.filter(item => !item.adminOnly || isAdmin);
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const s = params.get('section');
@@ -274,7 +279,7 @@ const Dashboard = () => {
         </div>
         <nav className="flex-1 overflow-y-auto py-4 px-3">
           <div className="space-y-0.5">
-            {NAV_ITEMS.map(item => (
+            {visibleNav.map(item => (
               <div key={item.id}>
                 {item.divider && <div className="border-t border-gray-200 dark:border-gray-700 my-2" />}
                 <button onClick={() => goTo(item.id)}
@@ -483,6 +488,7 @@ const Dashboard = () => {
             </div>
           )}
           {activeSection === 'settings'   && <SettingsPage embedded />}
+      {activeSection === 'admin'      && <AdminPage />}
           {activeSection === 'analytics'  && (
             <div className="space-y-4">
               <div>
