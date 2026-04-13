@@ -10,6 +10,8 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import DistributeModal from '../components/DistributeModal';
+import PlanGate, { useUserPlan } from '../components/PlanGate';
+import { UpgradeModal } from '../components/UpgradePrompt';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
 const token   = () => localStorage.getItem('token');
@@ -61,6 +63,8 @@ const PLATFORMS = [
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 const StudioPage = ({ embedded = false }) => {
+  const { plan, trialUsed, canAccess } = useUserPlan();
+
   // Step tracking
   const [step, setStep] = useState(1); // 1=campaign, 2=script, 3=produce, 4=distribute
 
@@ -98,6 +102,7 @@ const StudioPage = ({ embedded = false }) => {
 
   // General
   const [error,            setError]            = useState('');
+  const [upgradeModal,     setUpgradeModal]     = useState(null);
   const [toast,            setToast]            = useState(null);
 
   const showToast = (msg, type = 'success') => {
@@ -185,12 +190,18 @@ const StudioPage = ({ embedded = false }) => {
         body: JSON.stringify({ ai_provider: selectedCampaign.ai_provider || 'gemini' }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to generate script');
+      if (!res.ok) {
+        if (data.upgrade) {
+          setUpgradeModal({ requiredPlan: data.required || 'starter', feature: data.message || 'Script generation' });
+          return;
+        }
+        throw new Error(data.error || 'Failed to generate script');
+      }
       setScript(data.script);
       setViralScore(data.viralScore);
       setSeconds(data.seconds);
       setWinnerHook(data.winnerHook);
-      setStep(3);
+      // Stay on step 2 — user reviews script then clicks Next
     } catch (err) { setError(err.message); }
     finally { clearInterval(ticker); setGeneratingScript(false); setScriptStage(''); }
   };
@@ -207,7 +218,13 @@ const StudioPage = ({ embedded = false }) => {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || data.message || 'Failed to start production');
+      if (!res.ok) {
+        if (data.upgrade) {
+          setUpgradeModal({ requiredPlan: data.required || 'creator', feature: data.message || 'Video production' });
+          return;
+        }
+        throw new Error(data.error || data.message || 'Failed to start production');
+      }
       setVideoJobId(data.videoId);
       showToast('🎬 Video generation started — takes 5-10 minutes', 'info');
       startPolling(data.videoId);
@@ -408,20 +425,22 @@ const StudioPage = ({ embedded = false }) => {
                 <ScriptDisplay script={script} onCopy={handleCopy} copied={copied} />
               )}
 
-              <div className="flex gap-2">
-                <button onClick={handleGenerateScript} disabled={generatingScript}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white rounded-xl text-sm font-bold disabled:opacity-50 transition-all shadow-lg">
-                  {generatingScript
-                    ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/><span>Generating...</span></>
-                    : <><span>⚡</span><span>{script ? 'Regenerate Script' : 'Generate Script'}</span></>
-                  }
-                </button>
+              <div className="flex gap-2 flex-col sm:flex-row">
                 {script && step === 2 && (
                   <button onClick={() => setStep(3)}
-                    className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all">
-                    Next →
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg order-first">
+                    <span>🎬</span><span>Next — Produce Video</span>
                   </button>
                 )}
+                <button onClick={handleGenerateScript} disabled={generatingScript}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold disabled:opacity-50 transition-all ${
+                    script ? 'px-5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' : 'flex-1 bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white shadow-lg'
+                  }`}>
+                  {generatingScript
+                    ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"/><span>Generating...</span></>
+                    : <><span>⚡</span><span>{script ? 'Regenerate' : 'Generate Script'}</span></>
+                  }
+                </button>
               </div>
             </div>
           </div>
@@ -429,6 +448,11 @@ const StudioPage = ({ embedded = false }) => {
 
         {/* ── STEP 3: Produce ── */}
         {step >= 3 && (
+          <PlanGate
+            requiredPlan="creator"
+            feature="Video Production"
+            description="Upgrade to Creator to automatically produce HeyGen videos from your scripts — 5 videos/month included."
+          >
           <div className={`bg-white dark:bg-gray-800 border rounded-2xl overflow-hidden transition-all ${
             step === 3 ? 'border-amber-400/50' : 'border-gray-200 dark:border-gray-700'
           }`}>
@@ -584,10 +608,16 @@ const StudioPage = ({ embedded = false }) => {
               )}
             </div>
           </div>
+          </PlanGate>
         )}
 
         {/* ── STEP 4: Distribute ── */}
         {step >= 4 && (
+          <PlanGate
+            requiredPlan="starter"
+            feature="Social Distribution"
+            description="Upgrade to Starter to distribute videos to TikTok, Instagram, Facebook and more — 20 posts/month included."
+          >
           <div className="bg-white dark:bg-gray-800 border border-amber-400/50 rounded-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
               <div className="w-7 h-7 rounded-full bg-amber-400 text-gray-900 flex items-center justify-center text-xs font-black">4</div>
@@ -621,6 +651,7 @@ const StudioPage = ({ embedded = false }) => {
               )}
             </div>
           </div>
+          </PlanGate>
         )}
 
         {/* Start over */}
@@ -634,6 +665,14 @@ const StudioPage = ({ embedded = false }) => {
           </button>
         )}
       </div>
+
+      {/* Upgrade modal */}
+      <UpgradeModal
+        isOpen={!!upgradeModal}
+        onClose={() => setUpgradeModal(null)}
+        requiredPlan={upgradeModal?.requiredPlan}
+        feature={upgradeModal?.feature}
+      />
 
       {/* Toast */}
       {toast && (

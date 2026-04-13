@@ -1,5 +1,6 @@
 ﻿import express from 'express';
 import { auth as authenticateToken } from '../middleware/auth.middleware.js';
+import { requirePlan } from '../middleware/plan.middleware.js';
 import {
   getCampaigns,
   getCampaignById,
@@ -23,7 +24,7 @@ router.post('/',                       createCampaign);
 router.put('/:id',                     updateCampaign);
 router.delete('/:id',                  deleteCampaign);
 router.post('/:id/generate',           generateIdeas);
-router.post('/:id/generate-strategy',  generateMarketingStrategy);
+router.post('/:id/generate-strategy', requirePlan('starter','creator','studio','trial'), generateMarketingStrategy);
 router.post('/:id/generate-visual',    generateVisual);
 router.post('/:id/caption',            generateCaption);
 router.post('/:id/generate-script',    generateVideoScript);  // ← video script
