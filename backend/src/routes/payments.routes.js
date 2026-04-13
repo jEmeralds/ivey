@@ -123,9 +123,17 @@ router.post('/checkout', auth, async (req, res) => {
 
     const txRef = `ivey-${req.userId}-${plan}-${Date.now()}`;
 
-    // When using a Paystack plan code, do NOT pass amount — the plan defines it
+    // Paystack requires amount in smallest currency unit (kobo/cents)
+    // KES 2470 = 247000 cents, USD 19 = 1900 cents
+    const KES_PRICES = { starter: 2470, creator: 6370, studio: 12870 };
+    const priceKES   = KES_PRICES[plan] || (PLAN_PRICES[plan] * 130);
+    const amount     = currency === 'KES'
+      ? priceKES * 100
+      : PLAN_PRICES[plan] * 100;
+
     const data = await paystack('POST', '/transaction/initialize', {
       email:        user?.email || '',
+      amount,
       plan:         planCode,
       ref:          txRef,
       callback_url: `${FRONTEND_URL}/dashboard?section=settings&upgrade=success&plan=${plan}`,
