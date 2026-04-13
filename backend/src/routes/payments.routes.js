@@ -29,9 +29,9 @@ const PLAN_CODES = {
 
 // Hosted payment page links — used as fallback if API fails
 const PAYMENT_LINKS = {
-  starter: 'https://paystack.shop/pay/z5d1d20tcl',
-  creator: 'https://paystack.shop/pay/9k6-ywsc9x',
-  studio:  'https://paystack.shop/pay/ax4om4hqxg',
+  starter: 'https://paystack.shop/pay/f6ejv44duo',
+  creator: 'https://paystack.shop/pay/26izmsczc2',
+  studio:  'https://paystack.shop/pay/y441e008w9',
 };
 
 const PLAN_PRICES = { starter: 19, creator: 49, studio: 99 };
@@ -114,6 +114,23 @@ router.post('/checkout', auth, async (req, res) => {
 
   if (!['starter', 'creator', 'studio'].includes(plan)) {
     return res.status(400).json({ error: 'Invalid plan' });
+  }
+
+  // Use hosted payment pages directly — most reliable approach
+  const hostedUrl = PAYMENT_LINKS[plan];
+  if (hostedUrl) {
+    // Log the intent
+    await supabase.from('payment_refs').insert({
+      user_id:    req.userId,
+      tx_ref:     `ivey-${req.userId}-${plan}-${Date.now()}`,
+      plan,
+      provider:   'paystack',
+      amount:     0,
+      currency,
+      status:     'pending',
+      created_at: new Date().toISOString(),
+    }).catch(() => {});
+    return res.json({ url: hostedUrl });
   }
 
   try {
