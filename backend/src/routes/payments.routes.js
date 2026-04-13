@@ -120,16 +120,18 @@ router.post('/checkout', auth, async (req, res) => {
   const hostedUrl = PAYMENT_LINKS[plan];
   if (hostedUrl) {
     // Log the intent
-    await supabase.from('payment_refs').insert({
-      user_id:    req.userId,
-      tx_ref:     `ivey-${req.userId}-${plan}-${Date.now()}`,
-      plan,
-      provider:   'paystack',
-      amount:     0,
-      currency,
-      status:     'pending',
-      created_at: new Date().toISOString(),
-    }).catch(() => {});
+    try {
+      await supabase.from('payment_refs').insert({
+        user_id:    req.userId,
+        tx_ref:     `ivey-${req.userId}-${plan}-${Date.now()}`,
+        plan,
+        provider:   'paystack',
+        amount:     0,
+        currency,
+        status:     'pending',
+        created_at: new Date().toISOString(),
+      });
+    } catch (_) {}
     return res.json({ url: hostedUrl });
   }
 
