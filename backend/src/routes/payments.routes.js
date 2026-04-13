@@ -22,16 +22,16 @@ const PS_SECRET    = () => process.env.PAYSTACK_SECRET_KEY;
 
 // ── Plan codes from Paystack dashboard ───────────────────────────────────────
 const PLAN_CODES = {
-  starter: 'PLN_pmcq8j3l8unp9qi',  // KES 2,470
-  creator: 'PLN_54ktq1mngeicb0q',  // KES 6,370
-  studio:  'PLN_nbstagtlib1erkj',  // KES 12,870
+  starter: 'PLN_z40erj9poma8yi6',  // KES 2,470 — LIVE
+  creator: 'PLN_oz8da9aka82v2lk',  // KES 6,370 — LIVE
+  studio:  'PLN_e5yim4vzb2ejuzx',  // KES 12,870 — LIVE
 };
 
 // Hosted payment page links — used as fallback if API fails
 const PAYMENT_LINKS = {
-  starter: 'https://paystack.shop/pay/f6ejv44duo',
-  creator: 'https://paystack.shop/pay/26izmsczc2',
-  studio:  'https://paystack.shop/pay/y441e008w9',
+  starter: 'https://paystack.shop/pay/e2qy814e7s',
+  creator: 'https://paystack.shop/pay/ncfvxxw4n8',
+  studio:  'https://paystack.shop/pay/51cjg44f3y',
 };
 
 const PLAN_PRICES = { starter: 19, creator: 49, studio: 99 };
