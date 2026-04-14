@@ -31,7 +31,7 @@ router.get('/users', async (req, res) => {
 
     let query = supabase
       .from('users')
-      .select('id, name, email, role, plan, plan_expires_at, trial_used, trial_started_at, videos_used, posts_used, usage_reset_at, created_at, stripe_customer_id, payment_provider', { count: 'exact' })
+      .select('id, name, email, role, plan, plan_expires_at, trial_used, videos_used, posts_used, created_at, payment_provider', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + Number(limit) - 1);
 
@@ -108,7 +108,6 @@ router.put('/users/:id/plan', async (req, res) => {
     const updates = {
       plan,
       plan_expires_at: expires_at || null,
-      updated_at:      new Date().toISOString(),
     };
 
     if (reset_usage) {
@@ -162,7 +161,7 @@ router.put('/users/:id/activate', async (req, res) => {
 
     const { data, error } = await supabase
       .from('users')
-      .update({ role, updated_at: new Date().toISOString() })
+      .update({ role })
       .eq('id', req.params.id)
       .select('id, email, role')
       .single();
@@ -190,7 +189,7 @@ router.post('/users/:id/waiver', async (req, res) => {
     const { type, value, note } = req.body;
     // type: 'extend_plan' | 'reset_videos' | 'reset_posts' | 'add_videos' | 'add_posts'
 
-    const updates = { updated_at: new Date().toISOString() };
+    const updates = {};
 
     if (type === 'extend_plan') {
       const { data: user } = await supabase.from('users').select('plan_expires_at').eq('id', req.params.id).single();
