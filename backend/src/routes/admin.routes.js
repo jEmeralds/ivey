@@ -137,13 +137,15 @@ router.put('/users/:id/plan', async (req, res) => {
     if (error) throw error;
 
     // Log the admin action
-    await supabase.from('admin_actions').insert({
-      admin_id:   req.userId,
-      target_id:  req.params.id,
-      action:     'plan_override',
-      details:    { plan, expires_at, reset_usage, note: note || null },
-      created_at: new Date().toISOString(),
-    }).catch(() => {});
+    try {
+      await supabase.from('admin_actions').insert({
+        admin_id:   req.userId,
+        target_id:  req.params.id,
+        action:     'plan_override',
+        details:    { plan, expires_at, reset_usage, note: note || null },
+        created_at: new Date().toISOString(),
+      });
+    } catch (_) {}
 
     console.log(`👑 Admin plan override: user ${req.params.id} → ${plan} by admin ${req.userId}`);
     res.json({ success: true, user: data, message: `Plan updated to ${plan}` });
@@ -168,13 +170,15 @@ router.put('/users/:id/activate', async (req, res) => {
 
     if (error) throw error;
 
-    await supabase.from('admin_actions').insert({
-      admin_id:   req.userId,
-      target_id:  req.params.id,
-      action:     active ? 'activate' : 'deactivate',
-      details:    { reason: reason || null },
-      created_at: new Date().toISOString(),
-    }).catch(() => {});
+    try {
+      await supabase.from('admin_actions').insert({
+        admin_id:   req.userId,
+        target_id:  req.params.id,
+        action:     active ? 'activate' : 'deactivate',
+        details:    { reason: reason || null },
+        created_at: new Date().toISOString(),
+      });
+    } catch (_) {}
 
     res.json({ success: true, user: data, message: active ? 'Account activated' : 'Account suspended' });
   } catch (err) {
@@ -211,13 +215,15 @@ router.post('/users/:id/waiver', async (req, res) => {
     const { error } = await supabase.from('users').update(updates).eq('id', req.params.id);
     if (error) throw error;
 
-    await supabase.from('admin_actions').insert({
-      admin_id:   req.userId,
-      target_id:  req.params.id,
-      action:     'waiver',
-      details:    { type, value, note: note || null },
-      created_at: new Date().toISOString(),
-    }).catch(() => {});
+    try {
+      await supabase.from('admin_actions').insert({
+        admin_id:   req.userId,
+        target_id:  req.params.id,
+        action:     'waiver',
+        details:    { type, value, note: note || null },
+        created_at: new Date().toISOString(),
+      });
+    } catch (_) {}
 
     res.json({ success: true, message: `Waiver issued: ${type}` });
   } catch (err) {
