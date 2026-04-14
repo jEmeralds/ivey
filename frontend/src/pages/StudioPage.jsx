@@ -98,7 +98,6 @@ const StudioPage = ({ embedded = false }) => {
 
   // General
   const [error,            setError]            = useState('');
-  const [upgradeModal,     setUpgradeModal]     = useState(null);
   const [toast,            setToast]            = useState(null);
 
   const showToast = (msg, type = 'success') => {
@@ -188,7 +187,6 @@ const StudioPage = ({ embedded = false }) => {
       const data = await res.json();
       if (!res.ok) {
         if (data.upgrade) {
-          setUpgradeModal({ requiredPlan: data.required || 'starter', feature: data.message || 'Script generation' });
           return;
         }
         throw new Error(data.error || 'Failed to generate script');
@@ -216,7 +214,6 @@ const StudioPage = ({ embedded = false }) => {
       const data = await res.json();
       if (!res.ok) {
         if (data.upgrade) {
-          setUpgradeModal({ requiredPlan: data.required || 'creator', feature: data.message || 'Video production' });
           return;
         }
         throw new Error(data.error || data.message || 'Failed to start production');
@@ -651,14 +648,7 @@ const StudioPage = ({ embedded = false }) => {
       </div>
 
       {/* Upgrade modal */}
-      <UpgradeModal
-        isOpen={!!upgradeModal}
-        onClose={() => setUpgradeModal(null)}
-        requiredPlan={upgradeModal?.requiredPlan}
-        feature={upgradeModal?.feature}
-      />
-
-      {/* Toast */}
+{/* Toast */}
       {toast && (
         <div className={`fixed bottom-8 right-8 z-50 px-5 py-3 rounded-xl border shadow-2xl text-sm font-medium transition-all ${
           toast.type === 'error' ? 'bg-red-900/90 border-red-500 text-red-300' :
