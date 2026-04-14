@@ -10,7 +10,6 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import DistributeModal from '../components/DistributeModal';
-import PlanGate, { useUserPlan } from '../components/PlanGate';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
 const token   = () => localStorage.getItem('token');
@@ -62,8 +61,6 @@ const PLATFORMS = [
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 const StudioPage = ({ embedded = false }) => {
-  const { plan, trialUsed, canAccess } = useUserPlan();
-
   // Step tracking
   const [step, setStep] = useState(1); // 1=campaign, 2=script, 3=produce, 4=distribute
 
@@ -447,11 +444,6 @@ const StudioPage = ({ embedded = false }) => {
 
         {/* ── STEP 3: Produce ── */}
         {step >= 3 && (
-          <PlanGate
-            requiredPlan="creator"
-            feature="Video Production"
-            description="Upgrade to Creator to automatically produce HeyGen videos from your scripts — 5 videos/month included."
-          >
           <div className={`bg-white dark:bg-gray-800 border rounded-2xl overflow-hidden transition-all ${
             step === 3 ? 'border-amber-400/50' : 'border-gray-200 dark:border-gray-700'
           }`}>
@@ -607,16 +599,10 @@ const StudioPage = ({ embedded = false }) => {
               )}
             </div>
           </div>
-          </PlanGate>
         )}
 
         {/* ── STEP 4: Distribute ── */}
         {step >= 4 && (
-          <PlanGate
-            requiredPlan="starter"
-            feature="Social Distribution"
-            description="Upgrade to Starter to distribute videos to TikTok, Instagram, Facebook and more — 20 posts/month included."
-          >
           <div className="bg-white dark:bg-gray-800 border border-amber-400/50 rounded-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
               <div className="w-7 h-7 rounded-full bg-amber-400 text-gray-900 flex items-center justify-center text-xs font-black">4</div>
@@ -650,7 +636,6 @@ const StudioPage = ({ embedded = false }) => {
               )}
             </div>
           </div>
-          </PlanGate>
         )}
 
         {/* Start over */}
