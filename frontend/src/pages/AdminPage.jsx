@@ -293,9 +293,9 @@ const AdminPage = () => {
     setLoading(true);
     try {
       const [statsRes, usersRes, paymentsRes] = await Promise.all([
-        fetch(`${API_URL}/admin/stats`,    { headers: headers() }),
-        fetch(`${API_URL}/admin/users`,    { headers: headers() }),
-        fetch(`${API_URL}/admin/payments`, { headers: headers() }),
+        fetch(`${API_URL}/admin/stats`,           { headers: headers() }),
+        fetch(`${API_URL}/admin/users?limit=200`, { headers: headers() }),
+        fetch(`${API_URL}/admin/payments`,        { headers: headers() }),
       ]);
       if (!statsRes.ok) { setError('Admin access denied'); setLoading(false); return; }
       const [s, u, p] = await Promise.all([statsRes.json(), usersRes.json(), paymentsRes.json()]);
@@ -421,12 +421,12 @@ const AdminPage = () => {
                 className="flex-1 min-w-48 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"/>
               <select value={planFilter} onChange={e => setPlanFilter(e.target.value)}
                 className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none">
-                <option value="all">All Plans</option>
+                <option value="all">All Plans ({users.length})</option>
                 {['free', 'trial', 'starter', 'creator', 'studio', 'suspended'].map(p => (
                   <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
                 ))}
               </select>
-              <span className="text-xs text-gray-500 self-center">{filteredUsers.length} users</span>
+              <span className="text-xs text-gray-500 self-center">{filteredUsers.length} of {users.length} users</span>
             </div>
 
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
