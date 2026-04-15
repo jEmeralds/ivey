@@ -1,17 +1,23 @@
-﻿import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+﻿// frontend/src/pages/CampaignDetail.jsx
+// ─────────────────────────────────────────────────────────────────────────────
+// Campaign detail — stripped to essentials
+// Script generation moved to Studio
+// This page: campaign info, media uploads, strategy, saved library
+// Primary CTA: Open in Studio
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   getCampaignById, generateStrategy, getCampaignMedia,
-  saveContent, getSavedContent, deleteSavedContent,
+  getSavedContent, deleteSavedContent,
 } from '../services/api';
-
 import MediaUpload from '../components/MediaUpload';
 import ReactMarkdown from 'react-markdown';
 
-const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || 'https://ivey-steel.vercel.app';
-const API_URL      = import.meta.env.VITE_API_URL      || 'https://ivey-production.up.railway.app/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
+// ── Toast ─────────────────────────────────────────────────────────────────────
 const Toast = ({ message, type, visible }) => {
   if (!visible) return null;
   return (
@@ -25,453 +31,35 @@ const Toast = ({ message, type, visible }) => {
   );
 };
 
-// ─── Share / Caption Modal ────────────────────────────────────────────────────
-const ShareModal = ({ isOpen, onClose, imageUrl, format, campaignId, campaignName, productDescription, targetAudience, showToast }) => {
-  const [platform,         setPlatform]         = useState('instagram');
-  const [caption,          setCaption]          = useState('');
-  const [generating,       setGenerating]       = useState(false);
-  const [copied,           setCopied]           = useState(false);
-  const [captionGenerated, setCaptionGenerated] = useState(false);
-
-  const platforms = [
-    { id: 'instagram', label: 'Instagram', emoji: '📸' },
-    { id: 'twitter',   label: 'Twitter/X', emoji: '𝕏'  },
-    { id: 'facebook',  label: 'Facebook',  emoji: '📘' },
-    { id: 'linkedin',  label: 'LinkedIn',  emoji: '💼' },
-    { id: 'tiktok',    label: 'TikTok',    emoji: '🎵' },
-  ];
-
-  const handleGenerateCaption = async () => {
-    setGenerating(true);
-    setCaption('');
-    setCaptionGenerated(false);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/campaigns/${campaignId}/caption`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ format, platform }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to generate caption');
-      setCaption(data.caption);
-      setCaptionGenerated(true);
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(caption);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleReset = () => { setCaption(''); setCaptionGenerated(false); };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4"
-      onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
-          <div>
-            <h2 className="text-base font-bold text-white">📤 Share This Visual</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{format}</p>
-          </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 flex items-center justify-center text-sm">✕</button>
-        </div>
-        <div className="p-6 space-y-5">
-          {imageUrl && (
-            <div className="rounded-xl overflow-hidden border border-gray-700 max-h-48">
-              <img src={imageUrl} alt="Visual" className="w-full h-full object-cover" />
-            </div>
-          )}
-          <div>
-            <p className="text-xs font-semibold text-gray-400 mb-2">WHERE ARE YOU POSTING?</p>
-            <div className="flex gap-2 flex-wrap">
-              {platforms.map(p => (
-                <button key={p.id} onClick={() => { setPlatform(p.id); handleReset(); }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                    platform === p.id
-                      ? 'bg-emerald-600 border-emerald-500 text-white'
-                      : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-500'
-                  }`}>
-                  {p.emoji} {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          {!captionGenerated ? (
-            <button onClick={handleGenerateCaption} disabled={generating}
-              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 transition-all text-sm">
-              {generating ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-                  Generating caption...
-                </span>
-              ) : `✨ Generate ${platforms.find(p => p.id === platform)?.label} Caption`}
-            </button>
-          ) : (
-            <div className="space-y-3">
-              <textarea value={caption} onChange={e => setCaption(e.target.value)} rows={5}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 text-white text-sm rounded-xl resize-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
-              <div className="flex gap-2">
-                <button onClick={handleCopy}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${copied ? 'bg-amber-500 text-gray-900' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}>
-                  {copied ? '✅ Copied!' : '📋 Copy Caption'}
-                </button>
-                <button onClick={handleGenerateCaption} disabled={generating}
-                  className="px-4 py-2.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl text-sm hover:bg-gray-700 transition-all disabled:opacity-50">
-                  🔄 Regenerate
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 text-center">Copy the caption then paste it when posting your content</p>
-            </div>
-          )}
-          {imageUrl && (
-            <a href={imageUrl} target="_blank" rel="noopener noreferrer" download
-              className="flex items-center justify-center gap-2 w-full py-2.5 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl text-sm hover:bg-gray-700 transition-all">
-              ⬇️ Download Image
-            </a>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+// ── Strategy helpers ──────────────────────────────────────────────────────────
+const parseStrategy = (raw) => {
+  if (!raw || typeof raw !== 'string') return [];
+  const sections = raw.split(/\n(?=##\s)/).filter(Boolean);
+  return sections.map(s => {
+    const lines   = s.trim().split('\n');
+    const title   = lines[0].replace(/^#+\s*/, '').trim();
+    const content = lines.slice(1).join('\n').trim();
+    const icons   = { 'Hook': '🎣', 'Script': '📝', 'Target': '🎯', 'Platform': '📱', 'Distribution': '🚀', 'Visual': '🎨', 'Call': '📢' };
+    const icon    = Object.entries(icons).find(([k]) => title.includes(k))?.[1] || '📊';
+    return { title, content, icon };
+  });
 };
 
-// ─── Video Script Card ────────────────────────────────────────────────────────
-const VideoScriptCard = ({ campaignId, campaign, showToast, onSave }) => {
-  const [script,         setScript]         = useState('');
-  const [generating,     setGenerating]     = useState(false);
-  const [genStage,       setGenStage]       = useState('');
-  const [copied,         setCopied]         = useState(false);
-  const [saved,          setSaved]          = useState(false);
-  const [activeTab,      setActiveTab]      = useState('script');
-  const [intel,          setIntel]          = useState(null);
-  const [viralScore,     setViralScore]     = useState(null);
-  const [seconds,        setSeconds]        = useState(null);
-
-  const fmtDur = (s) => !s ? '' : s < 60 ? `${s}s` : `${Math.floor(s/60)}m${s%60>0?` ${s%60}s`:''}`;
-
-  const STAGES = [
-    '🧠 Excavating audience psychology...',
-    '🔍 Analysing competitive landscape...',
-    '🎭 Designing narrative arc...',
-    '🎣 Running Hook Laboratory...',
-    '✍️  Writing production script...',
-    '📊 Scoring for viral potential...',
-  ];
-
-  const handleGenerate = async () => {
-    setGenerating(true); setScript(''); setIntel(null); setViralScore(null); setGenStage(STAGES[0]);
-    let stageIdx = 0;
-    const ticker = setInterval(() => {
-      stageIdx = Math.min(stageIdx + 1, STAGES.length - 1);
-      setGenStage(STAGES[stageIdx]);
-    }, 8000);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/campaigns/${campaignId}/generate-script`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ai_provider: campaign.ai_provider || 'claude' }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to generate script');
-      setScript(data.script);
-      setSeconds(data.seconds);
-      setViralScore(data.viralScore);
-      setIntel({
-        audienceProfile: data.audienceProfile,
-        competitiveGap:  data.competitiveGap,
-        narrativeArc:    data.narrativeArc,
-        hooks:           data.hooks,
-        winnerHook:      data.winnerHook,
-        strengths:       data.strengths,
-        improvements:    data.improvements,
-        predictedViews:  data.predictedViews,
-        scoreFeatures:   data.scoreFeatures,
-        bracketReason:   data.bracketReason,
-        productionBrief: data.productionBrief,
-        heygenSetup:     data.heygenSetup  || null,
-        heygenPrompt:    data.heygenPrompt || null,
-      });
-      setActiveTab('script');
-    } catch (err) { showToast(err.message, 'error'); }
-    finally { clearInterval(ticker); setGenerating(false); setGenStage(''); }
-  };
-
-  const handleCopyScript = () => {
-    const clean = script.replace(/#{1,6}\s*/g, '').replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').trim();
-    navigator.clipboard.writeText(clean);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-    showToast('📋 Script copied — paste into HeyGen', 'success');
-  };
-
-  const handleHeyGen = () => { handleCopyScript(); window.open('https://app.heygen.com/create', '_blank'); };
-
-
-  const handleSaveScript = async () => {
-    if (!script || saved) return;
-    await onSave({ title: `📝 Script (${fmtDur(seconds)}) — ${campaign.name}`, content: script, content_type: 'video_script', format: 'VIDEO_SCRIPT', key: `script_${Date.now()}` });
-    setSaved(true);
-  };
-
-  const scoreColor = (s) => s >= 71 ? 'text-emerald-400' : s >= 51 ? 'text-amber-400' : 'text-red-400';
-  const scoreBg    = (s) => s >= 71 ? 'bg-emerald-500' : s >= 51 ? 'bg-amber-500' : 'bg-red-500';
-
-  const prod = intel?.productionBrief || campaign.production_brief || {};
-  const narratorDesc = [prod.narratorGender, prod.narratorAge, prod.narratorEthnicity]
-    .filter(v => v && v !== 'Either' && v !== 'Any' && v !== 'Not specified').join(', ');
-
-  const TABS = [
-    { id: 'script',   label: '📄 Script'   },
-    { id: 'audience', label: '🧠 Audience' },
-    { id: 'hooks',    label: '🎣 Hooks'    },
-  ];
-
-  return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
-
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center text-lg flex-shrink-0">🎬</div>
-          <div>
-            <div className="font-bold text-white text-sm">Video Script</div>
-            <div className="text-xs text-gray-500 mt-0.5">
-              {seconds ? `${fmtDur(seconds)} · IVey Engine v4` : 'IVey selects 30/45s bracket · Ready for HeyGen'}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {viralScore && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 rounded-lg">
-              <span className="text-xs text-gray-400">Score</span>
-              <span className={`text-sm font-black ${scoreColor(viralScore)}`}>{viralScore}</span>
-              <span className="text-xs text-gray-500">/100</span>
-            </div>
-          )}
-          <button onClick={handleGenerate} disabled={generating}
-            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 shadow-lg">
-            {generating
-              ? <><svg className="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg> Working...</>
-              : script ? '🔄 Regenerate' : '⚡ Generate'}
-          </button>
-        </div>
-      </div>
-
-      {/* Generating progress */}
-      {generating && (
-        <div className="px-5 py-4 border-b border-gray-700 bg-gray-900/50">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse flex-shrink-0"/>
-            <p className="text-xs text-amber-400 font-semibold">{genStage}</p>
-          </div>
-          <div className="space-y-1.5">
-            {STAGES.map((s, i) => {
-              const current = STAGES.indexOf(genStage);
-              const done    = i < current;
-              const active  = i === current;
-              return (
-                <div key={i} className="flex items-center gap-2">
-                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${done ? 'bg-emerald-500' : active ? 'bg-amber-400 animate-pulse' : 'bg-gray-700'}`}/>
-                  <span className={`text-xs ${done ? 'text-emerald-400' : active ? 'text-amber-400' : 'text-gray-600'}`}>{s}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Viral score bar */}
-      {viralScore && !generating && (
-        <div className="px-5 py-3 border-b border-gray-700 bg-gray-900/30">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-gray-400 font-semibold">Viral Score</span>
-            <span className="text-xs text-gray-400">{intel?.predictedViews} predicted views</span>
-          </div>
-          <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
-            <div className={`h-full ${scoreBg(viralScore)} rounded-full transition-all`} style={{width: `${viralScore}%`}}/>
-          </div>
-          {intel?.improvements?.length > 0 && (
-            <p className="text-xs text-gray-500 mt-1.5">💡 {intel.improvements[0]}</p>
-          )}
-        </div>
-      )}
-
-      {/* Tabs */}
-      {(script || intel) && !generating && (
-        <div className="flex border-b border-gray-700 overflow-x-auto">
-          {TABS.filter(t => t.id === 'script' || intel).map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-all border-b-2 ${
-                activeTab === tab.id
-                  ? 'border-amber-500 text-amber-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-300'
-              }`}>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Tab content */}
-      {!generating && (
-        <div>
-
-          {/* ── SCRIPT TAB ── */}
-          {activeTab === 'script' && script && (
-            <div className="p-5 space-y-4">
-              <div className="bg-gray-900/50 rounded-xl p-4 max-h-80 overflow-y-auto border border-gray-700">
-                <pre className="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed font-mono">{script}</pre>
-              </div>
-              {intel?.heygenPrompt && (
-                <div className="bg-gray-900/50 rounded-xl p-4 border border-violet-500/20">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-bold text-violet-400 uppercase tracking-widest">HeyGen Prompt</p>
-                    <button onClick={() => { navigator.clipboard.writeText(intel.heygenPrompt); showToast('HeyGen prompt copied!', 'success'); }}
-                      className="text-xs text-violet-400 hover:text-violet-300 transition-colors">Copy →</button>
-                  </div>
-                  <p className="text-xs text-gray-300 leading-relaxed">{intel.heygenPrompt}</p>
-                  <p className="text-xs text-gray-600 mt-2">Paste this into the Prompt field in HeyGen — not the script field.</p>
-                </div>
-              )}
-              <button onClick={handleHeyGen}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl text-sm font-bold transition-all shadow-lg">
-                🎬 Copy Script & Open HeyGen
-              </button>
-              <div className="flex gap-2">
-                <button onClick={handleCopyScript}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${copied ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
-                  {copied ? '✅ Copied!' : '📋 Copy Script Only'}
-                </button>
-                <button onClick={handleSaveScript} disabled={saved}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border ${saved ? 'bg-amber-500/20 border-amber-500/40 text-amber-400' : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'}`}>
-                  {saved ? '✅' : '🔖 Save'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── PRODUCTION PACKAGE TAB ── */}
-          {activeTab === 'package' && intel && (
-            <div className="p-8 text-center">
-              <div className="text-4xl mb-3">🎬</div>
-              <p className="text-sm font-bold text-white mb-1">Ready to produce?</p>
-              <p className="text-xs text-gray-500 max-w-xs mx-auto mb-4">
-                Use Studio to produce your video with HeyGen and distribute it to all platforms in one flow.
-              </p>
-              <a href="/dashboard?section=studio"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-xl text-sm font-bold hover:from-amber-500 hover:to-amber-700 transition-all shadow-lg">
-                Open Studio →
-              </a>
-            </div>
-          )}
-          {activeTab === 'audience' && intel?.audienceProfile && (
-            <div className="p-5 space-y-3">
-              <p className="text-xs text-gray-500 mb-3">IVey excavated your audience psychology before writing a single word.</p>
-              {[
-                { icon: '🌙', label: 'The 2am Thought',  key: 'two_am_thought'   },
-                { icon: '✨', label: 'Secret Desire',    key: 'secret_desire'    },
-                { icon: '👁', label: 'Social Fear',      key: 'social_fear'      },
-                { icon: '❌', label: 'Failed Attempt',   key: 'failed_attempt'   },
-                { icon: '🗣', label: 'Their Language',   key: 'their_language'   },
-                { icon: '🔑', label: 'Permission Block', key: 'permission_block' },
-                { icon: '🌅', label: 'After State',      key: 'after_state'      },
-                { icon: '💡', label: 'Hook Insight',     key: 'hook_insight'     },
-              ].map(({ icon, label, key }) => {
-                const val = intel.audienceProfile[key];
-                if (!val) return null;
-                const display = Array.isArray(val) ? val.join(' · ') : val;
-                return (
-                  <div key={key} className="flex items-start gap-3 p-3 bg-gray-900/40 rounded-xl border border-gray-700/50">
-                    <span className="text-base flex-shrink-0">{icon}</span>
-                    <div>
-                      <p className="text-xs font-bold text-gray-400 mb-0.5">{label}</p>
-                      <p className="text-xs text-gray-300 leading-relaxed">{display}</p>
-                    </div>
-                  </div>
-                );
-              })}
-              {intel.competitiveGap && (
-                <div className="mt-4 p-3 bg-sky-500/5 border border-sky-500/20 rounded-xl">
-                  <p className="text-xs font-bold text-sky-400 mb-1">🎯 Competitive Gap</p>
-                  <p className="text-xs text-gray-300">{intel.competitiveGap.emotional_gap}</p>
-                  <p className="text-xs text-gray-500 mt-1">Positioning: {intel.competitiveGap.positioning}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── HOOKS TAB ── */}
-          {activeTab === 'hooks' && intel?.hooks && (
-            <div className="p-5 space-y-3">
-              <p className="text-xs text-gray-500 mb-3">IVey generated 5 hooks across 5 formulas and selected the highest scoring one. Use the others for A/B testing.</p>
-              {intel.hooks.map((h, i) => (
-                <div key={i} className={`p-4 rounded-xl border transition-all ${i === 0 ? 'border-amber-500/40 bg-amber-500/5' : 'border-gray-700 bg-gray-900/30'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {i === 0 && <span className="text-xs bg-amber-500 text-gray-900 font-black px-2 py-0.5 rounded-full">WINNER</span>}
-                      <span className="text-xs font-bold text-gray-400">{h.formula}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className={`text-sm font-black ${h.total >= 24 ? 'text-emerald-400' : h.total >= 20 ? 'text-amber-400' : 'text-gray-500'}`}>{h.total}</span>
-                      <span className="text-xs text-gray-600">/30</span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-white italic mb-1">"{h.hook}"</p>
-                  <p className="text-xs text-gray-500">📷 {h.visual}</p>
-                  <div className="flex gap-3 mt-2 text-xs text-gray-600">
-                    <span>Pattern {h.pattern_interrupt}/10</span>
-                    <span>·</span>
-                    <span>Audience {h.audience_match}/10</span>
-                    <span>·</span>
-                    <span>Gap {h.gap_score}/10</span>
-                  </div>
-                  <button onClick={() => { navigator.clipboard.writeText(h.hook); showToast('Hook copied!', 'success'); }}
-                    className="mt-2 text-xs text-gray-500 hover:text-amber-400 transition-colors">Copy hook →</button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Empty state */}
-          {!script && !generating && (
-            <div className="p-8 text-center">
-              <div className="text-4xl mb-3">⚡</div>
-              <p className="text-sm font-bold text-white mb-1">Ready to generate</p>
-              <p className="text-xs text-gray-500 max-w-xs mx-auto">IVey will excavate your audience, analyse competitors, design a narrative arc, test 5 hooks, and write a production-ready script.</p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ─── Strategy Section ─────────────────────────────────────────────────────────
 const StrategySection = ({ title, content, icon, defaultOpen }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-gray-700 rounded-xl overflow-hidden mb-3">
-      <button onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-5 py-4 bg-emerald-900/20 flex items-center justify-between hover:bg-emerald-900/30 transition-all">
-        <div className="flex items-center gap-3">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+      <button onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left">
+        <div className="flex items-center gap-2">
           <span className="text-lg">{icon}</span>
-          <h3 className="text-sm font-semibold text-white">{title}</h3>
+          <span className="font-semibold text-gray-900 dark:text-white text-sm">{title}</span>
         </div>
-        <span className={`text-gray-400 text-xs transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+        <span className={`text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}>▼</span>
       </button>
-      {isOpen && (
-        <div className="px-5 py-4 bg-gray-700/50 border-t border-gray-700">
-          <div className="prose prose-sm prose-invert max-w-none text-gray-300 leading-relaxed">
+      {open && (
+        <div className="px-5 py-4 bg-white dark:bg-gray-900">
+          <div className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         </div>
@@ -480,96 +68,21 @@ const StrategySection = ({ title, content, icon, defaultOpen }) => {
   );
 };
 
-// ─── Parse strategy ───────────────────────────────────────────────────────────
-const parseStrategy = (strategy) => {
-  if (!strategy) return [];
-  const text = typeof strategy === 'string' ? strategy : '';
-  if (!text) return [{ title: 'Marketing Strategy', icon: '📊', content: JSON.stringify(strategy, null, 2) }];
-
-  const iconMap = {
-    'intelligence': '🎯', 'video': '🎬', 'audience': '👥', 'platform': '📢',
-    'distribution': '📢', 'viral': '⚡', 'metric': '📊', 'action': '📅',
-    'competitive': '🔍', 'brand': '🎨', 'content': '📝', 'pillar': '📐',
-  };
-  const getIcon = (t) => {
-    const tl = t.toLowerCase();
-    return Object.entries(iconMap).find(([k]) => tl.includes(k))?.[1] || '📌';
-  };
-
-  // Split by ## headers
-  const headerRegex = /(?:^|\n)(#{1,3}\s*(?:\d+\.?\s+)?[^\n]{3,80})/g;
-  const headers = [];
-  let m;
-  while ((m = headerRegex.exec(text)) !== null) {
-    headers.push({ raw: m[1].trim(), index: m.index === 0 ? 0 : m.index + 1, len: m[0].length });
-  }
-
-  if (headers.length >= 2) {
-    const sections = [];
-    headers.forEach((h, i) => {
-      const contentStart = h.index + h.len;
-      const contentEnd   = i < headers.length - 1 ? headers[i + 1].index : text.length;
-      const content      = text.slice(contentStart, contentEnd).trim();
-      const title        = h.raw.replace(/^#+\s*/, '').replace(/^\d+\.?\s*/, '').trim();
-      if (content.length > 10) sections.push({ title, icon: getIcon(title), content });
-    });
-    if (sections.length > 0) return sections;
-  }
-
-  return [{ title: 'Marketing Strategy', icon: '📊', content: text }];
-};
-
-// ─── Saved Library ────────────────────────────────────────────────────────────
+// ── Saved library ─────────────────────────────────────────────────────────────
 const SavedLibrary = ({ savedItems, onDelete }) => {
-  const [filter, setFilter] = useState('all');
-  if (savedItems.length === 0) return null;
-  const filtered = savedItems.filter(s => {
-    if (filter === 'all')    return true;
-    if (filter === 'images') return ['generated_image', 'generated_thumbnail'].includes(s.content_type);
-    if (filter === 'videos') return s.content_type === 'video_import';
-    return true;
-  });
+  if (!savedItems?.length) return null;
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden mt-8">
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-base font-bold text-white">🗂️ Saved Library</span>
-          <span className="bg-emerald-500/20 text-emerald-300 text-xs font-semibold px-2 py-0.5 rounded-full">{savedItems.length}</span>
-        </div>
-        <div className="flex gap-1">
-          {['all', 'images', 'videos'].map(tab => (
-            <button key={tab} onClick={() => setFilter(tab)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-all ${filter === tab ? 'bg-emerald-500/20 text-emerald-300' : 'text-gray-400 hover:text-gray-200'}`}>
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 p-4">
-        {filtered.map(savedItem => (
-          <div key={savedItem.id} className="relative group rounded-xl overflow-hidden border border-gray-700 bg-gray-700">
-            {['generated_image', 'generated_thumbnail'].includes(savedItem.content_type) ? (
-              <img src={savedItem.content} alt={savedItem.title} className="w-full aspect-square object-cover" />
-            ) : savedItem.content_type === 'video_import' ? (
-              <div className="w-full aspect-square flex items-center justify-center bg-gray-700">
-                <div className="text-center">
-                  <div className="text-3xl mb-1">🎬</div>
-                  <p className="text-xs text-gray-400 px-2 truncate">{savedItem.title}</p>
-                </div>
-              </div>
-            ) : null}
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2">
-              {['generated_image', 'generated_thumbnail'].includes(savedItem.content_type) && (
-                <a href={savedItem.content} target="_blank" rel="noopener noreferrer" download className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center text-white text-sm hover:bg-white/30">⬇️</a>
-              )}
-              {savedItem.content_type === 'video_import' && (
-                <a href={savedItem.content} target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center text-white text-sm hover:bg-white/30">▶</a>
-              )}
-              <button onClick={() => onDelete(savedItem.id)} className="w-8 h-8 bg-red-500/40 rounded-lg flex items-center justify-center text-white text-sm hover:bg-red-500/60">🗑️</button>
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 mb-6">
+      <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">🔖 Saved Content</h2>
+      <div className="space-y-3">
+        {savedItems.map(item => (
+          <div key={item.id} className="flex items-start justify-between gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.title}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{item.content_type} · {item.format}</p>
             </div>
-            <div className="px-2 py-1.5 border-t border-gray-600">
-              <p className="text-xs text-gray-400 truncate">{savedItem.title}</p>
-            </div>
+            <button onClick={() => onDelete(item.id)}
+              className="text-gray-400 hover:text-red-400 transition-colors text-xs flex-shrink-0">✕</button>
           </div>
         ))}
       </div>
@@ -577,13 +90,10 @@ const SavedLibrary = ({ savedItems, onDelete }) => {
   );
 };
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────────
 const CampaignDetail = () => {
   const { id }   = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const goBack = () => navigate('/dashboard?section=campaigns');
 
   const [campaign,           setCampaign]           = useState(null);
   const [strategy,           setStrategy]           = useState(null);
@@ -609,16 +119,13 @@ const CampaignDetail = () => {
       const data = await getCampaignById(id);
       const raw  = data.campaign;
       setCampaign({
-        id:               String(raw.id || ''),
-        name:             String(raw.name || 'Untitled Campaign'),
-        description:      String(raw.product_description || raw.description || ''),
-        target_audience:  String(raw.target_audience || ''),
-        ai_provider:      String(raw.ai_provider || 'gemini'),
-        output_formats:   Array.isArray(raw.output_formats) ? raw.output_formats : [],
-        status:           String(raw.status || ''),
-        created_at:       raw.created_at,
-        video_duration:   raw.video_duration || null,
-        generated_content: Array.isArray(raw.generated_content) ? raw.generated_content : [],
+        id:              String(raw.id || ''),
+        name:            String(raw.name || 'Untitled Campaign'),
+        description:     String(raw.product_description || raw.description || ''),
+        target_audience: String(raw.target_audience || ''),
+        ai_provider:     String(raw.ai_provider || 'gemini'),
+        status:          String(raw.status || ''),
+        created_at:      raw.created_at,
       });
     } catch { setError('Failed to load campaign'); }
     finally { setLoading(false); }
@@ -626,14 +133,6 @@ const CampaignDetail = () => {
 
   const fetchMedia  = async () => { try { const d = await getCampaignMedia(id); setMedia(d.media || []); } catch {} };
   const fetchSaved  = async () => { try { const d = await getSavedContent({ campaign_id: id }); setSavedItems(d.saved_content || []); } catch {} };
-
-  const handleSave = useCallback(async ({ title, content, content_type, format, key }) => {
-    try {
-      const d = await saveContent({ campaign_id: id, title, content, content_type, format });
-      setSavedItems(prev => [d.saved, ...prev]);
-      showToast(`🔖 "${title}" saved!`);
-    } catch { showToast('Failed to save', 'error'); }
-  }, [id, showToast]);
 
   const handleDeleteSaved = async (savedId) => {
     try { await deleteSavedContent(savedId); setSavedItems(prev => prev.filter(s => s.id !== savedId)); }
@@ -649,10 +148,12 @@ const CampaignDetail = () => {
     finally { setGeneratingStrategy(false); }
   };
 
+  const openInStudio = () => navigate(`/dashboard?section=studio&campaign=${id}`);
+
   if (loading) return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"/>
         <p className="mt-4 text-gray-400">Loading campaign...</p>
       </div>
     </div>
@@ -662,73 +163,122 @@ const CampaignDetail = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-white mb-2">Campaign not found</h2>
-        <button onClick={goBack} className="text-emerald-500 hover:text-emerald-400">← Back to Campaigns</button>
+        <button onClick={() => navigate('/dashboard?section=campaigns')} className="text-emerald-500 hover:text-emerald-400">← Back</button>
       </div>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16 py-10 px-4">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-4xl mx-auto">
 
-        <button onClick={goBack} className="text-emerald-500 hover:text-emerald-400 font-medium mb-6 flex items-center gap-2 text-sm">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+        {/* Back */}
+        <button onClick={() => navigate('/dashboard?section=campaigns')}
+          className="text-emerald-500 hover:text-emerald-400 font-medium mb-6 flex items-center gap-2 text-sm">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
           Back to Campaigns
         </button>
 
+        {/* Campaign header */}
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 mb-6">
           <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{campaign.name}</h1>
-              <p className="text-gray-400 mt-1 text-sm">{campaign.description}</p>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-black text-gray-900 dark:text-white">{campaign.name}</h1>
+              <p className="text-gray-400 mt-1 text-sm leading-relaxed">{campaign.description}</p>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <button onClick={handleGenerateStrategy} disabled={generatingStrategy}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm bg-gray-700 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-600 disabled:opacity-50 transition-all">
-                {generatingStrategy ? '⏳ Generating...' : '📊 Strategy'}
-              </button>
-            </div>
+            <button onClick={openInStudio}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg flex-shrink-0">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              Open in Studio
+            </button>
           </div>
-          <div className="grid md:grid-cols-3 gap-4 mt-5 pt-5 border-t border-gray-700">
-            <div><span className="text-xs text-gray-500">Target Audience</span><p className="text-sm font-medium text-white mt-0.5">{campaign.target_audience}</p></div>
-            <div><span className="text-xs text-gray-500">AI Provider</span><p className="text-sm font-medium text-white mt-0.5 capitalize">{campaign.ai_provider || 'gemini'}</p></div>
-            <div><span className="text-xs text-gray-500">Status</span><p className="text-sm font-medium text-emerald-400 mt-0.5">🎬 Video-first campaign</p></div>
+
+          <div className="grid md:grid-cols-3 gap-4 mt-5 pt-5 border-t border-gray-200 dark:border-gray-700">
+            <div>
+              <span className="text-xs text-gray-500 uppercase tracking-wider">Target Audience</span>
+              <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{campaign.target_audience || '—'}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500 uppercase tracking-wider">AI Provider</span>
+              <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5 capitalize">{campaign.ai_provider || 'gemini'}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500 uppercase tracking-wider">Created</span>
+              <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
+                {campaign.created_at ? new Date(campaign.created_at).toLocaleDateString() : '—'}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="mb-6">
-          <MediaUpload campaignId={id} media={media} onUploadSuccess={fetchMedia} onSelectForVisual={() => {}} selectedMediaId={null} />
+        {/* Studio CTA banner */}
+        <div className="bg-gradient-to-r from-amber-500/10 to-emerald-500/10 border border-amber-500/20 rounded-2xl p-5 mb-6 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-xl flex-shrink-0">🎬</div>
+          <div className="flex-1">
+            <p className="font-bold text-gray-900 dark:text-white text-sm">Generate script, produce video, distribute</p>
+            <p className="text-xs text-gray-500 mt-0.5">Upload your media below, then open Studio to create your content.</p>
+          </div>
+          <button onClick={openInStudio}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold transition-all flex-shrink-0">
+            Studio →
+          </button>
         </div>
+
+        {/* Media uploads */}
+        <div className="mb-6">
+          <MediaUpload campaignId={id} media={media} onUploadSuccess={fetchMedia} onSelectForVisual={() => {}} selectedMediaId={null}/>
+        </div>
+
+        {/* Media tip for Studio */}
+        {media.length > 0 && (
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 mb-6 flex items-start gap-3">
+            <span className="text-blue-400 flex-shrink-0">💡</span>
+            <p className="text-xs text-blue-300">
+              {media.length} media file{media.length > 1 ? 's' : ''} uploaded. When you open Studio and produce a video,
+              IVey will pass your media to HeyGen automatically as background assets.
+              For manual HeyGen use, download your files and upload them directly in HeyGen's editor.
+            </p>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-900/20 border border-red-800 text-red-400 px-4 py-3 rounded-xl mb-6 text-sm">{error}</div>
         )}
 
-        <div className="mb-6">
-          <VideoScriptCard campaignId={id} campaign={campaign} showToast={showToast} onSave={handleSave} />
-        </div>
-
-        {strategy && (
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-7 mb-6">
-            <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">📊 Marketing Strategy</h2>
-              <button onClick={handleGenerateStrategy} disabled={generatingStrategy}
-                className="px-3 py-1.5 text-xs bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-all">
-                {generatingStrategy ? 'Regenerating...' : '🔄 Regenerate'}
-              </button>
+        {/* Strategy */}
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 mb-6">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div>
+              <h2 className="text-base font-bold text-gray-900 dark:text-white">📊 Marketing Strategy</h2>
+              <p className="text-xs text-gray-500 mt-0.5">AI-generated campaign strategy</p>
             </div>
+            <button onClick={handleGenerateStrategy} disabled={generatingStrategy}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium disabled:opacity-50 transition-all">
+              {generatingStrategy
+                ? <><div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"/><span>Generating...</span></>
+                : <><span>⚡</span><span>{strategy ? 'Regenerate' : 'Generate Strategy'}</span></>
+              }
+            </button>
+          </div>
+
+          {strategy ? (
             <div className="space-y-2">
               {strategySections.map((section, i) => (
-                <StrategySection key={i} title={section.title} content={section.content} icon={section.icon} defaultOpen={i === 0} />
+                <StrategySection key={i} title={section.title} content={section.content} icon={section.icon} defaultOpen={i === 0}/>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              <p className="text-3xl mb-2">📊</p>
+              <p className="text-sm">No strategy yet. Click Generate Strategy to create one.</p>
+            </div>
+          )}
+        </div>
 
-        <SavedLibrary savedItems={savedItems} onDelete={handleDeleteSaved} />
+        <SavedLibrary savedItems={savedItems} onDelete={handleDeleteSaved}/>
 
       </div>
-      <Toast message={toast.message} type={toast.type} visible={toast.visible} />
+      <Toast message={toast.message} type={toast.type} visible={toast.visible}/>
     </div>
   );
 };

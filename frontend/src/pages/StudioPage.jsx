@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import DistributeModal from '../components/DistributeModal';
 
@@ -61,6 +62,8 @@ const PLATFORMS = [
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 const StudioPage = ({ embedded = false }) => {
+  const location = useLocation();
+
   // Step tracking
   const [step, setStep] = useState(1); // 1=campaign, 2=script, 3=produce, 4=distribute
 
@@ -116,7 +119,19 @@ const StudioPage = ({ embedded = false }) => {
     try {
       const res  = await fetch(`${API_URL}/campaigns`, { headers: headers() });
       const data = await res.json();
-      setCampaigns(data.campaigns || []);
+      const list = data.campaigns || [];
+      setCampaigns(list);
+
+      // Auto-select campaign from URL param (e.g. ?campaign=abc123)
+      const params     = new URLSearchParams(location.search);
+      const campaignId = params.get('campaign');
+      if (campaignId) {
+        const found = list.find(c => String(c.id) === String(campaignId));
+        if (found) {
+          setSelectedCampaign(found);
+          setStep(2); // Skip to script step
+        }
+      }
     } catch {}
     finally { setLoadingCampaigns(false); }
   };
