@@ -10,7 +10,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   getCampaignById, generateStrategy, getCampaignMedia,
-  getSavedContent, deleteSavedContent,
 } from '../services/api';
 import MediaUpload from '../components/MediaUpload';
 import ReactMarkdown from 'react-markdown';
@@ -68,27 +67,6 @@ const StrategySection = ({ title, content, icon, defaultOpen }) => {
   );
 };
 
-// ── Saved library ─────────────────────────────────────────────────────────────
-const SavedLibrary = ({ savedItems, onDelete }) => {
-  if (!savedItems?.length) return null;
-  return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 mb-6">
-      <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">🔖 Saved Content</h2>
-      <div className="space-y-3">
-        {savedItems.map(item => (
-          <div key={item.id} className="flex items-start justify-between gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.title}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{item.content_type} · {item.format}</p>
-            </div>
-            <button onClick={() => onDelete(item.id)}
-              className="text-gray-400 hover:text-red-400 transition-colors text-xs flex-shrink-0">✕</button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 const CampaignDetail = () => {
@@ -99,7 +77,6 @@ const CampaignDetail = () => {
   const [strategy,           setStrategy]           = useState(null);
   const [strategySections,   setStrategySections]   = useState([]);
   const [media,              setMedia]              = useState([]);
-  const [savedItems,         setSavedItems]         = useState([]);
   const [loading,            setLoading]            = useState(true);
   const [generatingStrategy, setGeneratingStrategy] = useState(false);
   const [error,              setError]              = useState('');
@@ -110,7 +87,7 @@ const CampaignDetail = () => {
     setTimeout(() => setToast(t => ({ ...t, visible: false })), 3500);
   }, []);
 
-  useEffect(() => { fetchCampaign(); fetchMedia(); fetchSaved(); }, [id]);
+  useEffect(() => { fetchCampaign(); fetchMedia(); }, [id]);
   useEffect(() => { if (strategy) setStrategySections(parseStrategy(strategy)); }, [strategy]);
 
   const fetchCampaign = async () => {
@@ -132,12 +109,7 @@ const CampaignDetail = () => {
   };
 
   const fetchMedia  = async () => { try { const d = await getCampaignMedia(id); setMedia(d.media || []); } catch {} };
-  const fetchSaved  = async () => { try { const d = await getSavedContent({ campaign_id: id }); setSavedItems(d.saved_content || []); } catch {} };
 
-  const handleDeleteSaved = async (savedId) => {
-    try { await deleteSavedContent(savedId); setSavedItems(prev => prev.filter(s => s.id !== savedId)); }
-    catch { showToast('Failed to delete', 'error'); }
-  };
 
   const handleGenerateStrategy = async () => {
     try {
@@ -274,8 +246,6 @@ const CampaignDetail = () => {
             </div>
           )}
         </div>
-
-        <SavedLibrary savedItems={savedItems} onDelete={handleDeleteSaved}/>
 
       </div>
       <Toast message={toast.message} type={toast.type} visible={toast.visible}/>
