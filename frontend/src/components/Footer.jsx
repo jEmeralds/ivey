@@ -8,6 +8,9 @@ const Footer = () => {
   // Don't show footer inside dashboard
   if (location.pathname.startsWith('/dashboard')) return null;
 
+  // Check if user is logged in
+  const isLoggedIn = !!localStorage.getItem('token');
+
   const handleGalleryClick = (e) => {
     e.preventDefault();
     if (location.pathname === '/') {
@@ -41,7 +44,6 @@ const Footer = () => {
             <p className="text-gray-400 text-sm leading-relaxed mb-5">
               Generate viral marketing content with AI in seconds. Built for creators and brands who want to move fast.
             </p>
-            {/* Social links — wired to real platforms */}
             <div className="flex items-center gap-3">
               <a href="https://twitter.com" target="_blank" rel="noreferrer"
                 className="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-600 flex items-center justify-center text-gray-400 hover:text-white transition-all">
@@ -70,7 +72,7 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Product — only real routes */}
+          {/* Product */}
           <div>
             <h4 className="font-bold text-white mb-4 text-sm uppercase tracking-widest">Product</h4>
             <ul className="space-y-3 text-sm">
@@ -82,15 +84,20 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Account */}
+          {/* Account — auth-aware */}
           <div>
             <h4 className="font-bold text-white mb-4 text-sm uppercase tracking-widest">Account</h4>
             <ul className="space-y-3 text-sm">
-              <li><Link to="/signup"    className="text-gray-400 hover:text-white transition-colors">Get Started Free</Link></li>
-              <li><Link to="/login"     className="text-gray-400 hover:text-white transition-colors">Sign In</Link></li>
+              {!isLoggedIn && (
+                <>
+                  <li><Link to="/signup" className="text-gray-400 hover:text-white transition-colors">Get Started Free</Link></li>
+                  <li><Link to="/login"  className="text-gray-400 hover:text-white transition-colors">Sign In</Link></li>
+                </>
+              )}
               <li><Link to="/dashboard" className="text-gray-400 hover:text-white transition-colors">My Dashboard</Link></li>
               <li><Link to="/dashboard?section=campaigns" className="text-gray-400 hover:text-white transition-colors">My Campaigns</Link></li>
-              <li><Link to="/brand"     className="text-gray-400 hover:text-white transition-colors">Brand Identity</Link></li>
+              <li><Link to="/dashboard?section=studio" className="text-gray-400 hover:text-white transition-colors">Studio</Link></li>
+              <li><Link to="/dashboard?section=brands" className="text-gray-400 hover:text-white transition-colors">Brand Identity</Link></li>
             </ul>
           </div>
 
@@ -100,31 +107,22 @@ const Footer = () => {
             <ul className="space-y-3 text-sm">
               <li><Link to="/support"  className="text-gray-400 hover:text-white transition-colors">Help & Support</Link></li>
               <li><Link to="/pricing"  className="text-gray-400 hover:text-white transition-colors">Plans & Pricing</Link></li>
+              <li><a href="mailto:support@ivey.app" className="text-gray-400 hover:text-white transition-colors">Contact Us</a></li>
               <li>
-                <a href="mailto:support@ivey.app" className="text-gray-400 hover:text-white transition-colors">
-                  Contact Us
-                </a>
-              </li>
-              <li>
-                <a href={import.meta.env.VITE_FRONTEND_URL || "/"} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-white transition-colors flex items-center gap-1">
+                <a href={import.meta.env.VITE_FRONTEND_URL || "/"} target="_blank" rel="noreferrer"
+                  className="text-gray-400 hover:text-white transition-colors flex items-center gap-1">
                   Status
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                 </a>
               </li>
             </ul>
 
-            {/* Newsletter teaser */}
             <div className="mt-6">
               <p className="text-xs text-gray-500 mb-2 font-semibold uppercase tracking-widest">Stay updated</p>
               <div className="flex gap-2">
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 text-white text-xs rounded-lg placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition-colors min-w-0"
-                />
-                <button className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors flex-shrink-0">
-                  →
-                </button>
+                <input type="email" placeholder="your@email.com"
+                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 text-white text-xs rounded-lg placeholder-gray-600 focus:outline-none focus:border-emerald-500 transition-colors min-w-0"/>
+                <button className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors flex-shrink-0">→</button>
               </div>
             </div>
           </div>
