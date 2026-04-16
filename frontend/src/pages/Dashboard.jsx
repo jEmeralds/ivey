@@ -6,10 +6,11 @@ import { getCampaigns, deleteCampaign } from '../services/api';
 import BrandPage from './BrandPage';
 import ProductsPage from './ProductsPage';
 import GallerySubmitButton from '../components/GallerySubmitButton';
-import SocialConnect, { AnalyticsPanel } from '../components/SocialConnect';
 import SettingsPage from './SettingsPage';
 import StudioPage   from './StudioPage';
 import AdminPage    from './AdminPage';
+import LibraryPage  from './LibraryPage';
+import SocialPage   from './SocialPage';
 
 const NAV_ITEMS = [
   { id: 'overview',   label: 'Overview',   icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>) },
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { id: 'brands',     label: 'Brands',     icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>) },
   { id: 'products',   label: 'Products',   icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>) },
   { id: 'social',     label: 'Social',     icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>) },
+  { id: 'library',    label: 'Library',    icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>) },
   { id: 'gallery',    label: 'Gallery',    icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>) },
   { id: 'analytics',  label: 'Analytics',  icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>) },
   { id: 'admin',      label: 'Admin',      icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>), adminOnly: true },
@@ -469,15 +471,7 @@ const Dashboard = () => {
           {activeSection === 'studio'     && <StudioPage embedded />}
           {activeSection === 'brands'     && <BrandPage embedded onViewProducts={(brandId) => { setActiveBrandId(brandId); goTo('products'); }} />}
           {activeSection === 'products'   && <ProductsSection preselectedBrandId={activeBrandId} onClearBrand={() => setActiveBrandId(null)} />}
-          {activeSection === 'social'     && (
-            <div className="space-y-4">
-              <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Social Accounts</h1>
-                <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Connect your accounts and manage posts</p>
-              </div>
-              <SocialConnect/>
-            </div>
-          )}
+          {activeSection === 'social'     && <SocialPage />}
           {activeSection === 'gallery'    && (
             <div className="space-y-4">
               <div>
@@ -489,15 +483,7 @@ const Dashboard = () => {
           )}
           {activeSection === 'settings'   && <SettingsPage embedded />}
       {activeSection === 'admin'      && <AdminPage />}
-          {activeSection === 'analytics'  && (
-            <div className="space-y-4">
-              <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Social Analysis</h1>
-                <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Your social post activity and performance</p>
-              </div>
-              <AnalyticsPanel isDark={true}/>
-            </div>
-          )}
+          {activeSection === 'library'    && <LibraryPage />}
         </main>
       </div>
       <BottomNav/>

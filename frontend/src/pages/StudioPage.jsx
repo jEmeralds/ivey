@@ -211,6 +211,19 @@ const StudioPage = ({ embedded = false }) => {
       setSeconds(data.seconds);
       setWinnerHook(data.winnerHook);
       // Stay on step 2 — user reviews script then clicks Next
+
+      // Auto-save script to Library
+      fetch(`${API_URL}/library`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({
+          type:        'script',
+          title:       `Script (${data.seconds || 45}s) — ${selectedCampaign?.name || 'Campaign'}`,
+          content:     data.script,
+          source:      'studio',
+          campaign_id: selectedCampaign?.id || null,
+        }),
+      }).catch(() => {}); // Non-blocking
     } catch (err) { setError(err.message); }
     finally { clearInterval(ticker); setGeneratingScript(false); setScriptStage(''); }
   };
@@ -272,6 +285,19 @@ const StudioPage = ({ embedded = false }) => {
     setManualUrl('');
     setStep(4);
     showToast('✅ Video URL imported', 'success');
+
+    // Save video to Library
+    fetch(`${API_URL}/library`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+      body: JSON.stringify({
+        type:        'video',
+        title:       `Video — ${selectedCampaign?.name || 'Campaign'}`,
+        video_url:   videoUrl,
+        source:      'manual',
+        campaign_id: selectedCampaign?.id || null,
+      }),
+    }).catch(() => {}); // Non-blocking
   };
 
   // ── Copy script ───────────────────────────────────────────────────────────

@@ -21,6 +21,7 @@ import ayrshareRoutes  from './routes/ayrshare.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
 import heygenRoutes   from './routes/heygen.routes.js';
 import paymentsRoutes from './routes/payments.routes.js';
+import libraryRoutes  from './routes/library.routes.js';
 
 import {
   setupHelmet,
@@ -153,6 +154,7 @@ app.use('/api/ayrshare',  ayrshareRoutes);
 app.use('/api/settings',  settingsRoutes);
 app.use('/api/heygen',    heygenRoutes);
 app.use('/api/payments',  paymentsRoutes);
+app.use('/api/library',   libraryRoutes);
 app.use('/api',           saveRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────

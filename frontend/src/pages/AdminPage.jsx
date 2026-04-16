@@ -273,6 +273,8 @@ const AdminPage = () => {
   const [users,      setUsers]      = useState([]);
   const [payments,   setPayments]   = useState([]);
   const [actions,    setActions]    = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [subFilter,   setSubFilter]   = useState('pending');
   const [loading,    setLoading]    = useState(true);
   const [search,     setSearch]     = useState('');
   const [planFilter, setPlanFilter] = useState('all');
@@ -292,16 +294,18 @@ const AdminPage = () => {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [statsRes, usersRes, paymentsRes] = await Promise.all([
-        fetch(`${API_URL}/admin/stats`,           { headers: headers() }),
-        fetch(`${API_URL}/admin/users?limit=200`, { headers: headers() }),
-        fetch(`${API_URL}/admin/payments`,        { headers: headers() }),
+      const [statsRes, usersRes, paymentsRes, subsRes] = await Promise.all([
+        fetch(`${API_URL}/admin/stats`,                          { headers: headers() }),
+        fetch(`${API_URL}/admin/users?limit=200`,                { headers: headers() }),
+        fetch(`${API_URL}/admin/payments`,                       { headers: headers() }),
+        fetch(`${API_URL}/library/admin/submissions?status=all`, { headers: headers() }),
       ]);
       if (!statsRes.ok) { setError('Admin access denied'); setLoading(false); return; }
-      const [s, u, p] = await Promise.all([statsRes.json(), usersRes.json(), paymentsRes.json()]);
+      const [s, u, p, sub] = await Promise.all([statsRes.json(), usersRes.json(), paymentsRes.json(), subsRes.json()]);
       setStats(s);
       setUsers(u.users || []);
       setPayments(p.payments || []);
+      setSubmissions(sub.submissions || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -318,10 +322,11 @@ const AdminPage = () => {
   });
 
   const TABS = [
-    { id: 'overview',  label: '📊 Overview'  },
-    { id: 'users',     label: '👥 Users'     },
-    { id: 'payments',  label: '💳 Payments'  },
-    { id: 'actions',   label: '📋 Audit Log' },
+    { id: 'overview',    label: '📊 Overview'     },
+    { id: 'users',       label: '👥 Users'         },
+    { id: 'submissions', label: '🖼 Submissions'   },
+    { id: 'payments',    label: '💳 Payments'      },
+    { id: 'actions',     label: '📋 Audit Log'     },
   ];
 
   if (loading) return (
@@ -475,6 +480,71 @@ const AdminPage = () => {
                   <div className="text-center py-12 text-gray-500 text-sm">No users found</div>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── SUBMISSIONS TAB ── */}
+        {tab === 'submissions' && (
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              {['pending','approved','rejected','all'].map(s => (
+                <button key={s} onClick={() => setSubFilter(s)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
+                    subFilter === s
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                      : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500'
+                  }`}>
+                  {s} ({submissions.filter(x => s === 'all' || x.status === s).length})
+                </button>
+              ))}
+            </div>
+            <div className="space-y-3">
+              {submissions.filter(x => subFilter === 'all' || x.status === subFilter).map(sub => (
+                <div key={sub.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
+                  <div className="flex items-start gap-4">
+                    {sub.video_url && (
+                      <video src={sub.video_url} className="w-24 h-16 object-cover rounded-lg flex-shrink-0"/>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">{sub.title}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{sub.users?.email} · {new Date(sub.submitted_at).toLocaleDateString()}</p>
+                      {sub.description && <p className="text-xs text-gray-400 mt-1">"{sub.description}"</p>}
+                    </div>
+                    <div className="flex flex-col gap-2 flex-shrink-0">
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full text-center ${
+                        sub.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' :
+                        sub.status === 'rejected' ? 'bg-red-500/10 text-red-400' :
+                        'bg-amber-500/10 text-amber-500'
+                      }`}>{sub.status}</span>
+                      {sub.status === 'pending' && (
+                        <div className="flex gap-1">
+                          <button onClick={async () => {
+                            const res = await fetch(`${API_URL}/library/admin/submissions/${sub.id}`, {
+                              method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+                              body: JSON.stringify({ action: 'approve' }),
+                            });
+                            if (res.ok) { setSubmissions(prev => prev.map(s => s.id === sub.id ? { ...s, status: 'approved' } : s)); }
+                          }} className="px-2 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg text-xs font-bold hover:bg-emerald-500/20">✅</button>
+                          <button onClick={async () => {
+                            const note = window.prompt('Reason for rejection (optional):');
+                            const res = await fetch(`${API_URL}/library/admin/submissions/${sub.id}`, {
+                              method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
+                              body: JSON.stringify({ action: 'reject', note }),
+                            });
+                            if (res.ok) { setSubmissions(prev => prev.map(s => s.id === sub.id ? { ...s, status: 'rejected' } : s)); }
+                          }} className="px-2 py-1 bg-red-500/10 text-red-400 rounded-lg text-xs font-bold hover:bg-red-500/20">❌</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {submissions.filter(x => subFilter === 'all' || x.status === subFilter).length === 0 && (
+                <div className="text-center py-12 text-gray-500 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl">
+                  No {subFilter} submissions
+                </div>
+              )}
             </div>
           </div>
         )}
