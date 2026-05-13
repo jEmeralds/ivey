@@ -1,5 +1,5 @@
 ﻿// ═══════════════════════════════════════════════════════════════════════════════
-// IVey AI Engine — v4.0  (2-Call Architecture)
+// IVey AI Engine — v4.1  (2-Call Architecture + APIvault Integration)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import fetch from 'node-fetch';
@@ -55,8 +55,8 @@ function _getFallbackChain(preferred) {
   const chain = [preferred, ...all.filter(p => p !== preferred)];
   return chain.filter(p => {
     if (p === 'gemini')       return !!GEMINI_API_KEY;
-    if (p === 'claude')       return !!ANTHROPIC_API_KEY;
-    if (p === 'claude-haiku') return !!ANTHROPIC_API_KEY;
+    if (p === 'claude')       return !!ANTHROPIC_API_KEY || !!process.env.VAULT_KEY;
+    if (p === 'claude-haiku') return !!ANTHROPIC_API_KEY || !!process.env.VAULT_KEY;
     if (p === 'openai')       return !!OPENAI_API_KEY;
     if (p === 'openai-mini')  return !!OPENAI_API_KEY;
     return false;
@@ -90,8 +90,10 @@ export async function callAI(provider = 'gemini', prompt, userPlan = 'free') {
       const isRateLimit = err.message?.includes('quota') || err.message?.includes('rate') ||
                           err.message?.includes('429')   || err.message?.includes('exceeded') ||
                           err.message?.includes('limit');
-      const isKeyError  = err.message?.includes('API key') || err.message?.includes('not configured') ||
-                          err.message?.includes('401') || err.message?.includes('403');
+      // APIvault errors must NOT be treated as key errors — they should surface so we can debug
+      const isKeyError  = (err.message?.includes('API key') || err.message?.includes('not configured') ||
+                           err.message?.includes('401') || err.message?.includes('403')) &&
+                          !err.message?.includes('APIvault');
       if (isKeyError) { console.warn(`   ⚠️  ${p} — key error, skipping`); continue; }
       if (isRateLimit && i < chain.length - 1) {
         console.warn(`   ⚠️  ${p} rate limited — trying ${chain[i + 1]}`);
@@ -136,31 +138,47 @@ async function _gemini(prompt) {
   return d.candidates[0].content.parts[0].text;
 }
 
+// ── FIXED: Routes through APIvault proxy when VAULT_KEY is set ────────────────
 async function _claude(prompt, model = MODELS.claude) {
-  const VAULT_KEY = process.env.VAULT_KEY
+  const VAULT_KEY = process.env.VAULT_KEY;
 
   if (VAULT_KEY) {
-    // Send the full key including sk-vault- prefix
+    // Strip sk-vault- prefix — proxy checks UUID in DB
+    const vaultKey = VAULT_KEY.startsWith('sk-vault-') ? VAULT_KEY.slice(9) : VAULT_KEY;
+    console.log(`   🔑 APIvault proxy (${vaultKey.slice(0, 8)}...)`);
     const res = await fetch('https://api.apivault.uk/proxy/claude/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-vault-key': VAULT_KEY,  // send full key, proxy handles it
+        'x-vault-key': vaultKey,
       },
-      body: JSON.stringify({ model, max_tokens: 4096, system: SYSTEM, messages: [{ role: 'user', content: prompt }] }),
-    })
-    if (!res.ok) { const e = await res.json(); throw new Error(`Claude via APIvault: ${e.error?.message || res.statusText}`) }
-    return (await res.json()).content[0].text
+      body: JSON.stringify({
+        model,
+        max_tokens: 4096,
+        system: SYSTEM,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(`Claude via APIvault: ${e.error?.message || res.status}`);
+    }
+    return (await res.json()).content[0].text;
   }
 
-  if (!ANTHROPIC_API_KEY) throw new Error('Anthropic API key not configured')
+  // Direct Anthropic fallback (when no vault key)
+  if (!ANTHROPIC_API_KEY) throw new Error('Anthropic API key not configured');
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    },
     body: JSON.stringify({ model, max_tokens: 4096, system: SYSTEM, messages: [{ role: 'user', content: prompt }] }),
-  })
-  if (!res.ok) { const e = await res.json(); throw new Error(`Claude: ${e.error?.message || res.statusText}`) }
-  return (await res.json()).content[0].text
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(`Claude: ${e.error?.message || res.statusText}`); }
+  return (await res.json()).content[0].text;
 }
 
 async function _openai(prompt, model = 'gpt-4o-mini') {
