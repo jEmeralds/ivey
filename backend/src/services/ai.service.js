@@ -137,14 +137,31 @@ async function _gemini(prompt) {
 }
 
 async function _claude(prompt, model = MODELS.claude) {
-  if (!ANTHROPIC_API_KEY) throw new Error('Anthropic API key not configured');
+  const VAULT_KEY = process.env.VAULT_KEY
+  
+  // Route through APIvault if vault key is set, otherwise fall back to direct
+  if (VAULT_KEY) {
+    const res = await fetch('https://api.apivault.uk/proxy/claude/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-vault-key': VAULT_KEY.replace('sk-vault-', ''),
+      },
+      body: JSON.stringify({ model, max_tokens: 4096, system: SYSTEM, messages: [{ role: 'user', content: prompt }] }),
+    })
+    if (!res.ok) { const e = await res.json(); throw new Error(`Claude via APIvault: ${e.error?.message || res.statusText}`) }
+    return (await res.json()).content[0].text
+  }
+
+  // Direct fallback (if no vault key)
+  if (!ANTHROPIC_API_KEY) throw new Error('Anthropic API key not configured')
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({ model, max_tokens: 4096, system: SYSTEM, messages: [{ role: 'user', content: prompt }] }),
-  });
-  if (!res.ok) { const e = await res.json(); throw new Error(`Claude: ${e.error?.message || res.statusText}`); }
-  return (await res.json()).content[0].text;
+  })
+  if (!res.ok) { const e = await res.json(); throw new Error(`Claude: ${e.error?.message || res.statusText}`) }
+  return (await res.json()).content[0].text
 }
 
 async function _openai(prompt, model = 'gpt-4o-mini') {
