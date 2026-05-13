@@ -138,14 +138,14 @@ async function _gemini(prompt) {
 
 async function _claude(prompt, model = MODELS.claude) {
   const VAULT_KEY = process.env.VAULT_KEY
-  
-  // Route through APIvault if vault key is set, otherwise fall back to direct
+
   if (VAULT_KEY) {
+    // Send the full key including sk-vault- prefix
     const res = await fetch('https://api.apivault.uk/proxy/claude/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-vault-key': VAULT_KEY.replace('sk-vault-', ''),
+        'x-vault-key': VAULT_KEY,  // send full key, proxy handles it
       },
       body: JSON.stringify({ model, max_tokens: 4096, system: SYSTEM, messages: [{ role: 'user', content: prompt }] }),
     })
@@ -153,7 +153,6 @@ async function _claude(prompt, model = MODELS.claude) {
     return (await res.json()).content[0].text
   }
 
-  // Direct fallback (if no vault key)
   if (!ANTHROPIC_API_KEY) throw new Error('Anthropic API key not configured')
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
