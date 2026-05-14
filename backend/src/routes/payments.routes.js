@@ -22,19 +22,13 @@ const PS_SECRET    = () => process.env.PAYSTACK_SECRET_KEY;
 
 // ── Plan codes from Paystack dashboard ───────────────────────────────────────
 const PLAN_CODES = {
-  starter: 'PLN_z40erj9poma8yi6',  // KES 2,470 — LIVE
-  creator: 'PLN_oz8da9aka82v2lk',  // KES 6,370 — LIVE
-  studio:  'PLN_e5yim4vzb2ejuzx',  // KES 12,870 — LIVE
+  starter: 'PLN_z40erj9poma8yi6',  // KES 130 — LIVE
+  creator: 'PLN_oz8da9aka82v2lk',  // KES 260 — LIVE
+  studio:  'PLN_e5yim4vzb2ejuzx',  // KES 390 — LIVE
 };
 
-// Hosted payment page links — used as fallback if API fails
-const PAYMENT_LINKS = {
-  starter: 'https://paystack.shop/pay/e2qy814e7s',
-  creator: 'https://paystack.shop/pay/ncfvxxw4n8',
-  studio:  'https://paystack.shop/pay/51cjg44f3y',
-};
-
-const PLAN_PRICES = { starter: 19, creator: 49, studio: 99 };
+const PLAN_PRICES = { starter: 1,   creator: 2,   studio: 3   };
+const KES_PRICES  = { starter: 130, creator: 260, studio: 390 };
 
 // ── Helper: activate plan in DB ───────────────────────────────────────────────
 const activatePlan = async (userId, plan) => {
@@ -99,7 +93,7 @@ router.get('/me', auth, async (req, res) => {
 });
 
 // ── POST /api/payments/checkout ───────────────────────────────────────────────
-// Initialises a Paystack subscription checkout
+// Initialises Paystack transaction — shows popup with M-Pesa + card options
 // Body: { plan, currency } — 'KES' or 'USD'
 router.post('/checkout', auth, async (req, res) => {
   if (!PS_SECRET()) {
@@ -116,40 +110,18 @@ router.post('/checkout', auth, async (req, res) => {
     return res.status(400).json({ error: 'Invalid plan' });
   }
 
-  // Use hosted payment pages directly — most reliable approach
-  const hostedUrl = PAYMENT_LINKS[plan];
-  if (hostedUrl) {
-    // Log the intent
-    try {
-      await supabase.from('payment_refs').insert({
-        user_id:    req.userId,
-        tx_ref:     `ivey-${req.userId}-${plan}-${Date.now()}`,
-        plan,
-        provider:   'paystack',
-        amount:     0,
-        currency,
-        status:     'pending',
-        created_at: new Date().toISOString(),
-      });
-    } catch (_) {}
-    return res.json({ url: hostedUrl });
-  }
-
   try {
     const { data: user } = await supabase
       .from('users').select('email, name').eq('id', req.userId).single();
 
     const planCode = PLAN_CODES[plan];
+    const priceKES = KES_PRICES[plan];
     const priceUSD = PLAN_PRICES[plan];
-    const KES_RATE = 130;
 
     // Paystack requires amount in smallest currency unit
-    // KES prices match Paystack plan amounts exactly
-    const KES_PRICES = { starter: 2470, creator: 6370, studio: 12870 };
-    const priceKES   = KES_PRICES[plan] || (PLAN_PRICES[plan] * 130);
-    const amount     = currency === 'KES'
-      ? priceKES * 100          // KES in cents e.g. 2470 * 100 = 247000
-      : PLAN_PRICES[plan] * 100; // USD in cents e.g. 19 * 100 = 1900
+    const amount = currency === 'KES'
+      ? priceKES * 100   // e.g. 130 * 100 = 13000
+      : priceUSD * 100;  // e.g. 1 * 100 = 100
 
     const txRef = `ivey-${req.userId}-${plan}-${Date.now()}`;
 
@@ -188,12 +160,6 @@ router.post('/checkout', auth, async (req, res) => {
     });
   } catch (err) {
     console.error('Paystack checkout error:', err.message);
-    // Fallback to hosted payment page
-    const fallbackUrl = PAYMENT_LINKS[plan];
-    if (fallbackUrl) {
-      console.log(`Using hosted payment page fallback for ${plan}`);
-      return res.json({ url: fallbackUrl, txRef: null, fallback: true });
-    }
     res.status(500).json({ error: err.message });
   }
 });
@@ -290,7 +256,6 @@ router.post('/webhook', express.raw({ type: '*/*' }), async (req, res) => {
       case 'subscription.create':
       case 'invoice.payment_failed':
       case 'invoice.update': {
-        // Find user by customer email
         const email = data?.customer?.email;
         if (!email) break;
 
@@ -298,7 +263,6 @@ router.post('/webhook', express.raw({ type: '*/*' }), async (req, res) => {
           .from('users').select('id').eq('email', email).single();
         if (!user) break;
 
-        // Map plan code to plan name
         const planCode = data?.plan?.plan_code;
         const plan = Object.entries(PLAN_CODES).find(([, code]) => code === planCode)?.[0];
         if (!plan) break;
