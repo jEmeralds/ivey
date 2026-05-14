@@ -1,4 +1,4 @@
-// frontend/src/pages/PricingPage.jsx
+﻿// frontend/src/pages/PricingPage.jsx
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/authContext';
@@ -54,6 +54,27 @@ const CheckoutModal = ({ plan, onClose, kesPrice }) => {
         if (data.configured === false) { setError('Payments are being set up — please try again shortly.'); return; }
         throw new Error(data.error || 'Failed to start payment');
       }
+
+      // Use Paystack inline popup — shows M-Pesa + card + bank transfer
+      if (window.PaystackPop && data.txRef) {
+        setLoading(false);
+        const handler = window.PaystackPop.setup({
+          key:      'pk_live_e1bf9d58cb4485e787052535575b290ab955c927',
+          email:    data.email,
+          amount:   data.amount,
+          ref:      data.txRef,
+          currency: currency === 'KES' ? 'KES' : 'USD',
+          plan:     data.planCode,
+          onSuccess: () => {
+            window.location.href = `/dashboard?section=settings&upgrade=success&plan=${plan.id}`;
+          },
+          onCancel: () => { setLoading(false); },
+        });
+        handler.openIframe();
+        return;
+      }
+
+      // Fallback to redirect if inline SDK not loaded
       if (data.url) window.location.href = data.url;
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }

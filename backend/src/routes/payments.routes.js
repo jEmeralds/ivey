@@ -157,8 +157,12 @@ router.post('/checkout', auth, async (req, res) => {
     } catch (_) {}
 
     res.json({
-      url:   data.data.authorization_url,
-      txRef: data.data.reference,
+      url:      data.data.authorization_url,
+      txRef:    data.data.reference,
+      email:    user?.email || '',
+      planCode: planCode,
+      amount:   amount,
+      currency,
     });
   } catch (err) {
     console.error('Paystack checkout error:', err.message);
