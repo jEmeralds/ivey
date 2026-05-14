@@ -143,16 +143,18 @@ router.post('/checkout', auth, async (req, res) => {
     });
 
     // Log the transaction reference
-    await supabase.from('payment_refs').insert({
-      user_id:    req.userId,
-      tx_ref:     txRef,
-      plan,
-      provider:   'paystack',
-      amount:     amount / 100,
-      currency,
-      status:     'pending',
-      created_at: new Date().toISOString(),
-    }).catch(() => {});
+    try {
+      await supabase.from('payment_refs').insert({
+        user_id:    req.userId,
+        tx_ref:     txRef,
+        plan,
+        provider:   'paystack',
+        amount:     amount / 100,
+        currency,
+        status:     'pending',
+        created_at: new Date().toISOString(),
+      });
+    } catch (_) {}
 
     res.json({
       url:   data.data.authorization_url,
@@ -193,10 +195,11 @@ router.get('/verify/:reference', auth, async (req, res) => {
 
     await activatePlan(userId, plan);
 
-    await supabase.from('payment_refs')
-      .update({ status: 'completed' })
-      .eq('tx_ref', req.params.reference)
-      .catch(() => {});
+    try {
+      await supabase.from('payment_refs')
+        .update({ status: 'completed' })
+        .eq('tx_ref', req.params.reference);
+    } catch (_) {}
 
     res.json({ success: true, plan, message: `${plan} plan activated!` });
   } catch (err) {
@@ -244,10 +247,11 @@ router.post('/webhook', express.raw({ type: '*/*' }), async (req, res) => {
         const plan   = data?.metadata?.plan;
         if (userId && plan && data?.status === 'success') {
           await activatePlan(userId, plan);
-          await supabase.from('payment_refs')
-            .update({ status: 'completed' })
-            .eq('tx_ref', data?.reference)
-            .catch(() => {});
+          try {
+            await supabase.from('payment_refs')
+              .update({ status: 'completed' })
+              .eq('tx_ref', data?.reference);
+          } catch (_) {}
         }
         break;
       }
