@@ -1,4 +1,4 @@
-﻿// frontend/src/pages/PricingPage.jsx
+// frontend/src/pages/PricingPage.jsx
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/authContext';
