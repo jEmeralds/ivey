@@ -278,8 +278,8 @@ const Dashboard = () => {
   );
 
   // ── Bottom nav — mobile only ───────────────────────────────────────────────────
-  // Replaces the hamburger menu on mobile. 5 key sections only.
-  const BOTTOM_NAV = NAV_ITEMS.filter(n => ['overview','campaigns','studio','social','settings'].includes(n.id));
+  // 4 key sections + "More" button that opens the full sidebar
+  const BOTTOM_NAV = NAV_ITEMS.filter(n => ['overview','campaigns','studio','social'].includes(n.id));
   const BottomNav = () => (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex items-stretch">
       {BOTTOM_NAV.map(item => (
@@ -291,6 +291,12 @@ const Dashboard = () => {
           <span className="leading-none">{item.label}</span>
         </button>
       ))}
+      {/* More button — opens sidebar with full nav */}
+      <button onClick={() => setSidebarOpen(true)}
+        className="flex-1 flex flex-col items-center justify-center gap-1 py-2 px-1 text-xs font-medium transition-colors text-gray-500 dark:text-gray-400">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <span className="leading-none">More</span>
+      </button>
     </nav>
   );
 
@@ -415,11 +421,13 @@ const Dashboard = () => {
       <Sidebar/>
       <div className="flex-1 min-w-0 flex flex-col">
 
-        {/* Mobile top bar — section title + user avatar only. No logo. No hamburger. */}
-        <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20">
-          <span className="text-base font-bold text-gray-900 dark:text-white capitalize">{activeSection}</span>
+        {/* Mobile top bar — logo links home, section title, user avatar */}
+        <div className="md:hidden flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20">
+          <Link to="/" className="flex-shrink-0">
+            <IVeyLogo size={24}/>
+          </Link>
+          <span className="text-sm font-bold text-gray-900 dark:text-white capitalize flex-1">{activeSection}</span>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400">{user?.name?.split(' ')[0]}</span>
             <div className="w-7 h-7 bg-emerald-600 rounded-full flex items-center justify-center">
               <span className="text-white text-xs font-bold">{(user?.name || 'U').charAt(0).toUpperCase()}</span>
             </div>
