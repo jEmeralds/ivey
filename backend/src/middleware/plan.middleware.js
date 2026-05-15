@@ -3,6 +3,7 @@
 // Plan enforcement middleware for IVey
 // Checks user plan before allowing access to paid features
 // Plans: free | trial | starter | creator | studio
+// Admin role bypasses ALL plan gates
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createClient } from '@supabase/supabase-js';
@@ -39,7 +40,7 @@ export const PLANS = {
   },
   starter: {
     name:          'Starter',
-    price:         19,
+    price:         1,
     videos:        0,
     posts:         20,
     brands:        2,
@@ -51,7 +52,7 @@ export const PLANS = {
   },
   creator: {
     name:          'Creator',
-    price:         49,
+    price:         2,
     videos:        5,
     posts:         50,
     brands:        5,
@@ -63,12 +64,25 @@ export const PLANS = {
   },
   studio: {
     name:          'Studio',
-    price:         99,
+    price:         3,
     videos:        20,
     posts:         999,
     brands:        999,
     products:      999,
     ai_providers:  ['gemini', 'claude-haiku', 'claude', 'openai', 'openai-mini'],
+    strategy:      true,
+    distribution:  true,
+    video_gen:     true,
+  },
+  // Admin pseudo-plan — unlimited everything
+  admin: {
+    name:          'Admin',
+    price:         0,
+    videos:        999,
+    posts:         999,
+    brands:        999,
+    products:      999,
+    ai_providers:  ['gemini', 'claude-haiku', 'claude', 'openai', 'openai-mini', 'grok', 'mistral'],
     strategy:      true,
     distribution:  true,
     video_gen:     true,
@@ -79,18 +93,27 @@ export const PLANS = {
 export const getUserPlan = async (userId) => {
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, plan, plan_expires_at, trial_started_at, trial_used, videos_used, posts_used, usage_reset_at')
+    .select('id, plan, role, plan_expires_at, trial_started_at, trial_used, videos_used, posts_used, usage_reset_at')
     .eq('id', userId)
     .single();
 
   if (error || !user) return null;
+
+  // ── Admin gets unlimited everything, plan never expires ───────────────────
+  if (user.role === 'admin') {
+    return {
+      ...user,
+      plan:   'studio',
+      role:   'admin',
+      limits: PLANS.admin,
+    };
+  }
 
   // Check if trial expired
   let effectivePlan = user.plan || 'free';
   if (effectivePlan === 'trial' && user.plan_expires_at) {
     if (new Date(user.plan_expires_at) < new Date()) {
       effectivePlan = 'free';
-      // Update DB
       await supabase.from('users').update({ plan: 'free', plan_expires_at: null }).eq('id', userId);
     }
   }
@@ -104,8 +127,8 @@ export const getUserPlan = async (userId) => {
   }
 
   // Reset monthly usage if needed
-  const lastReset = user.usage_reset_at ? new Date(user.usage_reset_at) : new Date(0);
-  const now       = new Date();
+  const lastReset  = user.usage_reset_at ? new Date(user.usage_reset_at) : new Date(0);
+  const now        = new Date();
   const needsReset = lastReset.getMonth() !== now.getMonth() || lastReset.getFullYear() !== now.getFullYear();
   if (needsReset) {
     await supabase.from('users').update({
@@ -119,18 +142,21 @@ export const getUserPlan = async (userId) => {
 
   return {
     ...user,
-    plan:          effectivePlan,
-    limits:        PLANS[effectivePlan] || PLANS.free,
+    plan:   effectivePlan,
+    limits: PLANS[effectivePlan] || PLANS.free,
   };
 };
 
-// ── Middleware: require minimum plan ─────────────────────────────────────────
+// ── Middleware: require minimum plan ──────────────────────────────────────────
 export const requirePlan = (...allowedPlans) => async (req, res, next) => {
   try {
     const userPlan = await getUserPlan(req.userId);
     if (!userPlan) return res.status(401).json({ error: 'User not found' });
 
     req.userPlan = userPlan;
+
+    // Admin bypasses all plan gates
+    if (userPlan.role === 'admin') return next();
 
     if (!allowedPlans.includes(userPlan.plan)) {
       return res.status(403).json({
@@ -154,6 +180,9 @@ export const checkVideoLimit = async (req, res, next) => {
     if (!userPlan) return res.status(401).json({ error: 'User not found' });
 
     req.userPlan = userPlan;
+
+    // Admin bypasses all limits
+    if (userPlan.role === 'admin') return next();
 
     const limit = userPlan.limits.videos;
 
@@ -190,6 +219,9 @@ export const checkPostLimit = async (req, res, next) => {
     if (!userPlan) return res.status(401).json({ error: 'User not found' });
 
     req.userPlan = userPlan;
+
+    // Admin bypasses all limits
+    if (userPlan.role === 'admin') return next();
 
     const limit = userPlan.limits.posts;
 
