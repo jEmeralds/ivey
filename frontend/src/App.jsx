@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeProvider';
 import { AuthProvider } from './context/authContext';
 import Navbar from './components/Navbar';
@@ -20,38 +20,50 @@ import BrandPage from './pages/BrandPage';
 import GallerySection from './components/GallerySection';
 import ProductsPage from './pages/ProductsPage';
 
+// Routes where the top Navbar and Footer should be hidden
+// Dashboard has its own shell — no need for the marketing nav
+const DASHBOARD_ROUTES = ['/dashboard', '/new-campaign', '/edit-campaign', '/campaigns/', '/campaign-detail/', '/campaign/'];
+
+const AppLayout = () => {
+  const location = useLocation();
+  const isDashboard = DASHBOARD_ROUTES.some(r => location.pathname.startsWith(r));
+
+  return (
+    <div className="App min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-all duration-300">
+      {!isDashboard && <Navbar />}
+      <main className="flex-1 bg-gray-50 dark:bg-gray-900">
+        <Routes>
+          <Route path="/support"                     element={<Support />} />
+          <Route path="/admin/social"                element={<SocialAdminDashboard />} />
+          <Route path="/"                            element={<Home />} />
+          <Route path="/features"                    element={<Features />} />
+          <Route path="/pricing"                     element={<Pricing />} />
+          <Route path="/login"                       element={<Login />} />
+          <Route path="/signup"                      element={<Signup />} />
+          <Route path="/dashboard"                   element={<Dashboard />} />
+          <Route path="/new-campaign"                element={<NewCampaign />} />
+          <Route path="/edit-campaign/:id"           element={<EditCampaign />} />
+          <Route path="/campaigns/:id"               element={<CampaignDetail />} />
+          <Route path="/campaign-detail/:id"         element={<CampaignDetail />} />
+          <Route path="/campaign/:id"                element={<CampaignDetail />} />
+          <Route path="/shared/:token"               element={<SharedContent />} />
+          <Route path="/brand"                       element={<BrandPage />} />
+          <Route path="/gallery"                     element={<GallerySection />} />
+          <Route path="/brands/:brandId/products"    element={<ProductsPage />} />
+          <Route path="*"                            element={<Home />} />
+        </Routes>
+      </main>
+      {!isDashboard && <ChatWidget />}
+      {!isDashboard && <Footer />}
+    </div>
+  );
+};
 
 function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <div className="App min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-all duration-300">
-          <Navbar />
-          <main className="flex-1 bg-gray-50 dark:bg-gray-900">
-            <Routes>
-              <Route path="/support" element={<Support />} />
-              <Route path="/admin/social" element={<SocialAdminDashboard />} />
-              <Route path="/" element={<Home />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/new-campaign" element={<NewCampaign />} />
-              <Route path="/edit-campaign/:id" element={<EditCampaign />} />
-              <Route path="/campaigns/:id" element={<CampaignDetail />} />
-              <Route path="/campaign-detail/:id" element={<CampaignDetail />} />
-              <Route path="/campaign/:id" element={<CampaignDetail />} />
-              <Route path="/shared/:token" element={<SharedContent />} />
-              <Route path="*" element={<Home />} />
-              <Route path="/brand" element={<BrandPage />} />
-              <Route path="/gallery" element={<GallerySection />} />
-              <Route path="/brands/:brandId/products" element={<ProductsPage />} />
-            </Routes>
-          </main>
-          <ChatWidget />
-          <Footer />
-        </div>
+        <AppLayout />
       </ThemeProvider>
     </AuthProvider>
   );

@@ -1,6 +1,5 @@
 ﻿// frontend/src/pages/Dashboard.jsx
 import { useState, useEffect } from 'react';
-import IVeyLogo from '../components/IVeyLogo';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getCampaigns, deleteCampaign } from '../services/api';
 import BrandPage from './BrandPage';
@@ -11,6 +10,7 @@ import StudioPage   from './StudioPage';
 import AdminPage    from './AdminPage';
 import LibraryPage  from './LibraryPage';
 import SocialPage   from './SocialPage';
+import IVeyLogo     from '../components/IVeyLogo';
 
 const NAV_ITEMS = [
   { id: 'overview',   label: 'Overview',   icon: (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>) },
@@ -58,25 +58,17 @@ const DeleteButton = ({ onConfirm, deleting }) => {
   );
 };
 
-// ── Products section — shows brand selector then products ─────────────────────
-// ── Brand card with live product count ───────────────────────────────────────
 const BrandProductCard = ({ brand: b, onSelect }) => {
   const [count, setCount] = useState(null);
   const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
   const token   = () => localStorage.getItem('token');
-
   useEffect(() => {
     fetch(`${API_URL}/products?brand_id=${b.id}`, { headers: { Authorization: `Bearer ${token()}` } })
-      .then(r => r.json())
-      .then(d => setCount((d.products || []).length))
-      .catch(() => setCount(0));
+      .then(r => r.json()).then(d => setCount((d.products || []).length)).catch(() => setCount(0));
   }, [b.id]);
-
   return (
-    <button onClick={onSelect}
-      className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl hover:border-emerald-500 dark:hover:border-emerald-500 transition-all text-left group">
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black flex-shrink-0"
-        style={{ background: b.brand_colors?.[0] || '#10b981', color: '#fff' }}>
+    <button onClick={onSelect} className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl hover:border-emerald-500 transition-all text-left group">
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black flex-shrink-0" style={{ background: b.brand_colors?.[0] || '#10b981', color: '#fff' }}>
         {b.brand_name?.charAt(0).toUpperCase()}
       </div>
       <div className="flex-1 min-w-0">
@@ -84,62 +76,43 @@ const BrandProductCard = ({ brand: b, onSelect }) => {
         <div className="flex items-center gap-2 mt-0.5">
           {b.industry && <p className="text-xs text-gray-500">{b.industry}</p>}
           {count !== null && (
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-              count === 0
-                ? 'bg-gray-100 dark:bg-gray-700 text-gray-400'
-                : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-            }`}>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${count === 0 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
               {count === 0 ? 'No products' : `${count} product${count !== 1 ? 's' : ''}`}
             </span>
           )}
         </div>
       </div>
-      <svg className="w-4 h-4 text-gray-400 group-hover:text-emerald-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
-      </svg>
+      <svg className="w-4 h-4 text-gray-400 group-hover:text-emerald-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
     </button>
   );
 };
 
 const ProductsSection = ({ preselectedBrandId = null, onClearBrand }) => {
-  const [brands,        setBrands]        = useState([]);
+  const [brands, setBrands] = useState([]);
   const [selectedBrand, setSelectedBrand] = useState(null);
-  const [loading,       setLoading]       = useState(true);
-
+  const [loading, setLoading] = useState(true);
   const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
-  const token   = () => localStorage.getItem('token');
+  const token = () => localStorage.getItem('token');
 
   useEffect(() => {
     const load = async () => {
       try {
-        const r    = await fetch(`${API_URL}/brand`, { headers: { Authorization: `Bearer ${token()}` } });
+        const r = await fetch(`${API_URL}/brand`, { headers: { Authorization: `Bearer ${token()}` } });
         const data = await r.json();
         const list = data.brands || [];
         setBrands(list);
-        // If coming from BrandPage "Products" button, preselect that brand
         if (preselectedBrandId) {
           const found = list.find(b => b.id === preselectedBrandId);
           if (found) setSelectedBrand(found);
-        } else if (list.length === 1) {
-          setSelectedBrand(list[0]);
-        }
-      } catch {}
-      finally { setLoading(false); }
+        } else if (list.length === 1) setSelectedBrand(list[0]);
+      } catch {} finally { setLoading(false); }
     };
     load();
   }, [preselectedBrandId]);
 
-  const handleBack = () => {
-    setSelectedBrand(null);
-    if (onClearBrand) onClearBrand();
-  };
+  const handleBack = () => { setSelectedBrand(null); if (onClearBrand) onClearBrand(); };
 
-  if (loading) return (
-    <div className="flex items-center justify-center py-20">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"/>
-    </div>
-  );
-
+  if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"/></div>;
   if (brands.length === 0) return (
     <div className="text-center py-16 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl">
       <div className="text-5xl mb-4">🎨</div>
@@ -147,37 +120,23 @@ const ProductsSection = ({ preselectedBrandId = null, onClearBrand }) => {
       <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6">Create a brand profile first, then add products to it.</p>
     </div>
   );
-
-  // Show ProductsPage for selected brand
-  if (selectedBrand) return (
-    <ProductsPage
-      brandId={selectedBrand.id}
-      embedded
-      onBack={handleBack}
-    />
-  );
-
-  // Brand picker
+  if (selectedBrand) return <ProductsPage brandId={selectedBrand.id} embedded onBack={handleBack}/>;
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">Products</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-          Select a brand to view and manage its products
-        </p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Select a brand to view and manage its products</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {brands.map(b => (
-          <BrandProductCard key={b.id} brand={b} onSelect={() => setSelectedBrand(b)} />
-        ))}
+        {brands.map(b => <BrandProductCard key={b.id} brand={b} onSelect={() => setSelectedBrand(b)} />)}
       </div>
     </div>
   );
 };
 
 const Dashboard = () => {
-  const location  = useLocation();
-  const navigate  = useNavigate();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const getInitialSection = () => {
     const params = new URLSearchParams(location.search);
@@ -195,7 +154,7 @@ const Dashboard = () => {
   const [deletingId,    setDeletingId]    = useState(null);
   const [stats,         setStats]         = useState({ totalCampaigns: 0, contentGenerated: 0, strategiesCreated: 0 });
 
-  const isAdmin   = user?.role === 'admin';
+  const isAdmin    = user?.role === 'admin';
   const visibleNav = NAV_ITEMS.filter(item => !item.adminOnly || isAdmin);
 
   useEffect(() => {
@@ -252,32 +211,33 @@ const Dashboard = () => {
 
   const CampaignActions = ({ campaign }) => (
     <div className="flex items-center gap-1 flex-shrink-0">
-      <button onClick={() => navigate(`/edit-campaign/${campaign.id}`)}
-        className="px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-xs font-medium">Edit</button>
+      <button onClick={() => navigate(`/edit-campaign/${campaign.id}`)} className="px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-xs font-medium">Edit</button>
       <DeleteButton deleting={deletingId === campaign.id} onConfirm={() => handleDelete(campaign.id)}/>
-      <button onClick={() => navigate(`/campaigns/${campaign.id}`, { state: { from: 'campaigns' } })}
-        className="px-3 py-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors text-xs font-medium">Open →</button>
+      <button onClick={() => navigate(`/campaigns/${campaign.id}`, { state: { from: 'campaigns' } })} className="px-3 py-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors text-xs font-medium">Open →</button>
     </div>
   );
 
+  // ── Sidebar ───────────────────────────────────────────────────────────────────
+  // Desktop: always visible on left. Mobile: slides in from left when sidebarOpen.
+  // Logo only appears here — NOT in any top bar.
   const Sidebar = () => (
     <>
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden" onClick={() => setSidebarOpen(false)}/>
-      )}
+      {sidebarOpen && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden" onClick={() => setSidebarOpen(false)}/>}
       <aside className={`
-        fixed top-16 left-0 h-[calc(100vh-4rem)] z-40 flex flex-col
+        fixed top-0 left-0 h-screen z-40 flex flex-col
         bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700
         transition-transform duration-300 ease-in-out w-64
         ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
         md:translate-x-0 md:static md:z-auto md:h-auto md:shadow-none
       `}>
+        {/* Logo + close button (close only visible on mobile) */}
         <div className="flex items-center justify-between px-5 h-16 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <IVeyLogo size={28}/>
           <button onClick={() => setSidebarOpen(false)} className="md:hidden p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
+
         <nav className="flex-1 overflow-y-auto py-4 px-3">
           <div className="space-y-0.5">
             {visibleNav.map(item => (
@@ -301,6 +261,7 @@ const Dashboard = () => {
             ))}
           </div>
         </nav>
+
         <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -316,9 +277,11 @@ const Dashboard = () => {
     </>
   );
 
+  // ── Bottom nav — mobile only ───────────────────────────────────────────────────
+  // Replaces the hamburger menu on mobile. 5 key sections only.
   const BOTTOM_NAV = NAV_ITEMS.filter(n => ['overview','campaigns','studio','social','settings'].includes(n.id));
   const BottomNav = () => (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex items-stretch safe-area-pb">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex items-stretch">
       {BOTTOM_NAV.map(item => (
         <button key={item.id} onClick={() => goTo(item.id)}
           className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 px-1 text-xs font-medium transition-colors ${
@@ -335,9 +298,7 @@ const Dashboard = () => {
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-            Welcome back, {user?.name?.split(' ')[0] || 'User'}!
-          </h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Welcome back, {user?.name?.split(' ')[0] || 'User'}!</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Here's what's happening with your campaigns</p>
         </div>
         <Link to="/new-campaign" className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors shadow-sm text-sm whitespace-nowrap">
@@ -345,19 +306,17 @@ const Dashboard = () => {
           New Campaign
         </Link>
       </div>
-
       <div className="grid grid-cols-3 gap-3">
         <StatCard value={stats.totalCampaigns}    label="Campaigns"  color="bg-emerald-100 dark:bg-emerald-900/30" icon={<svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>} />
         <StatCard value={stats.strategiesCreated} label="Strategies" color="bg-amber-100 dark:bg-amber-900/30"   icon={<svg className="w-5 h-5 text-amber-600 dark:text-amber-400"   fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>} />
         <StatCard value={stats.contentGenerated}  label="Content"    color="bg-indigo-100 dark:bg-indigo-900/30" icon={<svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>} />
       </div>
-
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Studio',       icon: '🎬', action: () => goTo('studio'),          color: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
+          { label: 'Studio',       icon: '🎬', action: () => goTo('studio'),           color: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
           { label: 'New Campaign', icon: '🚀', action: () => navigate('/new-campaign'), color: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
-          { label: 'Brands',       icon: '🎨', action: () => goTo('brands'),           color: 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800' },
-          { label: 'Products',     icon: '📦', action: () => goTo('products'),         color: 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800' },
+          { label: 'Brands',       icon: '🎨', action: () => goTo('brands'),            color: 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800' },
+          { label: 'Products',     icon: '📦', action: () => goTo('products'),          color: 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800' },
         ].map(q => (
           <button key={q.label} onClick={q.action} className={`flex flex-col items-center gap-2 p-4 rounded-xl border text-sm font-medium transition-all active:scale-95 hover:scale-105 ${q.color}`}>
             <span className="text-xl">{q.icon}</span>
@@ -365,7 +324,6 @@ const Dashboard = () => {
           </button>
         ))}
       </div>
-
       {campaigns.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -453,15 +411,19 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex pt-16">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
       <Sidebar/>
       <div className="flex-1 min-w-0 flex flex-col">
-        <div className="md:hidden flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-16 z-20">
-          <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-1 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
-          </button>
-          <IVeyLogo size={24}/>
-          <span className="ml-auto text-sm font-medium text-gray-500 dark:text-gray-400 capitalize">{activeSection}</span>
+
+        {/* Mobile top bar — section title + user avatar only. No logo. No hamburger. */}
+        <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20">
+          <span className="text-base font-bold text-gray-900 dark:text-white capitalize">{activeSection}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400">{user?.name?.split(' ')[0]}</span>
+            <div className="w-7 h-7 bg-emerald-600 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-bold">{(user?.name || 'U').charAt(0).toUpperCase()}</span>
+            </div>
+          </div>
         </div>
 
         <main className="flex-1 p-4 md:p-8 pb-24 md:pb-8 max-w-5xl w-full mx-auto">
@@ -481,7 +443,7 @@ const Dashboard = () => {
             </div>
           )}
           {activeSection === 'settings'   && <SettingsPage embedded />}
-      {activeSection === 'admin'      && <AdminPage />}
+          {activeSection === 'admin'      && <AdminPage />}
           {activeSection === 'library'    && <LibraryPage />}
         </main>
       </div>
