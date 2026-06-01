@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import express from 'express';
+import bcrypt from 'bcryptjs';
 import { auth } from '../middleware/auth.middleware.js';
 import { createClient } from '@supabase/supabase-js';
 import { PLANS, getUserPlan, startTrial } from '../middleware/plan.middleware.js';
@@ -72,6 +73,46 @@ router.put('/profile', auth, async (req, res) => {
 
     if (error) return res.status(500).json({ error: error.message });
     res.json({ user: data, message: 'Profile updated' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── PUT /api/settings/password ────────────────────────────────────────────────
+router.put('/password', auth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Both current and new password are required' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters' });
+    }
+
+    // Fetch current hashed password
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('password')
+      .eq('id', req.userId)
+      .single();
+
+    if (error || !user) return res.status(404).json({ error: 'User not found' });
+
+    // Verify current password
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) return res.status(401).json({ error: 'Current password is incorrect' });
+
+    // Hash and save new password
+    const hashed = await bcrypt.hash(newPassword, 10);
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ password: hashed })
+      .eq('id', req.userId);
+
+    if (updateError) return res.status(500).json({ error: updateError.message });
+
+    res.json({ message: 'Password updated successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -286,7 +327,6 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PLATFORM SETTINGS (admin)
-// Read by pricing page, written by admin dashboard
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ── GET /api/settings/public — no auth required ───────────────────────────────
@@ -301,11 +341,11 @@ router.get('/public', async (req, res) => {
     res.json(settings);
   } catch (err) {
     console.error('Platform settings fetch error:', err.message);
-    res.json({});  // return empty — frontend uses defaults
+    res.json({});
   }
 });
 
-// ── GET /api/settings — authenticated, read all platform settings ─────────────
+// ── GET /api/settings — authenticated ────────────────────────────────────────
 router.get('/', auth, async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -320,7 +360,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// ── PUT /api/settings/bulk — admin only, save all settings ────────────────────
+// ── PUT /api/settings/bulk — admin only ──────────────────────────────────────
 router.put('/bulk', auth, async (req, res) => {
   const { data: user } = await supabase
     .from('users').select('role').eq('id', req.userId).single();

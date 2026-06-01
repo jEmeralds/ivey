@@ -1,5 +1,5 @@
 // frontend/src/pages/SettingsPage.jsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
@@ -22,17 +22,17 @@ const PLAN_FEATURES = {
 };
 
 // ── Password strength ─────────────────────────────────────────────────────────
-const getPasswordStrength = (pwd) => {
-  if (!pwd) return { score: 0, label: '', color: '' };
+const getPasswordStrength = (pw) => {
+  if (!pw) return { score: 0, label: '', color: '' };
   let score = 0;
-  if (pwd.length >= 8)  score++;
-  if (pwd.length >= 12) score++;
-  if (/[A-Z]/.test(pwd)) score++;
-  if (/[0-9]/.test(pwd)) score++;
-  if (/[^A-Za-z0-9]/.test(pwd)) score++;
-  if (score <= 1) return { score, label: 'Weak',   color: 'bg-red-500' };
-  if (score <= 3) return { score, label: 'Fair',   color: 'bg-amber-500' };
-  if (score <= 4) return { score, label: 'Good',   color: 'bg-blue-500' };
+  if (pw.length >= 8)  score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  if (score <= 1) return { score, label: 'Weak',   color: 'bg-red-500'    };
+  if (score <= 3) return { score, label: 'Fair',   color: 'bg-amber-500'  };
+  if (score <= 4) return { score, label: 'Good',   color: 'bg-blue-500'   };
   return              { score, label: 'Strong', color: 'bg-emerald-500' };
 };
 
@@ -125,6 +125,18 @@ const PlanCard = ({ planKey, current, onUpgrade, loading }) => {
   );
 };
 
+// ── Eye icon ──────────────────────────────────────────────────────────────────
+const EyeIcon = ({ show }) => show ? (
+  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21" />
+  </svg>
+) : (
+  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+  </svg>
+);
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 const SettingsPage = ({ embedded = false }) => {
   const navigate = useNavigate();
@@ -134,22 +146,18 @@ const SettingsPage = ({ embedded = false }) => {
   const [loading,        setLoading]        = useState(true);
   const [upgradeLoading, setUpgradeLoading] = useState(null);
   const [trialLoading,   setTrialLoading]   = useState(false);
-  const [activeTab,      setActiveTab]      = useState('account');
+  const [nameEdit,       setNameEdit]       = useState('');
+  const [savingName,     setSavingName]     = useState(false);
   const [toast,          setToast]          = useState('');
+  const [activeTab,      setActiveTab]      = useState('account');
 
-  // Profile editing
-  const [nameEdit,   setNameEdit]   = useState('');
-  const [savingName, setSavingName] = useState(false);
+  // Password change state
+  const [pwForm,   setPwForm]   = useState({ current: '', next: '', confirm: '' });
+  const [showPw,   setShowPw]   = useState({ current: false, next: false, confirm: false });
+  const [savingPw, setSavingPw] = useState(false);
+  const [pwError,  setPwError]  = useState('');
 
-  // Password change
-  const [pwForm,       setPwForm]       = useState({ current: '', newPw: '', confirm: '' });
-  const [pwLoading,    setPwLoading]    = useState(false);
-  const [pwError,      setPwError]      = useState('');
-  const [showCurrent,  setShowCurrent]  = useState(false);
-  const [showNew,      setShowNew]      = useState(false);
-  const [showConfirm,  setShowConfirm]  = useState(false);
-
-  const strength = getPasswordStrength(pwForm.newPw);
+  const strength = getPasswordStrength(pwForm.next);
 
   useEffect(() => {
     fetchMe();
@@ -204,29 +212,29 @@ const SettingsPage = ({ embedded = false }) => {
 
   const handleChangePassword = async () => {
     setPwError('');
-    const { current, newPw, confirm } = pwForm;
-    if (!current || !newPw || !confirm) { setPwError('All fields are required'); return; }
-    if (newPw.length < 8)               { setPwError('New password must be at least 8 characters'); return; }
-    if (newPw !== confirm)              { setPwError('New passwords do not match'); return; }
-    if (current === newPw)              { setPwError('New password must be different from current'); return; }
-
-    setPwLoading(true);
+    if (!pwForm.current || !pwForm.next || !pwForm.confirm) {
+      setPwError('All password fields are required'); return;
+    }
+    if (pwForm.next.length < 8) {
+      setPwError('New password must be at least 8 characters'); return;
+    }
+    if (pwForm.next !== pwForm.confirm) {
+      setPwError('New passwords do not match'); return;
+    }
+    setSavingPw(true);
     try {
       const token = localStorage.getItem('token');
       const res   = await fetch(`${API_URL}/settings/password`, {
         method:  'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({ currentPassword: current, newPassword: newPw }),
+        body:    JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.next }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setPwForm({ current: '', newPw: '', confirm: '' });
-      showToast('Password changed successfully ✅');
-    } catch (err) {
-      setPwError(err.message);
-    } finally {
-      setPwLoading(false);
-    }
+      setPwForm({ current: '', next: '', confirm: '' });
+      showToast('Password changed successfully 🔒');
+    } catch (err) { setPwError(err.message); }
+    finally { setSavingPw(false); }
   };
 
   const handleStartTrial = async () => {
@@ -271,7 +279,10 @@ const SettingsPage = ({ embedded = false }) => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.message);
-      if (data.configured === false) { showToast('Stripe not configured yet — coming soon!', 'info'); return; }
+      if (data.configured === false) {
+        showToast('Stripe not configured yet — coming soon!', 'info');
+        return;
+      }
       window.location.href = data.url;
     } catch (err) { showToast(err.message, 'error'); }
     finally { setUpgradeLoading(null); }
@@ -283,13 +294,10 @@ const SettingsPage = ({ embedded = false }) => {
     ? Math.max(0, Math.ceil((new Date(userData.plan_expires_at) - new Date()) / (1000 * 60 * 60 * 24)))
     : null;
 
-  const avatarInitial = (userData?.name || userData?.email || 'U')[0].toUpperCase();
-
   const TABS = [
-    { id: 'account',  label: '👤 Account'       },
-    { id: 'security', label: '🔒 Security'       },
-    { id: 'plan',     label: '⚡ Plan & Billing'  },
-    { id: 'usage',    label: '📊 Usage'           },
+    { id: 'account', label: '👤 Account'       },
+    { id: 'plan',    label: '⚡ Plan & Billing' },
+    { id: 'usage',   label: '📊 Usage'          },
   ];
 
   if (loading) return (
@@ -305,7 +313,7 @@ const SettingsPage = ({ embedded = false }) => {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-black text-gray-900 dark:text-white">Settings</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage your account, security, plan, and usage</p>
+          <p className="text-sm text-gray-500 mt-0.5">Manage your account, plan, and usage</p>
         </div>
 
         {/* Trial banner */}
@@ -337,7 +345,7 @@ const SettingsPage = ({ embedded = false }) => {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit flex-wrap">
+        <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
           {TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
@@ -353,14 +361,14 @@ const SettingsPage = ({ embedded = false }) => {
         {/* ── ACCOUNT TAB ── */}
         {activeTab === 'account' && (
           <div className="space-y-4">
+
+            {/* Profile card */}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
               <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-5">Profile</h2>
-              <div className="space-y-5">
-
-                {/* Avatar + info */}
+              <div className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-700 flex items-center justify-center text-white text-2xl font-black flex-shrink-0 shadow-lg">
-                    {avatarInitial}
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-500 flex items-center justify-center text-white text-xl font-black flex-shrink-0">
+                    {(userData?.name || 'U')[0].toUpperCase()}
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-bold text-gray-900 dark:text-white">{userData?.name}</p>
@@ -375,16 +383,9 @@ const SettingsPage = ({ embedded = false }) => {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Display Name</label>
                   <div className="flex gap-2">
-                    <input
-                      value={nameEdit}
-                      onChange={e => setNameEdit(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleSaveName()}
-                      placeholder="Your name"
-                      className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                    <button
-                      onClick={handleSaveName}
-                      disabled={savingName || nameEdit === userData?.name || !nameEdit.trim()}
+                    <input value={nameEdit} onChange={e => setNameEdit(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <button onClick={handleSaveName} disabled={savingName || nameEdit === userData?.name}
                       className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold disabled:opacity-40 transition-all">
                       {savingName ? '⏳' : 'Save'}
                     </button>
@@ -393,12 +394,9 @@ const SettingsPage = ({ embedded = false }) => {
 
                 {/* Email (locked) */}
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Email Address</label>
-                  <input
-                    value={userData?.email || ''}
-                    disabled
-                    className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 text-gray-500 text-sm rounded-xl cursor-not-allowed"
-                  />
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Email</label>
+                  <input value={userData?.email || ''} disabled
+                    className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 text-gray-500 text-sm rounded-xl cursor-not-allowed" />
                   <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
                 </div>
 
@@ -406,42 +404,34 @@ const SettingsPage = ({ embedded = false }) => {
                 <div>
                   <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Member Since</label>
                   <p className="text-sm text-gray-700 dark:text-gray-300">
-                    {userData?.created_at
-                      ? new Date(userData.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-                      : '—'}
+                    {userData?.created_at ? new Date(userData.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
                   </p>
                 </div>
-
               </div>
             </div>
-          </div>
-        )}
 
-        {/* ── SECURITY TAB ── */}
-        {activeTab === 'security' && (
-          <div className="space-y-4">
+            {/* Change Password card */}
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
               <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-1">Change Password</h2>
-              <p className="text-xs text-gray-500 mb-5">Choose a strong password you don't use anywhere else.</p>
+              <p className="text-xs text-gray-500 mb-5">Make sure your new password is at least 8 characters</p>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
 
                 {/* Current password */}
                 <div>
                   <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Current Password</label>
                   <div className="relative">
                     <input
-                      type={showCurrent ? 'text' : 'password'}
+                      type={showPw.current ? 'text' : 'password'}
                       value={pwForm.current}
                       onChange={e => setPwForm(p => ({ ...p, current: e.target.value }))}
-                      placeholder="Enter your current password"
+                      placeholder="Enter current password"
                       className="w-full px-3 py-2 pr-10 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrent(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs">
-                      {showCurrent ? '🙈' : '👁️'}
+                    <button type="button"
+                      onClick={() => setShowPw(p => ({ ...p, current: !p.current }))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      <EyeIcon show={showPw.current} />
                     </button>
                   </div>
                 </div>
@@ -451,25 +441,23 @@ const SettingsPage = ({ embedded = false }) => {
                   <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">New Password</label>
                   <div className="relative">
                     <input
-                      type={showNew ? 'text' : 'password'}
-                      value={pwForm.newPw}
-                      onChange={e => setPwForm(p => ({ ...p, newPw: e.target.value }))}
-                      placeholder="At least 8 characters"
+                      type={showPw.next ? 'text' : 'password'}
+                      value={pwForm.next}
+                      onChange={e => setPwForm(p => ({ ...p, next: e.target.value }))}
+                      placeholder="Enter new password"
                       className="w-full px-3 py-2 pr-10 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowNew(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs">
-                      {showNew ? '🙈' : '👁️'}
+                    <button type="button"
+                      onClick={() => setShowPw(p => ({ ...p, next: !p.next }))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      <EyeIcon show={showPw.next} />
                     </button>
                   </div>
-
-                  {/* Strength meter */}
-                  {pwForm.newPw && (
+                  {/* Strength bar */}
+                  {pwForm.next && (
                     <div className="mt-2">
                       <div className="flex gap-1 mb-1">
-                        {[1, 2, 3, 4, 5].map(i => (
+                        {[1,2,3,4,5].map(i => (
                           <div key={i} className={`h-1 flex-1 rounded-full transition-all ${
                             i <= strength.score ? strength.color : 'bg-gray-200 dark:bg-gray-700'
                           }`} />
@@ -489,59 +477,40 @@ const SettingsPage = ({ embedded = false }) => {
                   <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Confirm New Password</label>
                   <div className="relative">
                     <input
-                      type={showConfirm ? 'text' : 'password'}
+                      type={showPw.confirm ? 'text' : 'password'}
                       value={pwForm.confirm}
                       onChange={e => setPwForm(p => ({ ...p, confirm: e.target.value }))}
                       placeholder="Repeat new password"
                       className={`w-full px-3 py-2 pr-10 bg-gray-50 dark:bg-gray-700 border text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none ${
-                        pwForm.confirm && pwForm.newPw !== pwForm.confirm
-                          ? 'border-red-400'
+                        pwForm.confirm && pwForm.next !== pwForm.confirm
+                          ? 'border-red-400 dark:border-red-500'
                           : 'border-gray-300 dark:border-gray-600'
                       }`}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirm(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs">
-                      {showConfirm ? '🙈' : '👁️'}
+                    <button type="button"
+                      onClick={() => setShowPw(p => ({ ...p, confirm: !p.confirm }))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      <EyeIcon show={showPw.confirm} />
                     </button>
                   </div>
-                  {pwForm.confirm && pwForm.newPw !== pwForm.confirm && (
+                  {pwForm.confirm && pwForm.next !== pwForm.confirm && (
                     <p className="text-xs text-red-400 mt-1">Passwords do not match</p>
-                  )}
-                  {pwForm.confirm && pwForm.newPw === pwForm.confirm && pwForm.confirm.length > 0 && (
-                    <p className="text-xs text-emerald-400 mt-1">✓ Passwords match</p>
                   )}
                 </div>
 
                 {/* Error */}
                 {pwError && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400">
-                    {pwError}
-                  </div>
+                  <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{pwError}</p>
                 )}
 
                 {/* Submit */}
-                <button
-                  onClick={handleChangePassword}
-                  disabled={pwLoading || !pwForm.current || !pwForm.newPw || !pwForm.confirm}
-                  className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white rounded-xl text-sm font-bold disabled:opacity-40 transition-all shadow-md">
-                  {pwLoading ? '⏳ Updating...' : '🔒 Update Password'}
+                <button onClick={handleChangePassword} disabled={savingPw}
+                  className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white rounded-xl text-sm font-bold disabled:opacity-50 transition-all mt-1">
+                  {savingPw ? '⏳ Updating...' : '🔒 Update Password'}
                 </button>
-
               </div>
             </div>
 
-            {/* Session info */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
-              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-1">Session</h2>
-              <p className="text-xs text-gray-500 mb-4">You are currently logged in. Sessions expire after 7 days.</p>
-              <button
-                onClick={() => { localStorage.removeItem('token'); window.location.href = '/login'; }}
-                className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-xs font-semibold transition-all">
-                Sign Out
-              </button>
-            </div>
           </div>
         )}
 
@@ -574,13 +543,14 @@ const SettingsPage = ({ embedded = false }) => {
                 </span>
               </div>
               <div className="space-y-5">
-                <UsageBar label="HeyGen Videos"              used={userData?.videos_used || 0} limit={limits.videos || 0}  color="bg-violet-500" />
-                <UsageBar label="Social Posts (Distribution)" used={userData?.posts_used  || 0} limit={limits.posts  || 0}  color="bg-blue-500" />
-                <UsageBar label="Brands"                     used={0}                           limit={limits.brands  || 1} color="bg-amber-500" />
+                <UsageBar label="HeyGen Videos"               used={userData?.videos_used || 0} limit={limits.videos || 0} color="bg-violet-500" />
+                <UsageBar label="Social Posts (Distribution)" used={userData?.posts_used  || 0} limit={limits.posts   || 0} color="bg-blue-500"   />
+                <UsageBar label="Brands"                      used={0}                          limit={limits.brands  || 1} color="bg-amber-500"  />
               </div>
               {userData?.usage_reset_at && (
                 <p className="text-xs text-gray-500 mt-5 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  Usage resets on the 1st of every month. Last reset: {new Date(userData.usage_reset_at).toLocaleDateString()}
+                  Usage resets on the 1st of every month.
+                  Last reset: {new Date(userData.usage_reset_at).toLocaleDateString()}
                 </p>
               )}
             </div>
@@ -602,14 +572,14 @@ const SettingsPage = ({ embedded = false }) => {
                   ))}
               </div>
               {!['creator', 'studio'].includes(userData?.plan) && (
-                <button onClick={() => setActiveTab('plan')} className="mt-4 text-xs text-emerald-500 hover:text-emerald-400 font-semibold">
+                <button onClick={() => setActiveTab('plan')}
+                  className="mt-4 text-xs text-emerald-500 hover:text-emerald-400 font-semibold">
                   Upgrade to unlock more AI providers →
                 </button>
               )}
             </div>
           </div>
         )}
-
       </div>
 
       {/* Toast */}
