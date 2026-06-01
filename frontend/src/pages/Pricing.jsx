@@ -1,4 +1,4 @@
-// frontend/src/pages/PricingPage.jsx
+﻿// frontend/src/pages/PricingPage.jsx
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/authContext';
@@ -239,7 +239,6 @@ const Pricing = () => {
     { q: 'Is there a free trial?',                    a: `Yes — all paid plans include a ${trial.days}-day free trial with full access. No credit card required to start.` },
     { q: 'Can I change plans anytime?',               a: 'Yes. Upgrade or downgrade at any time. Upgrades take effect immediately, downgrades at end of billing cycle.' },
     { q: 'How does HeyGen video production work?',   a: 'IVey connects to HeyGen via API. You pick an avatar and voice in Studio, IVey submits your script automatically, and the finished MP4 is ready to distribute.' },
-    { q: 'Do I need a HeyGen or Ayrshare account?',  a: 'No. IVey handles everything through our accounts. You just pay IVey — one subscription covers scripts, video production, and distribution.' },
     { q: 'What happens to my content if I downgrade?', a: 'Your campaigns, scripts, and brand profiles are always yours. Downgrading limits future usage but never deletes existing content.' },
     { q: 'Can I get a refund?',                       a: '30-day money-back guarantee on all paid plans, no questions asked. Email support@ivey.app.' },
     { q: 'Do you offer agency pricing?',              a: 'The Studio plan supports unlimited brands and products — ideal for agencies. Contact us for custom volume pricing.' },
