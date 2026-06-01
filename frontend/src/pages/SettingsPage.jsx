@@ -1,16 +1,16 @@
 // frontend/src/pages/SettingsPage.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
 
-// ── Plan config (mirrors backend) ─────────────────────────────────────────────
+// ── Plan config ───────────────────────────────────────────────────────────────
 const PLAN_META = {
-  free:    { label: 'Free',    color: 'text-gray-400',    badge: 'bg-gray-700 text-gray-300',           price: '$0'   },
-  trial:   { label: 'Trial',   color: 'text-amber-400',   badge: 'bg-amber-500/20 text-amber-300',      price: 'Free' },
-  starter: { label: 'Starter', color: 'text-blue-400',    badge: 'bg-blue-500/20 text-blue-300',        price: '$19'  },
-  creator: { label: 'Creator', color: 'text-emerald-400', badge: 'bg-emerald-500/20 text-emerald-300',  price: '$49'  },
-  studio:  { label: 'Studio',  color: 'text-violet-400',  badge: 'bg-violet-500/20 text-violet-300',    price: '$99'  },
+  free:    { label: 'Free',    color: 'text-gray-400',    badge: 'bg-gray-700 text-gray-300',          price: '$0'   },
+  trial:   { label: 'Trial',   color: 'text-amber-400',   badge: 'bg-amber-500/20 text-amber-300',     price: 'Free' },
+  starter: { label: 'Starter', color: 'text-blue-400',    badge: 'bg-blue-500/20 text-blue-300',       price: '$19'  },
+  creator: { label: 'Creator', color: 'text-emerald-400', badge: 'bg-emerald-500/20 text-emerald-300', price: '$49'  },
+  studio:  { label: 'Studio',  color: 'text-violet-400',  badge: 'bg-violet-500/20 text-violet-300',   price: '$99'  },
 };
 
 const PLAN_FEATURES = {
@@ -19,6 +19,21 @@ const PLAN_FEATURES = {
   starter: ['Unlimited AI scripts', 'Gemini + Claude Haiku', '2 brands', '10 products', 'No video generation', '20 posts/month'],
   creator: ['Unlimited AI scripts', 'Gemini + Claude Haiku + Sonnet', '5 brands', 'Unlimited products', '5 HeyGen videos/month', '50 posts/month'],
   studio:  ['Unlimited AI scripts', 'All AI providers', 'Unlimited brands', 'Unlimited products', '20 HeyGen videos/month', 'Unlimited posts'],
+};
+
+// ── Password strength ─────────────────────────────────────────────────────────
+const getPasswordStrength = (pwd) => {
+  if (!pwd) return { score: 0, label: '', color: '' };
+  let score = 0;
+  if (pwd.length >= 8)  score++;
+  if (pwd.length >= 12) score++;
+  if (/[A-Z]/.test(pwd)) score++;
+  if (/[0-9]/.test(pwd)) score++;
+  if (/[^A-Za-z0-9]/.test(pwd)) score++;
+  if (score <= 1) return { score, label: 'Weak',   color: 'bg-red-500' };
+  if (score <= 3) return { score, label: 'Fair',   color: 'bg-amber-500' };
+  if (score <= 4) return { score, label: 'Good',   color: 'bg-blue-500' };
+  return              { score, label: 'Strong', color: 'bg-emerald-500' };
 };
 
 // ── Usage Bar ─────────────────────────────────────────────────────────────────
@@ -51,12 +66,11 @@ const UsageBar = ({ label, used, limit, color = 'bg-emerald-500' }) => {
 
 // ── Plan Card ─────────────────────────────────────────────────────────────────
 const PlanCard = ({ planKey, current, onUpgrade, loading }) => {
-  const meta     = PLAN_META[planKey];
-  const features = PLAN_FEATURES[planKey];
+  const meta      = PLAN_META[planKey];
+  const features  = PLAN_FEATURES[planKey];
   const isCurrent = current === planKey;
   const isDowngrade = ['studio', 'creator', 'starter'].indexOf(current) >
                       ['studio', 'creator', 'starter'].indexOf(planKey);
-
   return (
     <div className={`relative p-5 rounded-2xl border-2 transition-all ${
       isCurrent
@@ -98,9 +112,7 @@ const PlanCard = ({ planKey, current, onUpgrade, loading }) => {
                 ? 'bg-gradient-to-r from-violet-600 to-violet-700 text-white hover:from-violet-700 hover:to-violet-800 shadow-lg'
                 : 'bg-gradient-to-r from-emerald-500 to-emerald-700 text-white hover:from-emerald-600 hover:to-emerald-800'
           } disabled:opacity-50`}>
-          {loading === planKey
-            ? '⏳ Loading...'
-            : isDowngrade ? 'Downgrade' : `Upgrade to ${meta.label}`}
+          {loading === planKey ? '⏳ Loading...' : isDowngrade ? 'Downgrade' : `Upgrade to ${meta.label}`}
         </button>
       )}
       {isCurrent && planKey !== 'free' && (
@@ -118,18 +130,29 @@ const SettingsPage = ({ embedded = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [userData,      setUserData]      = useState(null);
-  const [loading,       setLoading]       = useState(true);
+  const [userData,       setUserData]       = useState(null);
+  const [loading,        setLoading]        = useState(true);
   const [upgradeLoading, setUpgradeLoading] = useState(null);
-  const [trialLoading,  setTrialLoading]  = useState(false);
-  const [nameEdit,      setNameEdit]      = useState('');
-  const [savingName,    setSavingName]    = useState(false);
-  const [toast,         setToast]         = useState('');
-  const [activeTab,     setActiveTab]     = useState('account');
+  const [trialLoading,   setTrialLoading]   = useState(false);
+  const [activeTab,      setActiveTab]      = useState('account');
+  const [toast,          setToast]          = useState('');
+
+  // Profile editing
+  const [nameEdit,   setNameEdit]   = useState('');
+  const [savingName, setSavingName] = useState(false);
+
+  // Password change
+  const [pwForm,       setPwForm]       = useState({ current: '', newPw: '', confirm: '' });
+  const [pwLoading,    setPwLoading]    = useState(false);
+  const [pwError,      setPwError]      = useState('');
+  const [showCurrent,  setShowCurrent]  = useState(false);
+  const [showNew,      setShowNew]      = useState(false);
+  const [showConfirm,  setShowConfirm]  = useState(false);
+
+  const strength = getPasswordStrength(pwForm.newPw);
 
   useEffect(() => {
     fetchMe();
-    // Handle redirect back from Stripe
     const params = new URLSearchParams(location.search);
     if (params.get('upgrade') === 'success') {
       showToast(`🎉 Plan upgraded to ${params.get('plan')}! Welcome aboard.`);
@@ -167,9 +190,9 @@ const SettingsPage = ({ embedded = false }) => {
     try {
       const token = localStorage.getItem('token');
       const res   = await fetch(`${API_URL}/settings/profile`, {
-        method: 'PUT',
+        method:  'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: nameEdit }),
+        body:    JSON.stringify({ name: nameEdit }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -179,12 +202,39 @@ const SettingsPage = ({ embedded = false }) => {
     finally { setSavingName(false); }
   };
 
+  const handleChangePassword = async () => {
+    setPwError('');
+    const { current, newPw, confirm } = pwForm;
+    if (!current || !newPw || !confirm) { setPwError('All fields are required'); return; }
+    if (newPw.length < 8)               { setPwError('New password must be at least 8 characters'); return; }
+    if (newPw !== confirm)              { setPwError('New passwords do not match'); return; }
+    if (current === newPw)              { setPwError('New password must be different from current'); return; }
+
+    setPwLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res   = await fetch(`${API_URL}/settings/password`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ currentPassword: current, newPassword: newPw }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPwForm({ current: '', newPw: '', confirm: '' });
+      showToast('Password changed successfully ✅');
+    } catch (err) {
+      setPwError(err.message);
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
   const handleStartTrial = async () => {
     setTrialLoading(true);
     try {
       const token = localStorage.getItem('token');
       const res   = await fetch(`${API_URL}/settings/trial`, {
-        method: 'POST',
+        method:  'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -201,7 +251,7 @@ const SettingsPage = ({ embedded = false }) => {
       try {
         const token = localStorage.getItem('token');
         const res   = await fetch(`${API_URL}/settings/portal`, {
-          method: 'POST',
+          method:  'POST',
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -211,7 +261,6 @@ const SettingsPage = ({ embedded = false }) => {
       finally { setUpgradeLoading(null); }
       return;
     }
-
     setUpgradeLoading(plan);
     try {
       const token = localStorage.getItem('token');
@@ -222,25 +271,25 @@ const SettingsPage = ({ embedded = false }) => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.message);
-      if (data.configured === false) {
-        showToast('Stripe not configured yet — coming soon!', 'info');
-        return;
-      }
+      if (data.configured === false) { showToast('Stripe not configured yet — coming soon!', 'info'); return; }
       window.location.href = data.url;
     } catch (err) { showToast(err.message, 'error'); }
     finally { setUpgradeLoading(null); }
   };
 
-  const planMeta   = userData ? PLAN_META[userData.plan] || PLAN_META.free : null;
-  const limits     = userData?.limits || {};
-  const trialDays  = userData?.plan === 'trial' && userData?.plan_expires_at
+  const planMeta  = userData ? PLAN_META[userData.plan] || PLAN_META.free : null;
+  const limits    = userData?.limits || {};
+  const trialDays = userData?.plan === 'trial' && userData?.plan_expires_at
     ? Math.max(0, Math.ceil((new Date(userData.plan_expires_at) - new Date()) / (1000 * 60 * 60 * 24)))
     : null;
 
+  const avatarInitial = (userData?.name || userData?.email || 'U')[0].toUpperCase();
+
   const TABS = [
-    { id: 'account',  label: '👤 Account'      },
-    { id: 'plan',     label: '⚡ Plan & Billing' },
-    { id: 'usage',    label: '📊 Usage'         },
+    { id: 'account',  label: '👤 Account'       },
+    { id: 'security', label: '🔒 Security'       },
+    { id: 'plan',     label: '⚡ Plan & Billing'  },
+    { id: 'usage',    label: '📊 Usage'           },
   ];
 
   if (loading) return (
@@ -256,7 +305,7 @@ const SettingsPage = ({ embedded = false }) => {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-black text-gray-900 dark:text-white">Settings</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage your account, plan, and usage</p>
+          <p className="text-sm text-gray-500 mt-0.5">Manage your account, security, plan, and usage</p>
         </div>
 
         {/* Trial banner */}
@@ -288,7 +337,7 @@ const SettingsPage = ({ embedded = false }) => {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
+        <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit flex-wrap">
           {TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
@@ -306,10 +355,12 @@ const SettingsPage = ({ embedded = false }) => {
           <div className="space-y-4">
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
               <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-5">Profile</h2>
-              <div className="space-y-4">
+              <div className="space-y-5">
+
+                {/* Avatar + info */}
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-500 flex items-center justify-center text-white text-xl font-black flex-shrink-0">
-                    {(userData?.name || 'U')[0].toUpperCase()}
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-700 flex items-center justify-center text-white text-2xl font-black flex-shrink-0 shadow-lg">
+                    {avatarInitial}
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-bold text-gray-900 dark:text-white">{userData?.name}</p>
@@ -319,30 +370,177 @@ const SettingsPage = ({ embedded = false }) => {
                     </span>
                   </div>
                 </div>
+
+                {/* Name */}
                 <div>
                   <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Display Name</label>
                   <div className="flex gap-2">
-                    <input value={nameEdit} onChange={e => setNameEdit(e.target.value)}
-                      className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"/>
-                    <button onClick={handleSaveName} disabled={savingName || nameEdit === userData?.name}
+                    <input
+                      value={nameEdit}
+                      onChange={e => setNameEdit(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleSaveName()}
+                      placeholder="Your name"
+                      className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                    <button
+                      onClick={handleSaveName}
+                      disabled={savingName || nameEdit === userData?.name || !nameEdit.trim()}
                       className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold disabled:opacity-40 transition-all">
                       {savingName ? '⏳' : 'Save'}
                     </button>
                   </div>
                 </div>
+
+                {/* Email (locked) */}
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Email</label>
-                  <input value={userData?.email || ''} disabled
-                    className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 text-gray-500 text-sm rounded-xl cursor-not-allowed"/>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Email Address</label>
+                  <input
+                    value={userData?.email || ''}
+                    disabled
+                    className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 text-gray-500 text-sm rounded-xl cursor-not-allowed"
+                  />
                   <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
                 </div>
+
+                {/* Member since */}
                 <div>
                   <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Member Since</label>
                   <p className="text-sm text-gray-700 dark:text-gray-300">
-                    {userData?.created_at ? new Date(userData.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
+                    {userData?.created_at
+                      ? new Date(userData.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                      : '—'}
                   </p>
                 </div>
+
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── SECURITY TAB ── */}
+        {activeTab === 'security' && (
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-1">Change Password</h2>
+              <p className="text-xs text-gray-500 mb-5">Choose a strong password you don't use anywhere else.</p>
+
+              <div className="space-y-4">
+
+                {/* Current password */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Current Password</label>
+                  <div className="relative">
+                    <input
+                      type={showCurrent ? 'text' : 'password'}
+                      value={pwForm.current}
+                      onChange={e => setPwForm(p => ({ ...p, current: e.target.value }))}
+                      placeholder="Enter your current password"
+                      className="w-full px-3 py-2 pr-10 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrent(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs">
+                      {showCurrent ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* New password */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">New Password</label>
+                  <div className="relative">
+                    <input
+                      type={showNew ? 'text' : 'password'}
+                      value={pwForm.newPw}
+                      onChange={e => setPwForm(p => ({ ...p, newPw: e.target.value }))}
+                      placeholder="At least 8 characters"
+                      className="w-full px-3 py-2 pr-10 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNew(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs">
+                      {showNew ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+
+                  {/* Strength meter */}
+                  {pwForm.newPw && (
+                    <div className="mt-2">
+                      <div className="flex gap-1 mb-1">
+                        {[1, 2, 3, 4, 5].map(i => (
+                          <div key={i} className={`h-1 flex-1 rounded-full transition-all ${
+                            i <= strength.score ? strength.color : 'bg-gray-200 dark:bg-gray-700'
+                          }`} />
+                        ))}
+                      </div>
+                      <p className={`text-xs font-semibold ${
+                        strength.score <= 1 ? 'text-red-400' :
+                        strength.score <= 3 ? 'text-amber-400' :
+                        strength.score <= 4 ? 'text-blue-400' : 'text-emerald-400'
+                      }`}>{strength.label}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Confirm password */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Confirm New Password</label>
+                  <div className="relative">
+                    <input
+                      type={showConfirm ? 'text' : 'password'}
+                      value={pwForm.confirm}
+                      onChange={e => setPwForm(p => ({ ...p, confirm: e.target.value }))}
+                      placeholder="Repeat new password"
+                      className={`w-full px-3 py-2 pr-10 bg-gray-50 dark:bg-gray-700 border text-gray-900 dark:text-white text-sm rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none ${
+                        pwForm.confirm && pwForm.newPw !== pwForm.confirm
+                          ? 'border-red-400'
+                          : 'border-gray-300 dark:border-gray-600'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs">
+                      {showConfirm ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                  {pwForm.confirm && pwForm.newPw !== pwForm.confirm && (
+                    <p className="text-xs text-red-400 mt-1">Passwords do not match</p>
+                  )}
+                  {pwForm.confirm && pwForm.newPw === pwForm.confirm && pwForm.confirm.length > 0 && (
+                    <p className="text-xs text-emerald-400 mt-1">✓ Passwords match</p>
+                  )}
+                </div>
+
+                {/* Error */}
+                {pwError && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400">
+                    {pwError}
+                  </div>
+                )}
+
+                {/* Submit */}
+                <button
+                  onClick={handleChangePassword}
+                  disabled={pwLoading || !pwForm.current || !pwForm.newPw || !pwForm.confirm}
+                  className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white rounded-xl text-sm font-bold disabled:opacity-40 transition-all shadow-md">
+                  {pwLoading ? '⏳ Updating...' : '🔒 Update Password'}
+                </button>
+
+              </div>
+            </div>
+
+            {/* Session info */}
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-1">Session</h2>
+              <p className="text-xs text-gray-500 mb-4">You are currently logged in. Sessions expire after 7 days.</p>
+              <button
+                onClick={() => { localStorage.removeItem('token'); window.location.href = '/login'; }}
+                className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-xs font-semibold transition-all">
+                Sign Out
+              </button>
             </div>
           </div>
         )}
@@ -376,29 +574,13 @@ const SettingsPage = ({ embedded = false }) => {
                 </span>
               </div>
               <div className="space-y-5">
-                <UsageBar
-                  label="HeyGen Videos"
-                  used={userData?.videos_used || 0}
-                  limit={limits.videos || 0}
-                  color="bg-violet-500"
-                />
-                <UsageBar
-                  label="Social Posts (Distribution)"
-                  used={userData?.posts_used || 0}
-                  limit={limits.posts || 0}
-                  color="bg-blue-500"
-                />
-                <UsageBar
-                  label="Brands"
-                  used={0}
-                  limit={limits.brands || 1}
-                  color="bg-amber-500"
-                />
+                <UsageBar label="HeyGen Videos"              used={userData?.videos_used || 0} limit={limits.videos || 0}  color="bg-violet-500" />
+                <UsageBar label="Social Posts (Distribution)" used={userData?.posts_used  || 0} limit={limits.posts  || 0}  color="bg-blue-500" />
+                <UsageBar label="Brands"                     used={0}                           limit={limits.brands  || 1} color="bg-amber-500" />
               </div>
               {userData?.usage_reset_at && (
                 <p className="text-xs text-gray-500 mt-5 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  Usage resets on the 1st of every month.
-                  Last reset: {new Date(userData.usage_reset_at).toLocaleDateString()}
+                  Usage resets on the 1st of every month. Last reset: {new Date(userData.usage_reset_at).toLocaleDateString()}
                 </p>
               )}
             </div>
@@ -420,14 +602,14 @@ const SettingsPage = ({ embedded = false }) => {
                   ))}
               </div>
               {!['creator', 'studio'].includes(userData?.plan) && (
-                <button onClick={() => setActiveTab('plan')}
-                  className="mt-4 text-xs text-emerald-500 hover:text-emerald-400 font-semibold">
+                <button onClick={() => setActiveTab('plan')} className="mt-4 text-xs text-emerald-500 hover:text-emerald-400 font-semibold">
                   Upgrade to unlock more AI providers →
                 </button>
               )}
             </div>
           </div>
         )}
+
       </div>
 
       {/* Toast */}
