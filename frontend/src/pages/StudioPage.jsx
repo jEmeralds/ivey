@@ -9,8 +9,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import DistributeModal from '../components/DistributeModal';
+import ReactMarkdown from 'react-markdown'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.railway.app/api';
 const token   = () => localStorage.getItem('token');
@@ -661,13 +660,6 @@ const StudioPage = ({ embedded = false }) => {
                     className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white rounded-xl text-sm font-bold transition-all shadow-lg">
                     🚀 Post to Social Media
                   </button>
-                  <DistributeModal
-                    isOpen={distributeOpen}
-                    onClose={() => setDistributeOpen(false)}
-                    videoUrl={videoUrl}
-                    campaign={selectedCampaign}
-                    showToast={showToast}
-                  />
                 </>
               ) : (
                 <p className="text-xs text-gray-500 py-2">Complete Step 3 to unlock distribution.</p>
