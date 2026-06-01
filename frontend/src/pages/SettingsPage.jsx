@@ -8,9 +8,9 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://ivey-production.up.rail
 const PLAN_META = {
   free:    { label: 'Free',    color: 'text-gray-400',    badge: 'bg-gray-700 text-gray-300',          price: '$0'   },
   trial:   { label: 'Trial',   color: 'text-amber-400',   badge: 'bg-amber-500/20 text-amber-300',     price: 'Free' },
-  starter: { label: 'Starter', color: 'text-blue-400',    badge: 'bg-blue-500/20 text-blue-300',       price: '$19'  },
-  creator: { label: 'Creator', color: 'text-emerald-400', badge: 'bg-emerald-500/20 text-emerald-300', price: '$49'  },
-  studio:  { label: 'Studio',  color: 'text-violet-400',  badge: 'bg-violet-500/20 text-violet-300',   price: '$99'  },
+  starter: { label: 'Starter', color: 'text-blue-400',    badge: 'bg-blue-500/20 text-blue-300',       price: '$1'  },
+  creator: { label: 'Creator', color: 'text-emerald-400', badge: 'bg-emerald-500/20 text-emerald-300', price: '$2'  },
+  studio:  { label: 'Studio',  color: 'text-violet-400',  badge: 'bg-violet-500/20 text-violet-300',   price: '$3'  },
 };
 
 const PLAN_FEATURES = {
